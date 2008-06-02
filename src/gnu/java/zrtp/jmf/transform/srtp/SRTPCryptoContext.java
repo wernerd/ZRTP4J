@@ -438,29 +438,8 @@ public class SRTPCryptoContext
      * @param pkt the RTP packet to be encrypted / decrypted
      */
     public void processPacketAESF8(RawPacket pkt) {
-//        long ssrc = PacketManipulator.GetRTPSSRC(pkt);
-//        boolean isMarked = PacketManipulator.IsPacketMarked(pkt);
-//        int seqNum = PacketManipulator.GetRTPSequenceNumber(pkt);
-//        byte payload = PacketManipulator.GetRTPPayloadType(pkt);
-
         byte[] iv = new byte[16];
 
-        /* 
-        iv[1] = (byte) (isMarked ? 0x80 : 0x00);
-        iv[1] |= payload & 0x7f;
-        iv[2] = (byte) (seqNum >> 8);
-        iv[3] = (byte) seqNum;
-
-        // set the TimeStamp in network order into IV
-        byte[] timeStamp = PacketManipulator.ReadTimeStampIntoByteArray(pkt);
-        System.arraycopy(timeStamp, 0, iv, 4, 4);
-
-        // set the SSRC in network order into IV
-        iv[8] = (byte) (ssrc >> 24);
-        iv[9] = (byte) (ssrc >> 16);
-        iv[10] = (byte) (ssrc >> 8);
-        iv[11] = (byte) ssrc;
-        */
         // 11 bytes of the RTP header are the 11 bytes of the iv
         // the first byte of the RTP header is not used.
         System.arraycopy(pkt.getBuffer(), pkt.getOffset(), iv, 0, 12);
