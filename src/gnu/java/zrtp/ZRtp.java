@@ -157,13 +157,19 @@ public class ZRtp {
      */
     private byte[] rs1IDr = null;
     private byte[] rs2IDr = null;
-    private byte[] s3IDr = null;
+    private byte[] auxSecretIDr = null;
     private byte[] pbxSecretIDr = null;
 
     private byte[] rs1IDi = null;
     private byte[] rs2IDi = null;
-    private byte[] s3IDi = null;
+    private byte[] auxSecretIDi = null;
     private byte[] pbxSecretIDi = null;
+    
+    /**
+     * Remeber is valid rs1 or rs2 records were available 
+     */
+    private boolean rs1Valid = false;
+    private boolean rs2Valid = false;
     /**
      * My hvi
      */
@@ -866,7 +872,7 @@ public class ZRtp {
         zrtpDH2.setMessageType(ZrtpConstants.DHPart2Msg);
         zrtpDH2.setRs1Id(rs1IDi);
         zrtpDH2.setRs2Id(rs2IDi);
-        zrtpDH2.setS3Id(s3IDi);
+        zrtpDH2.setAuxSecretId(auxSecretIDi);
         zrtpDH2.setPbxSecretId(pbxSecretIDi);
         zrtpDH2.setPv(pubKeyBytes);
         zrtpDH2.setH1(H1);
@@ -994,7 +1000,7 @@ public class ZRtp {
         zrtpDH1.setMessageType(ZrtpConstants.DHPart1Msg);
         zrtpDH1.setRs1Id(rs1IDr);
         zrtpDH1.setRs2Id(rs2IDr);
-        zrtpDH1.setS3Id(s3IDr);
+        zrtpDH1.setAuxSecretId(auxSecretIDr);
         zrtpDH1.setPbxSecretId(pbxSecretIDr);
         zrtpDH1.setPv(pubKeyBytes);
         zrtpDH1.setH1(H1);
@@ -1795,6 +1801,7 @@ public class ZRtp {
             rs1IDr = computeHmac(randBuf, ZrtpConstants.responder,
                     ZrtpConstants.responder.length);
         } else {
+            rs1Valid = true;
             rs1IDi = computeHmac(zidRec.getRs1(), ZrtpConstants.initiator,
                     ZrtpConstants.initiator.length);
             rs1IDr = computeHmac(zidRec.getRs1(), ZrtpConstants.responder,
@@ -1808,6 +1815,7 @@ public class ZRtp {
             rs2IDr = computeHmac(randBuf, ZrtpConstants.responder,
                     ZrtpConstants.responder.length);
         } else {
+            rs2Valid = true;
             rs2IDi = computeHmac(zidRec.getRs2(), ZrtpConstants.initiator,
                     ZrtpConstants.initiator.length);
             rs2IDr = computeHmac(zidRec.getRs2(), ZrtpConstants.responder,
@@ -1820,9 +1828,9 @@ public class ZRtp {
          * check it here and use it. Otherwise use the random data.
          */
         ran.nextBytes(randBuf);
-        s3IDi = computeHmac(randBuf, ZrtpConstants.initiator,
+        auxSecretIDi = computeHmac(randBuf, ZrtpConstants.initiator,
                 ZrtpConstants.initiator.length);
-        s3IDr = computeHmac(randBuf, ZrtpConstants.responder,
+        auxSecretIDr = computeHmac(randBuf, ZrtpConstants.responder,
                 ZrtpConstants.responder.length);
 
         ran.nextBytes(randBuf);
@@ -1884,10 +1892,10 @@ public class ZRtp {
     }
 
     void generateS0Initiator(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
-        byte[][] setD = new byte[4][];
+        byte[][] setD = new byte[3][];
         int rsFound = 0;
 
-        setD[0] = setD[1] = setD[2] = setD[3] = null;
+        setD[0] = setD[1] = setD[2] = null;
 
         /*
          * Select the real secrets into setD
@@ -1896,14 +1904,23 @@ public class ZRtp {
         if (ZrtpUtils.byteArrayCompare(rs1IDr, dhPart.getRs1Id(), 8) == 0) {
             setD[matchingSecrets++] = zidRec.getRs1();
             rsFound = 0x1;
+        } 
+        else if (ZrtpUtils.byteArrayCompare(rs1IDr, dhPart.getRs2Id(), 8) == 0) {
+            setD[matchingSecrets++] = zidRec.getRs1();
+            rsFound = 0x2;
         }
-        if (ZrtpUtils.byteArrayCompare(rs2IDr, dhPart.getRs2Id(), 8) == 0) {
+        else if (ZrtpUtils.byteArrayCompare(rs2IDr, dhPart.getRs2Id(), 8) == 0) {
             setD[matchingSecrets++] = zidRec.getRs2();
-            rsFound |= 0x2;
+            rsFound |= 0x4;
         }
+        else if (ZrtpUtils.byteArrayCompare(rs2IDr, dhPart.getRs1Id(), 8) == 0) {
+            setD[matchingSecrets++] = zidRec.getRs2();
+            rsFound |= 0x8;
+        }
+
         /***********************************************************************
          * Not yet supported:
-         * if (ZrtpUtils.byteArrayCompare(s3IDr, dhPart.getS3Id(), 8) == 0) { 
+         * if (ZrtpUtils.byteArrayCompare(auxSecretIDr, dhPart.getAuxSecretId(), 8) == 0) { 
          *      setD[matchingSecrets++] = ; 
          * } 
          * if (ZrtpUtils.byteArrayCompare(pbxSecretIDr, dhPart.getPbxSecretId(), 8) == 0) {
@@ -1911,32 +1928,22 @@ public class ZRtp {
          * } 
          ********************************************************************* */
         // Check if some retained secrets found
-        if (((rsFound & 0x1) == 0x1) && ((rsFound & 0x2) == 0x2)) {
-            sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
-                    .of(ZrtpCodes.InfoCodes.InfoBothRSMatch));
-        } else {
+        if (rsFound == 0 && (rs1Valid || rs2Valid)) {
+            sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
+                    .of(ZrtpCodes.WarningCodes.WarningNoRSMatch));
             zidRec.resetSasVerified();
-
-            if (rsFound == 0) {
-                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
-                        .of(ZrtpCodes.WarningCodes.WarningNoRSMatch));
-            }
-            if (((rsFound & 0x1) == 0x1) && !((rsFound & 0x2) == 0x2)) {
-                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
-                        .of(ZrtpCodes.WarningCodes.WarningFirstRSMatch));
-            }
-            if (!((rsFound & 0x1) == 0x1) && ((rsFound & 0x2) == 0x2)) {
-                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
-                        .of(ZrtpCodes.WarningCodes.WarningSecondRSMatch));
-            }
         }
+        else {
+            sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
+                    .of(ZrtpCodes.InfoCodes.InfoRSMatchFound));
+        }
+        
         /*
          * Ready to generate s0 here. The formular to compute S0 (Refer to ZRTP
          * specification 5.4.4):
          * 
          * s0 = hash( counter | DHResult | "ZRTP-HMAC-KDF" | ZIDi | ZIDr | \
-         * total_hash | len(s1) | s1 | len(s2) | s2 | len(s3) | s3 | len(s4) | \
-         * s4)
+         * total_hash | len(s1) | s1 | len(s2) | s2 | len(s3) | s3)
          * 
          * Note: in this function we are Initiator, thus ZIDi is our zid (zid),
          * ZIDr is the peer's zid (peerZid).
@@ -1975,7 +1982,7 @@ public class ZRtp {
         byte[] nullinger = new byte[4];
         Arrays.fill(nullinger, (byte) 0);
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 3; i++) {
             if (setD[i] != null) { // a matching secret, set length, then
                                     // secret
                 sha256.update(secretHashLen);
@@ -1994,10 +2001,10 @@ public class ZRtp {
     }
 
     void generateS0Responder(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
-        byte[][] setD = new byte[4][];
+        byte[][] setD = new byte[3][];
         int rsFound = 0;
 
-        setD[0] = setD[1] = setD[2] = setD[3] = null;
+        setD[0] = setD[1] = setD[2] = null;
 
         /*
          * Select the real secrets into setD
@@ -2006,14 +2013,22 @@ public class ZRtp {
         if (ZrtpUtils.byteArrayCompare(rs1IDi, dhPart.getRs1Id(), 8) == 0) {
             setD[matchingSecrets++] = zidRec.getRs1();
             rsFound = 0x1;
+        } 
+        else if (ZrtpUtils.byteArrayCompare(rs1IDi, dhPart.getRs2Id(), 8) == 0) {
+            setD[matchingSecrets++] = zidRec.getRs1();
+            rsFound = 0x2;
         }
-        if (ZrtpUtils.byteArrayCompare(rs2IDi, dhPart.getRs2Id(), 8) == 0) {
+        else if (ZrtpUtils.byteArrayCompare(rs2IDi, dhPart.getRs2Id(), 8) == 0) {
             setD[matchingSecrets++] = zidRec.getRs2();
-            rsFound |= 0x2;
+            rsFound |= 0x4;
+        }
+        else if (ZrtpUtils.byteArrayCompare(rs2IDi, dhPart.getRs1Id(), 8) == 0) {
+            setD[matchingSecrets++] = zidRec.getRs2();
+            rsFound |= 0x8;
         }
         /***********************************************************************
          * Not yet supported 
-         * if (ZrtpUtils.byteArrayCompare(s3IDi, dhPart.getS3Id(), 8) == 0) {
+         * if (ZrtpUtils.byteArrayCompare(auxSecretIDi, dhPart.getAuxSecretId(), 8) == 0) {
          *      setD[matchingSecrets++] =
          * }
          * if (ZrtpUtils.byteArrayCompare(pbxSecretIDi, dhPart.getPbxSecretId(), 8) == 0) {
@@ -2022,32 +2037,21 @@ public class ZRtp {
          **********************************************************************/
 
         // Check if some retained secrets found
-        if (((rsFound & 0x1) == 0x1) && ((rsFound & 0x2) == 0x2)) {
-            sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
-                    .of(ZrtpCodes.InfoCodes.InfoBothRSMatch));
-        } else {
+        if (rsFound == 0 && (rs1Valid || rs2Valid)) {
+            sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
+                    .of(ZrtpCodes.WarningCodes.WarningNoRSMatch));
             zidRec.resetSasVerified();
-
-            if (rsFound == 0) {
-                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
-                        .of(ZrtpCodes.WarningCodes.WarningNoRSMatch));
-            }
-            if (((rsFound & 0x1) == 0x1) && !((rsFound & 0x2) == 0x2)) {
-                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
-                        .of(ZrtpCodes.WarningCodes.WarningFirstRSMatch));
-            }
-            if (!((rsFound & 0x1) == 0x1) && ((rsFound & 0x2) == 0x2)) {
-                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
-                        .of(ZrtpCodes.WarningCodes.WarningSecondRSMatch));
-            }
+        }
+        else {
+            sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
+                    .of(ZrtpCodes.InfoCodes.InfoRSMatchFound));
         }
         /*
          * ready to generate s0 here. The formular to compute S0 (Refer to ZRTP
          * specification 5.4.4):
          * 
          * s0 = hash( counter | DHResult | "ZRTP-HMAC-KDF" | ZIDi | ZIDr | \
-         * total_hash | len(s1) | s1 | len(s2) | s2 | len(s3) | s3 | len(s4) | \
-         * s4 )
+         * total_hash | len(s1) | s1 | len(s2) | s2 | len(s3) | s3)
          * 
          * Note: in this function we are Responder, thus ZIDi is the peer's zid
          * (peerZid), ZIDr is our zid.
@@ -2086,7 +2090,7 @@ public class ZRtp {
         byte[] nullinger = new byte[4];
         Arrays.fill(nullinger, (byte) 0);
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 3; i++) {
             if (setD[i] != null) { // a matching secret, set length, then
                                     // secret
                 sha256.update(secretHashLen);

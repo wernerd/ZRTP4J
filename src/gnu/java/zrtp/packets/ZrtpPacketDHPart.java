@@ -117,7 +117,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         return ZrtpUtils.readRegion(packetBuffer, RS2ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
         
-    public byte[] getS3Id() {
+    public byte[] getAuxSecretId() {
         return ZrtpUtils.readRegion(packetBuffer, S3_ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
 
@@ -150,7 +150,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         System.arraycopy(data, 0, packetBuffer, RS2ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
         
-    public void setS3Id(byte[] data) {
+    public void setAuxSecretId(byte[] data) {
         System.arraycopy(data, 0, packetBuffer, S3_ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
 

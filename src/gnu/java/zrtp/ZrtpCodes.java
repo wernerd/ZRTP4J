@@ -75,7 +75,7 @@ public interface ZrtpCodes {
         InfoRespDH2Received,            //!< Responder: DHPart2 received, preparing Confirm1
         InfoInitConf1Received,          //!< Initiator: Confirm1 received, preparing Confirm2
         InfoRespConf2Received,          //!< Responder: Confirm2 received, preparing Conf2Ack
-        InfoBothRSMatch,                //!< Both retained secrets match - security OK
+        InfoRSMatchFound,               //!< At least one retained secrets matches - security OK
         InfoSecureStateOn,              //!< Entered secure state
         InfoSecureStateOff;             //!< No more security for this session
     }

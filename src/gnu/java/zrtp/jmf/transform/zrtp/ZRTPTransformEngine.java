@@ -11,6 +11,7 @@ import gnu.java.zrtp.ZrtpCallback;
 import gnu.java.zrtp.ZrtpCodes;
 import gnu.java.zrtp.ZrtpSrtpSecrets;
 import gnu.java.zrtp.ZrtpUserCallback;
+import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.jmf.transform.PacketTransformer;
 import gnu.java.zrtp.jmf.transform.RawPacket;
 import gnu.java.zrtp.jmf.transform.TransformConnector;
@@ -258,9 +259,7 @@ public class ZRTPTransformEngine
     
     private boolean enableZrtp = false;
     
-    //                                         1
-    //                               0123456789012345
-    private String clientIdString = "GNU ZRTP4J 1.0.0"  ;
+    private String clientIdString = ZrtpConstants.clientId;
     
     private int ownSSRC = 0;
     
@@ -617,13 +616,13 @@ public class ZRTPTransformEngine
         }
     }
 
-    public void sendInfo(ZrtpCodes.MessageSeverity severity, EnumSet subCode) {
+    public void sendInfo(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
         if (userCallback != null) {
             userCallback.showMessage(severity, subCode);
         }
     }
 
-    public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity, EnumSet subCode) {
+    public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
         if (userCallback != null) {
             userCallback.zrtpNegotiationFailed(severity, subCode);
         }

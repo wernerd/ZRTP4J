@@ -516,32 +516,31 @@ public class ZrtpStateClass {
              * - Acknowledge peers Hello, sending HelloACK (F4)
              * - switch to state WaitCommit, wait for peer's Commit
              * - we are going to be in the Responder role
-             *
+             */
 
             if (first == 'h') {
                 // Parse Hello packet and build an own Commit packet even if the
                 // Commit is not send to the peer. We need to do this to check the
                 // Hello packet and prepare the shared secret stuff.
-                ZrtpPacketHello hpkt(pkt);
-                ZrtpPacketCommit* commit = parent->prepareCommit(&hpkt, &errorCode);
+                ZrtpPacketHello hpkt = new ZrtpPacketHello(pkt);
+                ZrtpPacketCommit commit = parent.prepareCommit(hpkt, errorCode);
 
                 // Something went wrong during processing of the Hello packet, for
                 // example wrong version, duplicate ZID.
-                if (commit == NULL) {
-                    sendErrorPacket(errorCode);
-                    return (Done);
+                if (commit == null) {
+                    sendErrorPacket(EnumSet.of(errorCode[0]));
+                    return;
                 }
-                ZrtpPacketHelloAck *helloAck = parent->prepareHelloAck();
-                nextState(WaitCommit);
+                ZrtpPacketHelloAck helloAck = parent.prepareHelloAck();
+                inState = ZrtpStates.WaitCommit;
 
-                if (!parent->sendPacketZRTP(static_cast<ZrtpPacketBase *>(helloAck))) {
-                    return sendFailed();
-                }
                 // remember packet for easy resend
-                sentPacket = static_cast<ZrtpPacketBase *>(helloAck);
-                return (Done);
+                sentPacket = helloAck;
+                if (!parent.sendPacketZRTP(helloAck)) {
+                    sendFailed();
+                }
             }
-             */
+
 
             /*
              * Implementation for choice 2)
@@ -550,7 +549,7 @@ public class ZrtpStateClass {
              *   instead of HelloAck (F4)
              * - switch to state CommitSent
              * - Initiator role, thus start timer T2 to monitor timeout for Commit
-             */
+             *
 
             if (first == 'h') {
                 // Parse peer's packet data into a Hello packet
@@ -574,6 +573,7 @@ public class ZrtpStateClass {
                     timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);
                 }
             }
+            */
             break;
 
         default:  // default Event type for this state (covers Error and ZrtpClose)
@@ -1397,8 +1397,69 @@ public class ZrtpStateClass {
         }
     }
 
+    /*
+     * WaitErrorAck state.
+     *
+     * This state belongs to the "error handling state overlay" and handles
+     * ErrorAck message. Most of the ZRTP states can send an Error message, for
+     * example if they detect wrong packets. After sending an Error message
+     * the protocol engine switches to WaitErrorAck state. Receiving an
+     * ErrorAck message completes the ZRTP error handling.
+     *
+     * When entering this transition function
+     * - sentPacket contains Error packet, Error timer active
+     *
+     * Possible events in this state are:
+     * - timeout for sent Error packet: causes a resend check and repeat sending
+     *   of Error packet
+     * - ErrorAck: Stop timer and switch to state Initial.
+     */
     protected void evWaitErrorAck() {
+        char first, last;
+        byte[] pkt;
 
+        /*
+         * First check the general event type, then discrimnate the real event.
+         */
+        switch (event.type) {
+
+        case ZrtpPacket:
+            pkt = event.packet;
+
+            first = (char) pkt[MESSAGE_OFFSET];
+            first = Character.toLowerCase(first);
+            last = (char) pkt[MESSAGE_OFFSET + 7];
+            last = Character.toLowerCase(last);
+            /*
+             * ErrorAck:
+             * - stop resending Error,
+             * - switch to state Initial
+             */
+            if (first == 'e' && last =='k') {
+                cancelTimer();
+                inState = ZrtpStates.Initial;
+                sentPacket = null;
+            }
+            break;
+        case Timer:
+            if (!parent.sendPacketZRTP(sentPacket)) {
+                sendFailed(); // returns to state Initial
+                return;
+            }
+            if (nextTimer(t2) <= 0) {
+                // returns to state initial
+                timerFailed(ZrtpCodes.SevereCodes.SevereTooMuchRetries);
+            }
+            break;
+        default: // unknown Event type for this state (covers Error and
+            // ZrtpClose)
+            if (event.type != EventDataType.ZrtpClose) {
+                parent.zrtpNegotiationFailed(ZrtpCodes.MessageSeverity.Severe,
+                        EnumSet.of(ZrtpCodes.SevereCodes.SevereProtocolError));
+            }
+            sentPacket = null;
+            inState = ZrtpStates.Initial;
+        }
     }
 
     /**
@@ -1482,21 +1543,20 @@ public class ZrtpStateClass {
      *   the value of this sub code to the peer.
      * 
      */
-    private void sendErrorPacket(EnumSet errorCode) {
+    private void sendErrorPacket(EnumSet<?> errorCode) {
+        cancelTimer();
+
         ZrtpCodes.ZrtpErrorCodes code = (ZrtpCodes.ZrtpErrorCodes) errorCode
                 .iterator().next();
         ZrtpPacketError err = parent.prepareError(code);
+        parent.zrtpNegotiationFailed(ZrtpCodes.MessageSeverity.ZrtpError,
+                errorCode);
 
-        cancelTimer();
-        if (!parent.sendPacketZRTP(err) || (startTimer(t2) <= 0)) {
-            inState = ZrtpStates.Initial;
-
-            parent.zrtpNegotiationFailed(ZrtpCodes.MessageSeverity.ZrtpError,
-                    errorCode);
-            return;
-        }
         sentPacket = err;
         inState = ZrtpStates.WaitErrorAck;
+        if (!parent.sendPacketZRTP(err) || (startTimer(t2) <= 0)) {
+            sendFailed();
+        }
     }
 
     /**

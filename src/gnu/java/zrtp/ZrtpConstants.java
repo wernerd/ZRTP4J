@@ -29,13 +29,12 @@ public class ZrtpConstants {
     
     // Number of bytes of a SHA256 hash
     public static final int SHA256_DIGEST_LENGTH = 32;
-//  1234567890123456
-//  "GNU ccRTP ZRTP  "
-    public static final byte[] clientId = {
-        (byte)0x47, (byte)0x4e, (byte)0x55, (byte)0x20, (byte)0x63, (byte)0x63, (byte)0x52, (byte)0x54,
-        (byte)0x50, (byte)0x20, (byte)0x5a, (byte)0x52, (byte)0x54, (byte)0x50, (byte)0x20, (byte)0x20};
 
-//  "0.84"
+    //                                               1
+    //                                     0123456789012345
+    public static final String clientId = "GNU ZRTP4J 1.0.0"  ;
+ 
+//  "0.85"
     public static final byte[] zrtpVersion = {
         (byte)0x30, (byte)0x2e, (byte)0x38, (byte)0x34};
 
