@@ -1909,13 +1909,13 @@ public class ZRtp {
             setD[matchingSecrets++] = zidRec.getRs1();
             rsFound = 0x2;
         }
-        else if (ZrtpUtils.byteArrayCompare(rs2IDr, dhPart.getRs2Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs2();
-            rsFound |= 0x4;
-        }
         else if (ZrtpUtils.byteArrayCompare(rs2IDr, dhPart.getRs1Id(), 8) == 0) {
             setD[matchingSecrets++] = zidRec.getRs2();
-            rsFound |= 0x8;
+            rsFound = 0x4;
+        }
+        else if (ZrtpUtils.byteArrayCompare(rs2IDr, dhPart.getRs2Id(), 8) == 0) {
+            setD[matchingSecrets++] = zidRec.getRs2();
+            rsFound = 0x8;
         }
 
         /***********************************************************************
@@ -2018,13 +2018,13 @@ public class ZRtp {
             setD[matchingSecrets++] = zidRec.getRs1();
             rsFound = 0x2;
         }
-        else if (ZrtpUtils.byteArrayCompare(rs2IDi, dhPart.getRs2Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs2();
-            rsFound |= 0x4;
-        }
         else if (ZrtpUtils.byteArrayCompare(rs2IDi, dhPart.getRs1Id(), 8) == 0) {
             setD[matchingSecrets++] = zidRec.getRs2();
-            rsFound |= 0x8;
+            rsFound = 0x4;
+        }
+        else if (ZrtpUtils.byteArrayCompare(rs2IDi, dhPart.getRs2Id(), 8) == 0) {
+            setD[matchingSecrets++] = zidRec.getRs2();
+            rsFound = 0x8;
         }
         /***********************************************************************
          * Not yet supported 
