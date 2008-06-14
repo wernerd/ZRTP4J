@@ -762,7 +762,11 @@ public class ZRTPTransformEngine
     public void setCryptoProvider(Provider cryptoProvider) {
         this.cryptoProvider = cryptoProvider;
     }
-    
+
+    public boolean isStarted() {
+       return started;
+    }
+
 /*
     public static void main(String argv[]) {
         System.err.println(System.getenv("HOMEDRIVE"));
