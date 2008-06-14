@@ -1928,16 +1928,21 @@ public class ZRtp {
          * } 
          ********************************************************************* */
         // Check if some retained secrets found
-        if (rsFound == 0 && (rs1Valid || rs2Valid)) {
-            sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
-                    .of(ZrtpCodes.WarningCodes.WarningNoRSMatch));
-            zidRec.resetSasVerified();
+        if (rsFound == 0) {                        // no RS matches found
+            if (rs1Valid || rs2Valid) {            // but valid RS records in cache
+                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
+                        .of(ZrtpCodes.WarningCodes.WarningNoExpectedRSMatch));
+                zidRec.resetSasVerified();
+            }
+            else {                                 // No valid RS record in cache
+                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
+                        .of(ZrtpCodes.WarningCodes.WarningNoRSMatch));
+            }
         }
-        else {
+        else {                                     // at least one RS matches
             sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
                     .of(ZrtpCodes.InfoCodes.InfoRSMatchFound));
         }
-        
         /*
          * Ready to generate s0 here. The formular to compute S0 (Refer to ZRTP
          * specification 5.4.4):
@@ -2037,12 +2042,18 @@ public class ZRtp {
          **********************************************************************/
 
         // Check if some retained secrets found
-        if (rsFound == 0 && (rs1Valid || rs2Valid)) {
-            sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
-                    .of(ZrtpCodes.WarningCodes.WarningNoRSMatch));
-            zidRec.resetSasVerified();
+        if (rsFound == 0) {                        // no RS matches found
+            if (rs1Valid || rs2Valid) {            // but valid RS records in cache
+                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
+                        .of(ZrtpCodes.WarningCodes.WarningNoExpectedRSMatch));
+                zidRec.resetSasVerified();
+            }
+            else {                                 // No valid RS record in cache
+                sendInfo(ZrtpCodes.MessageSeverity.Warning, EnumSet
+                        .of(ZrtpCodes.WarningCodes.WarningNoRSMatch));
+            }
         }
-        else {
+        else {                                     // at least one RS matches
             sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
                     .of(ZrtpCodes.InfoCodes.InfoRSMatchFound));
         }

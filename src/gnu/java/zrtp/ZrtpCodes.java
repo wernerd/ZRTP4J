@@ -87,12 +87,11 @@ public interface ZrtpCodes {
         WarningDHAESmismatch,           //!< Commit contains an AES256 cipher but does not offer a Diffie-Helman 4096
         WarningGoClearReceived,         //!< Received a GoClear message
         WarningDHShort,                 //!< Hello offers an AES256 cipher but does not offer a Diffie-Helman 4096
-        WarningNoRSMatch,               //!< No retained secret matches - verify SAS
-        WarningFirstRSMatch,            //!< Only the first retained secret matches - verify SAS
-        WarningSecondRSMatch,           //!< Only the second retained secret matches - verify SAS
+        WarningNoRSMatch,               //!< No retained shared secrets available - must verify SAS
         WarningCRCmismatch,             //!< Internal ZRTP packet checksum mismatch - packet dropped
         WarningSRTPauthError,           //!< Dropping packet because SRTP authentication failed!
-        WarningSRTPreplayError;         //!< Dropping packet because SRTP replay check failed!
+        WarningSRTPreplayError,         //!< Dropping packet because SRTP replay check failed!
+        WarningNoExpectedRSMatch;       //!< Valid retained shared secrets availabe but no matches found - must verify SAS
 
     }
 
