@@ -64,7 +64,7 @@ public class SimplePushStream implements PushSourceStream, PushBufferStream {
         if (buffer.getData() != null) {
             byte[] arr = (byte[]) buffer.getData();
             // System.err.println("preallocated buffer length: " + arr.length);
-            System.arraycopy(sendBytes, 0, arr, 0, sendBytes.length);
+            System.arraycopy(sendBytes, 0, arr, buffer.getOffset(), sendBytes.length);
             buffer.setLength(sendBytes.length);
         } else {
             System.arraycopy(sendBytes, 0, myBuffer, 0, myBuffer.length);
