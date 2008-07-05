@@ -36,7 +36,7 @@ public class ZrtpConstants {
  
 //  "0.85"
     public static final byte[] zrtpVersion = {
-        (byte)0x30, (byte)0x2e, (byte)0x38, (byte)0x34};
+        (byte)0x30, (byte)0x2e, (byte)0x38, (byte)0x35};
 
    /**
     * The message names as defined in ZRTP specification.
