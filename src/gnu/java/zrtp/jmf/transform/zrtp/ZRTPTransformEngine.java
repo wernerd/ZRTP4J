@@ -204,8 +204,8 @@ public class ZRTPTransformEngine
         }
         
         public void run() {
-            synchronized (sync) {
-                while (!stop) {
+            while (!stop) {
+                synchronized (sync) {
                     while (!newTask && !stop) {
                         try {
                             sync.wait();
@@ -213,8 +213,10 @@ public class ZRTPTransformEngine
                             e.printStackTrace();
                         }
                     }
-                    long endTime = System.currentTimeMillis() + nextDelay;
-                    long currentTime = System.currentTimeMillis();
+                }
+                long endTime = System.currentTimeMillis() + nextDelay;
+                long currentTime = System.currentTimeMillis();
+                synchronized (sync) {
                     while ((currentTime <= endTime) && newTask && !stop) {
                         try {
                             sync.wait(endTime - currentTime);
@@ -223,12 +225,13 @@ public class ZRTPTransformEngine
                         }
                         currentTime = System.currentTimeMillis();
                     }
-                    if (newTask && !stop) {
-                        newTask = false;
-                        executor.handleTimeout("ZRTP");
-                    }
+                }
+                if (newTask && !stop) {
+                    newTask = false;
+                    executor.handleTimeout("ZRTP");
                 }
             }
+
         }
     }
 
