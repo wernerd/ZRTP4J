@@ -232,9 +232,9 @@ public class ZrtpConstants {
     // Keep the PubKey identifers in supportedPubKey in the same order than the
     // following enum, starting with zero.
     public static enum SupportedPubKeys {
-        DH3K(1, dh3k),
+        DH3K(0, dh3k),
         END(0, null);
-        // NumSupportedPubKeys(2);
+        // NumSupportedPubKeys(1);
         
         public int value;
         public byte[] name;
