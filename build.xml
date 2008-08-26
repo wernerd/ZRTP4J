@@ -28,7 +28,9 @@
 	
     	<property name="zrtp4j-jar.name" value="${product.shortname}-${product.version}.jar"/>
     	<property name="zrtp4j-zip.name" value="${product.shortname}-${product.version}.zip"/>
-
+    	<property name="zrtp4j-full-jar.name" value="${product.shortname}-full-${product.version}.jar"/>
+		<property name="zrtp4j-src-zip.name" value="${product.shortname}-src-${product.version}.zip" />
+    	
 		<property name="jmf" value="jmf.jar" />
 		<property name="bc" value="bcprov-jdk15-139.jar" /> <!-- TODO: remove later -->
 
@@ -67,19 +69,32 @@
 
 	<target name="jar" depends="compile" 
 		description="Create the jar file for ZRTP4J" >
+	     <jar destfile="${dir.dist}/${zrtp4j-full-jar.name}" >
+	     	<fileset dir="${common-build.classes}" includes="gnu/java/**" />
+	     </jar>
 	     <jar destfile="${dir.dist}/${zrtp4j-jar.name}" >
-	     	<fileset dir="${common-build.classes}" includes="org/gnu/java/**" />
+	     	<fileset dir="${common-build.classes}" includes="gnu/java/zrtp/**" excludes="gnu/java/zrtp/jmf/**" />
 	     </jar>
 	</target>
 
 	<target name="bindist" depends="jar" description="Build zip file for ZRTP4J distribution">
 	     <zip destfile="${dir.dist}/${zrtp4j-zip.name}">
 	        <zipfileset prefix="zrtp4j" dir="."
-	          includes="LICENSES/**, README.txt, doc/**" />
+	          includes="LICENSE.txt, README.txt, doc/**, legal/**" />
+	        <zipfileset fullpath="zrtp4j/${zrtp4j-full-jar.name}" dir="${dir.dist}" 
+	          includes="${zrtp4j-full-jar.name}"/>
 	        <zipfileset fullpath="zrtp4j/${zrtp4j-jar.name}" dir="${dir.dist}" 
 	          includes="${zrtp4j-jar.name}"/>
 	      </zip>
 	</target>
+
+	<target name="srcdist" depends="init" description="Build source zip file for ZRTP4J distribution">
+        <zip destfile=
+                 "${dir.dist}/${zrtp4j-src-zip.name}">
+            <zipfileset prefix="zrtp4j" dir="."
+                includes="src/** LICENSE.txt README.txt NOTICE legal/** build.xml "/>
+        </zip>
+    </target>
 
 	<!-- Prepare directory structure for project build-->
 	<target name="prepare" depends="init">

@@ -43,8 +43,8 @@ public class TimerTest {
         }
         
         public void run() {
-            synchronized (sync) {
-                while (!stop) {
+            while (!stop) {
+                synchronized (sync) {
                     while (!newTask && !stop) {
                         System.err.println("waiting for new task");
                         try {
@@ -52,8 +52,10 @@ public class TimerTest {
                         } catch (InterruptedException e) {
                         }
                     }
-                    long endTime = System.currentTimeMillis() + nextDelay;
-                    long currentTime = System.currentTimeMillis();
+                }
+                long endTime = System.currentTimeMillis() + nextDelay;
+                long currentTime = System.currentTimeMillis();
+                synchronized (sync) {
                     while ((currentTime < endTime) && newTask && !stop) {
                         System.err.println("Got new task, wait for its timer");
                         try {
@@ -62,10 +64,10 @@ public class TimerTest {
                         }
                         currentTime = System.currentTimeMillis();
                     }
-                    if (newTask && !stop) {
-                        executor.handleTimer();
-                        newTask = false;
-                    }
+                }
+                if (newTask && !stop) {
+                    newTask = false;
+                    executor.handleTimer();
                 }
             }
             System.err.println("run done");

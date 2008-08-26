@@ -207,7 +207,7 @@ public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
             System.err.println("Buffer read exception: " + ex.getMessage());
         }
         Format fmt = buf.getFormat();
-        Class cls = fmt.getDataType();
+        Class<?> cls = fmt.getDataType();
         System.err.println("buf length: " + buf.getLength() + ", timestamp: "
                 + buf.getTimeStamp());
         // System.err.println("buffer: " + buf.getFormat().toString());
