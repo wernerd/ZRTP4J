@@ -46,15 +46,17 @@ public class TransmitterMultiZRTP {
         InetAddress ia = null;
         
         protected class MyCallback extends ZrtpUserCallback {
+            
+            String prefix = new String("");
             MyCallback() {
             }
 
             public void secureOn(String cipher) {
-                System.err.println("Tx Cipher: " + cipher);
+                System.err.println(prefix + "Tx Cipher: " + cipher);
             }
 
             public void showSAS(String sas, boolean verified) {
-                System.err.println("Tx SAS: " + sas);
+                System.err.println(prefix + "Tx SAS: " + sas);
             }
 
             public void showMessage(ZrtpCodes.MessageSeverity sev,
@@ -62,64 +64,43 @@ public class TransmitterMultiZRTP {
                 Iterator<?> ii = subCode.iterator();
                 if (sev == ZrtpCodes.MessageSeverity.Info) {
                     ZrtpCodes.InfoCodes inf = (ZrtpCodes.InfoCodes)ii.next();
-                    System.err.println("Tx show message sub code: " + inf);
+                    System.err.println(prefix + "Tx show message sub code: " + inf);
                     if (inf == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
                         senderSecond.setMultiStreamParams(senderFirst.getMultiStreamParams());
                         multiSenderThread.start();
                     }
                     return;
                 }
-                System.err.println("Tx show message sub code: " + ii.next());
+                System.err.println(prefix + "Tx show message sub code: " + ii.next());
             }
 
             public void zrtpNegotiationFailed(
                     ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
                 Iterator<?> ii = subCode.iterator();
-                System.err.println("Tx negotiation failed sub code: "
+                System.err.println(prefix + "Tx negotiation failed sub code: "
                         + ii.next());
             }
 
             public void secureOff() {
-                System.err.println("Tx Security off");
+                System.err.println(prefix + "Tx Security off");
             }
 
             public void zrtpNotSuppOther() {
-                System.err.println("Tx ZRTP not supported");
+                System.err.println(prefix + "Tx ZRTP not supported");
             }
 
+            void setPrefix(String pre) {
+                prefix = pre;
+            }
         }
 
-        protected class MyCallbackMulti extends ZrtpUserCallback {
+        protected class MyCallbackMulti extends MyCallback {
             MyCallbackMulti() {
             }
 
-            public void secureOn(String cipher) {
-                System.err.println("Tx Multi Cipher: " + cipher);
-            }
-
-            public void showSAS(String sas, boolean verified) {
-                System.err.println("Tx Multi SAS: " + sas);
-            }
-
-            public void showMessage(ZrtpCodes.MessageSeverity sev,
-                    EnumSet<?> subCode) {
+            public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
                 Iterator<?> ii = subCode.iterator();
-                System.err.println("Tx Multi show message sub code: " + ii.next());
-            }
-
-            public void zrtpNegotiationFailed(
-                    ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
-                Iterator<?> ii = subCode.iterator();
-                System.err.println("Tx Multi negotiation failed sub code: "
-                        + ii.next());
-            }
-
-            public void secureOff() {
-                System.err.println("Tx Multi Security off");
-            }
-
-            public void zrtpNotSuppOther() {
-                System.err.println("Tx Multi ZRTP not supported");
+                System.err.println(prefix + "Tx show message sub code: " + ii.next());
             }
 
         }
@@ -172,15 +153,20 @@ public class TransmitterMultiZRTP {
                 transConnector = (ZrtpTransformConnector) TransformManager
                         .createZRTPConnector(sa);
                 zrtpEngine = transConnector.getEngine();
+                
+                // IMPORTANT: crypto provider must be set before initialization
                 zrtpEngine.setCryptoProvider(cryptoProvider);
                 if (!zrtpEngine.initialize("test_r.zid"))
-                    System.err.println("TX: Initialize failed, multi: " + multiStream);
+                    System.err.println("TX: Initialize failed, multi: "
+                            + multiStream);
 
+                // IMPORTANT: set other data only _after_ initialization
                 if (multiStream) {
-                   zrtpEngine.setUserCallback(new MyCallbackMulti());
-                   zrtpEngine.setMultiStrParams(multiParams);
-                }
-                else {
+                    MyCallbackMulti mcb = new MyCallbackMulti();
+                    mcb.setPrefix("multi - ");
+                    zrtpEngine.setUserCallback(mcb);
+                    zrtpEngine.setMultiStrParams(multiParams);
+                } else {
                     zrtpEngine.setUserCallback(new MyCallback());
                 }
                 // initialize the RTPManager using the SRTP connector
@@ -188,12 +174,10 @@ public class TransmitterMultiZRTP {
                 rtpManager.addSendStreamListener(this);
 
                 // open the connection, must be done in connector
-                System.err.println("transconnector-1: " + transConnector);
                 transConnector.addTarget(target);
 
                 SendStream sendStream = rtpManager.createSendStream(dataOutput,
                         0);
-                // zrtpEngine.startZrtp();
                 sendStream.start();
             } catch (java.io.IOException ex) {
                 System.err.println("Cannot start sendStream: "
@@ -225,7 +209,7 @@ public class TransmitterMultiZRTP {
             // System.err.println("TX: SendStreamEvent received: " + evt);
             if (evt instanceof NewSendStreamEvent) {
                 SendStream ss = evt.getSendStream();
-                System.err.println("My SSRC is: " + ss.getSSRC());
+                // System.err.println("My SSRC is: " + ss.getSSRC());
                 zrtpEngine.startZrtp();
             }
         }

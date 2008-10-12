@@ -17,6 +17,8 @@ import javax.media.protocol.*;
 import javax.media.rtp.*;
 import javax.media.rtp.event.*;
 
+import demo.TransmitterMultiZRTP.SenderMulti.MyCallbackMulti;
+
 
 
 /**
@@ -33,78 +35,61 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
     ZRTPTransformEngine zrtpEngineMulti = null;
 
     protected class MyCallback extends ZrtpUserCallback {
+        String prefix = new String("");
+
         MyCallback() {
         }
         
         public void secureOn(String cipher) {
-            System.err.println("Rx Cipher: " + cipher);
+            System.err.println(prefix + "Rx Cipher: " + cipher);
         }
 
         public void showSAS(String sas, boolean verified) {
-            System.err.println("Rx SAS: " + sas);
+            System.err.println(prefix + "Rx SAS: " + sas);
         }
 
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
             Iterator<?> ii = subCode.iterator();
             if (sev == ZrtpCodes.MessageSeverity.Info) {
                 ZrtpCodes.InfoCodes inf = (ZrtpCodes.InfoCodes)ii.next();
-                System.err.println("Rx show message sub code: " + inf);
+                System.err.println(prefix + "Rx show message sub code: " + inf);
                 if (inf == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
                     initializeMulti();
                 }
                 return;
             }
-            System.err.println("Rx show message sub code: " + ii.next());
+            System.err.println(prefix + "Rx show message sub code: " + ii.next());
         }
 
         public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity,
                     EnumSet<?> subCode) {
             Iterator<?> ii = subCode.iterator();
-            System.err.println("Rx negotiation failed sub code: " + ii.next());
+            System.err.println(prefix + "Rx negotiation failed sub code: " + ii.next());
         }
         
         public void secureOff() {
-            System.err.println("Rx Security off");
+            System.err.println(prefix + "Rx Security off");
         }
 
         public void zrtpNotSuppOther() {
-            System.err.println("Rx ZRTP not supported");
+            System.err.println(prefix + "Rx ZRTP not supported");
         }
-
+        void setPrefix(String pre) {
+            prefix = pre;
+        }
     }
     
-    protected class MyCallbackMulti extends ZrtpUserCallback {
+    protected class MyCallbackMulti extends MyCallback {
         MyCallbackMulti() {
         }
         
-        public void secureOn(String cipher) {
-            System.err.println("Rx Multi Cipher: " + cipher);
-        }
-
-        public void showSAS(String sas, boolean verified) {
-            System.err.println("Rx Multi SAS: " + sas);
-        }
-
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
             Iterator<?> ii = subCode.iterator();
-            System.err.println("Rx Multi show message sub code: " + ii.next());
-        }
-
-        public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity,
-                    EnumSet<?> subCode) {
-            Iterator<?> ii = subCode.iterator();
-            System.err.println("Rx Multi negotiation failed sub code: " + ii.next());
-        }
-        
-        public void secureOff() {
-            System.err.println("Rx Multi Security off");
-        }
-
-        public void zrtpNotSuppOther() {
-            System.err.println("Rx Multi ZRTP not supported");
+            System.err.println(prefix + "Rx show message sub code: " + ii.next());
         }
 
     }
+
     private RTPManager mgr = null;
     private RTPManager mgrMulti = null;
 
@@ -189,11 +174,17 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             transConnectorMulti = (ZrtpTransformConnector) TransformManager
                     .createZRTPConnector(sa);
             zrtpEngineMulti = transConnectorMulti.getEngine();
-            zrtpEngineMulti.setUserCallback(new MyCallbackMulti());
+
+            // IMPORTANT: crypto provider must be set before initialization
             zrtpEngineMulti.setCryptoProvider(cryptoProvider);
-            
             if (!zrtpEngineMulti.initialize("test_t.zid"))
                 System.out.println("Multi iniatlize failed");
+
+            // IMPORTANT: set other data only _after_ initialization
+            MyCallbackMulti mcb = new MyCallbackMulti();
+            mcb.setPrefix("multi - ");
+            zrtpEngineMulti.setUserCallback(mcb);
+            
             byte[] multiParams = zrtpEngine.getMultiStrParams();
             zrtpEngineMulti.setMultiStrParams(multiParams);
 
