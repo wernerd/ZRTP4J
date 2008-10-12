@@ -34,9 +34,9 @@ public class ZrtpConstants {
     //                                     0123456789012345
     public static final String clientId = "GNU ZRTP4J 1.0.0"  ;
  
-//  "0.85"
+//  "0.90"
     public static final byte[] zrtpVersion = {
-        (byte)0x30, (byte)0x2e, (byte)0x38, (byte)0x35};
+        (byte)0x30, (byte)0x2e, (byte)0x39, (byte)0x30};
 
    /**
     * The message names as defined in ZRTP specification.
@@ -192,6 +192,8 @@ public class ZrtpConstants {
         (byte)0x44, (byte)0x48, (byte)0x34, (byte)0x6b};        // "DH4k"
     public static final byte[] dh3k = {
         (byte)0x44, (byte)0x48, (byte)0x33, (byte)0x6b};        // "DH3k"
+    public static final byte[] mult = {
+        (byte)0x4D, (byte)0x75, (byte)0x6c, (byte)0x74};        // "Mult"
     public static final byte[] b32 = {
         (byte)0x42, (byte)0x33, (byte)0x32, (byte)0x20};        // "B32 "
     public static final byte[] hs32 = {
@@ -233,6 +235,7 @@ public class ZrtpConstants {
     // following enum, starting with zero.
     public static enum SupportedPubKeys {
         DH3K(0, dh3k),
+        MULT(1, mult),
         END(0, null);
         // NumSupportedPubKeys(1);
         

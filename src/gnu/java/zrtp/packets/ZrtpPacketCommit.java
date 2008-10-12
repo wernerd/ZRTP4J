@@ -198,7 +198,17 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         byte[] arr = ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
         return arr;
     }
-        
+
+    public byte[] getHMACMulti() {
+        byte[] arr = ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, 2*ZRTP_WORD_SIZE);
+        return arr;
+    }
+
+    public byte[] getNonce() {
+        byte[] arr = ZrtpUtils.readRegion(packetBuffer, HVI_OFFSET, 4*ZRTP_WORD_SIZE);
+        return arr;        
+    }
+    
     public void setHashType(byte[] data) {
         System.arraycopy(data, 0, packetBuffer, HASH_OFFSET, ZRTP_WORD_SIZE);
     }
@@ -233,6 +243,25 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
     
     public void setHMAC(byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
+    }
+    
+    public void setHMACMulti(byte[] data) { 
+        System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, 2*ZRTP_WORD_SIZE);
+    }
+    /*
+     * Prepare a Commit packet for use in Multi-Stream mode
+     * 
+     * The Commit packet for multi-stream mode contains a nonce instead of the hvi
+     * and is 4 words shorter. Thus we need to do a resize of the packet buffer
+     * and an adjustement of the length.
+     */
+    public void setNonce(byte[] data) {
+        byte[] temp = new byte[COMMIT_LENGTH-4*ZRTP_WORD_SIZE];
+        System.arraycopy(packetBuffer, 0, temp, 0, COMMIT_LENGTH-4*ZRTP_WORD_SIZE);
+        packetBuffer = temp;
+        
+        System.arraycopy(data, 0, packetBuffer, HVI_OFFSET, 4*ZRTP_WORD_SIZE);
+        setLength(ZRTP_HEADER_LENGTH + ZRTP_COMMIT_LENGTH - 4);
     }
     
     public static void main(String[] args) {

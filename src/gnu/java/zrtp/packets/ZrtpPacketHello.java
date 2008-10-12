@@ -365,6 +365,25 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return ZrtpConstants.SupportedAuthLengths.HS32;
     }
 
+    public boolean checkMultiStream() {
+        // Multi Stream mode is mandatory, thus if nothing is offered then it is
+        // supported :-)
+        if (nPubkey == 0)
+            return true;
+
+        byte[] s = ZrtpConstants.SupportedPubKeys.MULT.name;
+        // Loop over offer pub key data
+        for (int ii = 0; ii < nPubkey; ii++) {
+            int o = oPubkey + (ii * ZRTP_WORD_SIZE);
+            if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o + 1]
+                    && s[2] == packetBuffer[o + 2]
+                    && s[3] == packetBuffer[o + 3]) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     public int getNAuth() {
         return nAuth;
     }

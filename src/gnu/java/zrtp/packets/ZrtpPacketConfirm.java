@@ -61,7 +61,7 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
     }
 
     public void setSignatureLength(int sl) {
-        if (sl > 255) {
+        if (sl > 512) {
             return;                     // TODO throw exception here ?
         }
         signatureLength = sl;
@@ -79,6 +79,9 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
             packetBuffer = tmp;
         }
         packetBuffer[SIG_LENGTH_OFFSET] = (byte)sl;
+        if (sl > 255) {
+            packetBuffer[FILLER_OFFSET+1] = 1;  // set 9th bit if necessary
+        }
         setLength((length-CRC_SIZE) / 4);
         setZrtpId();
     }
@@ -86,6 +89,9 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
     public ZrtpPacketConfirm(byte[] data) {
         super(data);
         signatureLength = packetBuffer[SIG_LENGTH_OFFSET] & 0xff;
+        if (packetBuffer[FILLER_OFFSET+1] == 1) {  // if we have a 9th bit - set it
+            signatureLength |= 0x100;
+        }
     }
 
     

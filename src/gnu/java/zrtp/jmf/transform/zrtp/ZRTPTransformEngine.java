@@ -340,6 +340,7 @@ public class ZRTPTransformEngine
         } catch (GeneralSecurityException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+            return false;
         }
         return true;
     }
@@ -579,12 +580,12 @@ public class ZRTPTransformEngine
 
     public void srtpSecretsOn(String c, String s, boolean verified) {
 
-      if (userCallback != null) {
-        userCallback.secureOn(c);
-      }
-      if (userCallback != null) {
-        userCallback.showSAS(s, verified);
-      }
+        if (userCallback != null) {
+            userCallback.secureOn(c);
+        }
+        if (userCallback != null && s != null) {
+            userCallback.showSAS(s, verified);
+        }
     }
 
     public void srtpSecretsOff(EnableSecurity part) {

@@ -21,12 +21,17 @@ import javax.media.rtp.event.*;
 
 /**
  */
-public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
+public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener,
         BufferTransferHandler {
 
+    Provider cryptoProvider = null;
+    
     ZrtpTransformConnector transConnector = null;
     ZRTPTransformEngine zrtpEngine = null;
-    
+
+    ZrtpTransformConnector transConnectorMulti = null;
+    ZRTPTransformEngine zrtpEngineMulti = null;
+
     protected class MyCallback extends ZrtpUserCallback {
         MyCallback() {
         }
@@ -42,10 +47,12 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
             Iterator<?> ii = subCode.iterator();
             if (sev == ZrtpCodes.MessageSeverity.Info) {
-                if (ii.next() == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
-                    System.err.println("Rx show message sub code: " + ZrtpCodes.InfoCodes.InfoSecureStateOn);
-                    return;
+                ZrtpCodes.InfoCodes inf = (ZrtpCodes.InfoCodes)ii.next();
+                System.err.println("Rx show message sub code: " + inf);
+                if (inf == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
+                    initializeMulti();
                 }
+                return;
             }
             System.err.println("Rx show message sub code: " + ii.next());
         }
@@ -66,9 +73,42 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
 
     }
     
-    private RTPManager mgr = null;
+    protected class MyCallbackMulti extends ZrtpUserCallback {
+        MyCallbackMulti() {
+        }
+        
+        public void secureOn(String cipher) {
+            System.err.println("Rx Multi Cipher: " + cipher);
+        }
 
-    public ReceiverZRTP() {
+        public void showSAS(String sas, boolean verified) {
+            System.err.println("Rx Multi SAS: " + sas);
+        }
+
+        public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
+            Iterator<?> ii = subCode.iterator();
+            System.err.println("Rx Multi show message sub code: " + ii.next());
+        }
+
+        public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity,
+                    EnumSet<?> subCode) {
+            Iterator<?> ii = subCode.iterator();
+            System.err.println("Rx Multi negotiation failed sub code: " + ii.next());
+        }
+        
+        public void secureOff() {
+            System.err.println("Rx Multi Security off");
+        }
+
+        public void zrtpNotSuppOther() {
+            System.err.println("Rx Multi ZRTP not supported");
+        }
+
+    }
+    private RTPManager mgr = null;
+    private RTPManager mgrMulti = null;
+
+    public ReceiverMultiZRTP() {
     }
 
     public void run() {
@@ -79,7 +119,6 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
      * Initializes a RTP/ZRTP/SRTP session
      */
     protected void initialize() {
-        Provider cryptoProvider = null;
         try {
             Class<?> c = Class
                     .forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
@@ -133,6 +172,48 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
         }
     }
 
+    protected void initializeMulti() {
+
+        InetAddress ia = null;
+        try {
+            ia = InetAddress.getByName("localhost");
+        } catch (java.net.UnknownHostException ex) {
+            System.err.println("Unknown local host: " + ex.getMessage());
+        }
+        System.err.println("Multi Internet address: " + ia);
+        SessionAddress sa = new SessionAddress(ia, 5002+10);
+        SessionAddress target = new SessionAddress(ia, 5004+10);
+
+        try {
+            // create a ZRTP connector with own bind address
+            transConnectorMulti = (ZrtpTransformConnector) TransformManager
+                    .createZRTPConnector(sa);
+            zrtpEngineMulti = transConnectorMulti.getEngine();
+            zrtpEngineMulti.setUserCallback(new MyCallbackMulti());
+            zrtpEngineMulti.setCryptoProvider(cryptoProvider);
+            
+            if (!zrtpEngineMulti.initialize("test_t.zid"))
+                System.out.println("Multi iniatlize failed");
+            byte[] multiParams = zrtpEngine.getMultiStrParams();
+            zrtpEngineMulti.setMultiStrParams(multiParams);
+
+            // initialize the RTPManager using the ZRTP connector
+
+            mgrMulti = RTPManager.newInstance();
+            mgrMulti.initialize(transConnectorMulti);
+
+            mgrMulti.addSessionListener(this);
+            mgrMulti.addReceiveStreamListener(this);
+
+            transConnectorMulti.addTarget(target);
+            zrtpEngineMulti.startZrtp();
+        } catch (Exception e) {
+            System.err.println("Cannot create the Multi RTP Session: "
+                    + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Closes the players and the session manager.
      */
@@ -155,7 +236,7 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
      * @see javax.media.rtp.SessionListener#update(javax.media.rtp.event.SessionEvent)
      */
     public synchronized void update(SessionEvent evt) {
-        System.err.println("RX: SessionEvent received: " + evt);
+        // System.err.println("RX: SessionEvent received: " + evt);
         if (evt instanceof NewParticipantEvent) {
             // nothing to do
         }
@@ -172,7 +253,7 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
      */
     public synchronized void update(ReceiveStreamEvent evt) {
 
-        System.err.println("RX: ReceiveStreamEvent received: " + evt);
+//        System.err.println("RX: ReceiveStreamEvent received: " + evt);
 //        RTPManager mgr = (RTPManager) evt.getSource();
         Participant participant = evt.getParticipant(); // could be null.
         ReceiveStream stream = null;
@@ -248,7 +329,7 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
 
     public static void main(String[] args) {
 
-        ReceiverZRTP rcv = new ReceiverZRTP();
+        ReceiverMultiZRTP rcv = new ReceiverMultiZRTP();
         //	rcv.start();
         rcv.run();
         try {

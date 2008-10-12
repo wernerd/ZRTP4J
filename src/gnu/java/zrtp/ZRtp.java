@@ -570,12 +570,12 @@ public class ZRtp {
      * multi-stream mode.
      * 
      * @param parameters
-     *            A string that contains the multi-stream parameters that this
-     *            new ZrtpQueue instanace shall use. See also
+     *            A byte array that contains the multi-stream parameters. See also
      *            <code>getMultiStrParams()</code>
      */
     public void setMultiStrParams(byte[] parameters) {
 
+        zrtpSession = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
         System.arraycopy(parameters, 0, zrtpSession, 0,
                 ZrtpConstants.SHA256_DIGEST_LENGTH);
         for (ZrtpConstants.SupportedSymCiphers c : ZrtpConstants.SupportedSymCiphers
@@ -592,6 +592,8 @@ public class ZRtp {
                 break;
             }
         }
+        multiStream = true;
+        stateEngine.setMultiStream(true);
     }
 
     /**
@@ -806,13 +808,27 @@ public class ZRtp {
          * and put them into the Commit packet. Refer to the findBest*()
          * functions.
          */
-        cipher = hello.findBestCipher();
         hash = hello.findBestHash();
-        pubKey = hello.findBestPubkey();
-        System.err.println("best pubkey: " + pubKey);
-
         sasType = hello.findBestSASType();
-        authLength = hello.findBestAuthLen();
+
+        if (!multiStream) {
+            authLength = hello.findBestAuthLen();
+            cipher = hello.findBestCipher();
+            pubKey = hello.findBestPubkey();            
+        }
+        else {
+            if (hello.checkMultiStream()) {
+                return prepareCommitMultiStream(hello);
+            }
+            else {
+                // we are in multi-stream but peer does not offer multi-stream
+                // switch off multi-stream and fall back to DH mode
+                multiStream = false;
+                authLength = hello.findBestAuthLen();
+                cipher = hello.findBestCipher();
+                pubKey = hello.findBestPubkey();            
+            }
+        }
 
         // Generate the DH data and keys according to the selected DH algorithm
         int maxPubKeySize;
@@ -887,8 +903,6 @@ public class ZRtp {
         // Compute the HVI, refer to chapter 5.4.1.1 of the specification
         computeHvi(zrtpDH2, hello);
 
-        // setHashType(sh.value, sh.name);
-
         zrtpCommit.setZid(zid);
         zrtpCommit.setHashType(hash.name);
         zrtpCommit.setCipherType(cipher.name);
@@ -900,7 +914,7 @@ public class ZRtp {
 
         len = zrtpCommit.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
 
-        // Compute HMAC over Hello, excluding the HMAC field (2*ZTP_WORD_SIZE)
+        // Compute HMAC over Commit, excluding the HMAC field (2*ZTP_WORD_SIZE)
         // and store in Hello
         hmac = computeMsgHmac(H1, zrtpCommit);
         zrtpCommit.setHMAC(hmac);
@@ -914,6 +928,41 @@ public class ZRtp {
 
         // store Hello data temporarily until we can check HMAC after receiving
         // Commit as
+        // Responder or DHPart1 as Initiator 
+        storeMsgTemp(hello);
+        return zrtpCommit;
+    }
+
+    protected ZrtpPacketCommit prepareCommitMultiStream(ZrtpPacketHello hello) {
+        
+        Random ran = new Random();
+        byte[] nonce = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+        ran.nextBytes(nonce);
+
+        zrtpCommit.setZid(zid);
+        zrtpCommit.setHashType(hash.name);
+        zrtpCommit.setCipherType(cipher.name);
+        zrtpCommit.setAuthLen(authLength.name);
+        zrtpCommit.setPubKeyType(ZrtpConstants.SupportedPubKeys.MULT.name);
+        zrtpCommit.setSasType(sasType.name);
+        zrtpCommit.setNonce(nonce);
+        zrtpCommit.setH2(H2);
+
+        int len = zrtpCommit.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
+
+        // Compute HMAC over Commit, excluding the HMAC field (2*ZTP_WORD_SIZE)
+        // and store in Hello
+        byte[] hmac = computeMsgHmac(H1, zrtpCommit);
+        zrtpCommit.setHMACMulti(hmac);
+        
+        // hash first messages to produce overall message hash
+        // First the Responder's Hello message, second the Commit 
+        // (always Initator's)
+        msgShaContext.update(hello.getHeaderBase(), 0, hello.getLength()
+                * ZrtpPacketBase.ZRTP_WORD_SIZE);
+        msgShaContext.update(zrtpCommit.getHeaderBase(), 0, len);
+
+        // store Hello data temporarily until we can check HMAC after receiving Commit as
         // Responder or DHPart1 as Initiator 
         storeMsgTemp(hello);
         return zrtpCommit;
@@ -1044,7 +1093,7 @@ public class ZRtp {
      * response to our Commit packet. Thus we are in the role of the Initiator.
      * 
      */
-    ZrtpPacketDHPart prepareDHPart2(ZrtpPacketDHPart dhPart1,
+    protected ZrtpPacketDHPart prepareDHPart2(ZrtpPacketDHPart dhPart1,
             ZrtpCodes.ZrtpErrorCodes[] errMsg) {
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
                 .of(ZrtpCodes.InfoCodes.InfoInitDH1Received));
@@ -1121,7 +1170,7 @@ public class ZRtp {
         zidf.getRecord(zidRec);
 
         // Now compute the S0, all dependend keys and the new RS1
-        generateS0Initiator(dhPart1, zidRec);
+        generateKeysInitiator(dhPart1, zidRec);
         zidf.saveRecord(zidRec);
         
         dhContext = null;
@@ -1216,7 +1265,7 @@ public class ZRtp {
          * DHPart1 packet. Generate s0, all depended keys, and the new RS1 value
          * for the ZID record.
          */
-        generateS0Responder(dhPart2, zidRec);
+        generateKeysResponder(dhPart2, zidRec);
         zidf.saveRecord(zidRec);
 
         dhContext = null;
@@ -1260,6 +1309,81 @@ public class ZRtp {
         return zrtpConfirm1;
     }
 
+    /*
+     * At this point we are Responder.
+     */
+    protected ZrtpPacketConfirm prepareConfirm1MultiStream(ZrtpPacketCommit commit, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
+
+        sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoRespCommitReceived));
+
+        // In multi stream mode we don't get a DH packt. Thus we need to recompute
+        // the hash chain starting with Commit's H2
+        peerH2 = commit.getH2();
+        byte[] tmpH3 = sha256.digest(peerH2);
+        if (ZrtpUtils.byteArrayCompare(tmpH3, peerH3, ZrtpConstants.SHA256_DIGEST_LENGTH) != 0) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.IgnorePacket;
+            return null;
+        }
+
+        // Check HMAC of previous Hello packet stored in temporary buffer. The
+        // HMAC key of peer's Hello packet is peer's H2 that is contained in the 
+        // Commit packet. Refer to chapter 9.1.
+        if (!checkMsgHmac(peerH2)) {
+            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet.of(ZrtpCodes.SevereCodes.SevereCommitHMACFailed));
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
+
+        myRole = ZrtpCallback.Role.Responder;
+        // We are responder. Reset message SHA context
+        msgShaContext.reset();
+        // Hash messages to produce overall message hash:
+        // First the Responder's (my) Hello message, second the Commit
+        // (always Initator's)
+        msgShaContext.update(zrtpHello.getHeaderBase(), 0, zrtpHello
+                .getLength()
+                * ZrtpPacketBase.ZRTP_WORD_SIZE);
+        msgShaContext.update(commit.getHeaderBase(), 0, commit.getLength()
+                * ZrtpPacketBase.ZRTP_WORD_SIZE);
+        messageHash = msgShaContext.digest();
+        msgShaContext = null;
+
+        generateKeysMultiStream();
+
+        // Fill in Confirm1 packet.
+        zrtpConfirm1.setMessageType(ZrtpConstants.Confirm1Msg);
+        zrtpConfirm1.setSignatureLength(0);
+        zrtpConfirm1.setExpTime(0xFFFFFFFF);
+        zrtpConfirm1.setIv(randomIV);
+        zrtpConfirm1.setHashH0(H0);
+
+        // Encrypt and HMAC with Responder's key - we are Respondere here
+        // see ZRTP specification chapter xYxY
+        byte[] dataToSecure = zrtpConfirm1.getDataToSecure();
+        int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16 : 32;
+
+        SecretKey encryptionKey = new SecretKeySpec(zrtpKeyR, 0, keylen, "AES");
+        IvParameterSpec ivp = new IvParameterSpec(randomIV);
+        
+        try {
+            AEScipher.init(Cipher.ENCRYPT_MODE, encryptionKey, ivp);
+            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length, dataToSecure);
+        } catch (GeneralSecurityException e) {
+            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
+                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
+        byte[] confMac = computeHmac(hmacKeyR, dataToSecure, dataToSecure.length);
+        zrtpConfirm1.setDataToSecure(dataToSecure);
+        zrtpConfirm1.setHmac(confMac);
+
+        // Store Commit data temporarily until we can check HMAC after receiving Confirm2
+        storeMsgTemp(commit);
+        return zrtpConfirm1;
+    }
+
+    
     /**
      * Prepare the Confirm2 packet.
      *
@@ -1369,6 +1493,106 @@ public class ZRtp {
         return zrtpConfirm2;
     }
 
+    /*
+     * At this point we are Initiator.
+     */
+    /**
+     * @param confirm1
+     * @param errMsg
+     * @return
+     */
+    protected ZrtpPacketConfirm prepareConfirm2MultiStream(ZrtpPacketConfirm confirm1, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
+
+        // check Confirm1 packet using the keys
+        // prepare Confirm2 packet
+        // don't update SAS, RS
+        sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoInitConf1Received));
+
+        messageHash = msgShaContext.digest();
+        msgShaContext = null;
+
+        myRole = ZrtpCallback.Role.Initiator;
+
+        generateKeysMultiStream();
+
+        // Use the Responder's keys here to decrypt because we are 
+        // Initiator and receive packets from Responder
+        int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16 : 32;
+        byte[] dataToSecure = confirm1.getDataToSecure();
+        
+        byte[] confMac = computeHmac(hmacKeyR, dataToSecure, dataToSecure.length);
+        
+        if (ZrtpUtils.byteArrayCompare(confMac, confirm1.getHmac(), 2*ZrtpPacketBase.ZRTP_WORD_SIZE) != 0) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.ConfirmHMACWrong;
+            return null;
+        }
+        SecretKey decryptionKey = new SecretKeySpec(zrtpKeyR, 0, keylen, "AES");
+        IvParameterSpec ivp = new IvParameterSpec(confirm1.getIv());
+        
+        try {
+            AEScipher.init(Cipher.DECRYPT_MODE, decryptionKey, ivp);
+            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length, dataToSecure);
+        } catch (GeneralSecurityException e) {
+            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
+                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
+        confirm1.setDataToSecure(dataToSecure);
+        
+        // Because we are initiator the protocol engine didn't receive Commit and
+        // because we are using multi-stream mode here we also did not receive a DHPart1 and
+        // thus could not store a responder's H2 or H1. A three step SHA256 is required to 
+        // re-compute H1, H2, and H3. Then compare with peer's H3 from peer's Hello packet.
+        byte[] tmpHash = sha256.digest(confirm1.getHashH0()); // Compute peer's H1 in tmpHash
+        peerH2 = sha256.digest(tmpHash);               // Compute peer's H2
+//        tmpHash = sha256.digest(peerH2);               // Compute peer's H3 (tmpHash)
+//        if (ZrtpUtils.byteArrayCompare(tmpHash, peerH3, ZrtpConstants.SHA256_DIGEST_LENGTH) != 0) {
+//            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.IgnorePacket;
+//            return null;
+//        }
+
+        // Check HMAC of previous Hello packet stored in temporary buffer. The
+        // HMAC key of the Hello packet is peer's H2 that was computed above.
+        // Refer to chapter 9.1 and chapter 10.
+        if (!checkMsgHmac(peerH2)) {
+            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet.of(ZrtpCodes.SevereCodes.SevereHelloHMACFailed));
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
+        String cs = new String((cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128" : "AES-CM-256");
+        // Inform GUI about security state, don't show SAS and its state
+        callback.srtpSecretsOn(cs, null, true);
+
+        // now generate my Confirm2 message
+        zrtpConfirm2.setMessageType(ZrtpConstants.Confirm2Msg);
+        zrtpConfirm2.setSignatureLength(0);
+        zrtpConfirm2.setHashH0(H0); 
+        zrtpConfirm2.setExpTime(0xFFFFFFFF);
+        zrtpConfirm2.setIv(randomIV);
+
+        // Encrypt and HMAC with Initiator's key - we are Initiator here
+        dataToSecure = zrtpConfirm2.getDataToSecure();
+
+        SecretKey encryptionKey = new SecretKeySpec(zrtpKeyI, 0, keylen, "AES");
+        ivp = new IvParameterSpec(randomIV);
+        
+        try {
+            AEScipher.init(Cipher.ENCRYPT_MODE, encryptionKey, ivp);
+            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length, dataToSecure);
+        } catch (GeneralSecurityException e) {
+            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
+                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
+        confMac = computeHmac(hmacKeyI, dataToSecure, dataToSecure.length);
+        zrtpConfirm2.setDataToSecure(dataToSecure);
+        zrtpConfirm2.setHmac(confMac);
+        
+        return zrtpConfirm2;
+    }
+    
     /**
      * Prepare the Conf2Ack packet.
      * 
@@ -1410,44 +1634,67 @@ public class ZRtp {
             return null;
         }
         confirm2.setDataToSecure(dataToSecure);
-        // Check HMAC of DHPart2 packet stored in temporary buffer. The
-        // HMAC key of the DHPart2 packet is peer's H0 that is contained in
-        // Confirm2. Refer to chapter 9.1 and chapter 10.
-        if (!checkMsgHmac(confirm2.getHashH0())) {
-            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
-                    .of(ZrtpCodes.SevereCodes.SevereDH2HMACFailed));
-            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
-            return null;
+
+        if (!multiStream) {
+            // Check HMAC of DHPart2 packet stored in temporary buffer. The
+            // HMAC key of the DHPart2 packet is peer's H0 that is contained in
+            // Confirm2. Refer to chapter 9.1 and chapter 10.
+            if (!checkMsgHmac(confirm2.getHashH0())) {
+                sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
+                        .of(ZrtpCodes.SevereCodes.SevereDH2HMACFailed));
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+                return null;
+            }
+            /*
+             * The Confirm2 is ok, handle the Retained secret stuff and inform
+             * GUI about state.
+             */
+            boolean sasFlag = confirm2.isSASFlag();
+
+            // Initialize a ZID record to get peer's retained secrets
+            ZidRecord zidRec = new ZidRecord(peerZid);
+
+            ZidFile zidf = ZidFile.getInstance();
+            zidf.getRecord(zidRec);
+
+            // Our peer did not confirm the SAS in last session, thus reset
+            // our SAS flag too.
+            if (!sasFlag) {
+                zidRec.resetSasVerified();
+            }
+
+            // Inform GUI about security state and SAS state
+            boolean sasVerified = zidRec.isSasVerified();
+            String cs = new String(
+                    (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128"
+                            : "AES-CM-256");
+            callback.srtpSecretsOn(cs, SAS, sasVerified);
+
+            // save new RS1, this inherits the verified flag from old RS1
+            zidRec.setNewRs1(newRs1, -1);
+            zidf.saveRecord(zidRec);
+        } 
+        else {
+            byte[] tmpHash = sha256.digest(confirm2.getHashH0()); // Compute initiator's H1 in tmpHash
+            /*
+             * sha256(tmpHash, SHA256_DIGEST_LENGTH, tmpH2); // Compute initiator's H2
+             * 
+             * if (memcmp(tmpH2, peerH2, SHA256_DIGEST_LENGTH) != 0) { errMsg =
+             * IgnorePacket; return NULL; }
+             */
+            if (!checkMsgHmac(tmpHash)) {
+                sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
+                        .of(ZrtpCodes.SevereCodes.SevereCommitHMACFailed));
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+                return null;
+            }
+            String cs = new String(
+                    (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128"
+                            : "AES-CM-256");
+            // Inform GUI about security state, don't show SAS and its state
+            callback.srtpSecretsOn(cs, null, true);
+
         }
-        /*
-         * The Confirm2 is ok, handle the Retained secret stuff and inform GUI
-         * about state.
-         */
-        boolean sasFlag = confirm2.isSASFlag();
-
-        // Initialize a ZID record to get peer's retained secrets
-        ZidRecord zidRec = new ZidRecord(peerZid);
-
-        ZidFile zidf = ZidFile.getInstance();
-        zidf.getRecord(zidRec);
-
-        // Our peer did not confirm the SAS in last session, thus reset
-        // our SAS flag too.
-        if (!sasFlag) {
-            zidRec.resetSasVerified();
-        }
-
-        // Inform GUI about security state and SAS state
-        boolean sasVerified = zidRec.isSasVerified();
-        String cs = new String(
-                (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128"
-                        : "AES-CM-256");
-        callback.srtpSecretsOn(cs, SAS, sasVerified);
-
-        // save new RS1, this inherits the verified flag from old RS1
-        zidRec.setNewRs1(newRs1, -1);
-        zidf.saveRecord(zidRec);
-
         return zrtpConf2Ack;
     }
 
@@ -1519,8 +1766,11 @@ public class ZRtp {
      *         important" 0 shouldn't happen because we compare crypto hashes
      */
     protected int compareCommit(ZrtpPacketCommit commit) {
-        return (ZrtpUtils.byteArrayCompare(hvi, commit.getHvi(),
-                ZrtpConstants.SHA256_DIGEST_LENGTH));
+        // TODO: enhance to compare according to rules defined in chapter 5.2
+        // This would imply that we have to reset multi-stream mode if the other
+        // peer sends a Commit with DH mode - ist this possible?
+        int len = !multiStream ? ZrtpConstants.SHA256_DIGEST_LENGTH : (4 * ZrtpPacketBase.ZRTP_WORD_SIZE);
+        return (ZrtpUtils.byteArrayCompare(hvi, commit.getHvi(), len));
     }
 
     /**
@@ -1840,7 +2090,13 @@ public class ZRtp {
                 ZrtpConstants.responder.length);
     }
 
-    void computeSRTPKeys() {
+    private void generateKeysMultiStream() {
+        // Compute the Multi Stream mode s0
+        s0 = computeHmac(zrtpSession, messageHash, messageHash.length);
+        computeSRTPKeys();
+    }
+
+    private void computeSRTPKeys() {
 
         // Inititiator key and salt
         srtpKeyI = computeHmac(s0, ZrtpConstants.iniMasterKey,
@@ -1891,7 +2147,7 @@ public class ZRtp {
         SAS = Base32.binary2ascii(sasBytes, 20);
     }
 
-    void generateS0Initiator(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
+    private void generateKeysInitiator(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
         byte[][] setD = new byte[3][];
         int rsFound = 0;
 
@@ -2005,7 +2261,7 @@ public class ZRtp {
         computeSRTPKeys();
     }
 
-    void generateS0Responder(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
+    private void generateKeysResponder(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
         byte[][] setD = new byte[3][];
         int rsFound = 0;
 

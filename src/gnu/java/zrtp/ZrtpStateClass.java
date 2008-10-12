@@ -700,19 +700,33 @@ public class ZrtpStateClass {
                 ZrtpPacketCommit cpkt = new ZrtpPacketCommit(pkt);
                 ZrtpPacketDHPart dhPart1 = parent.prepareDHPart1(cpkt, errorCode);
 
-                // Error detected during processing of received commit packet
-                if (dhPart1 == null) {
-                    if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                        sendErrorPacket(EnumSet.of(errorCode[0]));
+                if (!multiStream) {
+                    // Error detected during processing of received commit
+                    // packet
+                    if (dhPart1 == null) {
+                        if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
+                            sendErrorPacket(EnumSet.of(errorCode[0]));
+                        }
+                        return;
                     }
-                    return;
-                }
-                commitPkt = null;
-                sentPacket = null;
-                inState = ZrtpStates.WaitDHPart2;
+                    commitPkt = null;
+                    inState = ZrtpStates.WaitDHPart2;
 
-                // remember packet for easy resend in new state
-                sentPacket = dhPart1;
+                    // remember packet for easy resend in new state
+                    sentPacket = dhPart1;
+                } else {
+                    ZrtpPacketConfirm confirm = parent.prepareConfirm1MultiStream(cpkt, errorCode);
+
+                    // Something went wrong during processing of the Commit packet
+                    if (confirm == null) {
+                        if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
+                            sendErrorPacket(EnumSet.of(errorCode[0]));
+                        }
+                        return;
+                    }
+                    sentPacket = confirm;
+                    inState = ZrtpStates.WaitConfirm2;
+                }
                 if (!parent.sendPacketZRTP(sentPacket)) {
                     sendFailed();      // returns to state Initial
                 }
@@ -799,25 +813,41 @@ public class ZrtpStateClass {
             }
             /*
              * Commit:
-             * - prepare DH1Part packet
+             * - prepare DH1Part packet or Confirm1 if multi stream mode
              * - send it to peer
-             * - switch state to WaitDHPart2
+             * - switch state to WaitDHPart2 or WaitConfirm2 if multi stream mode
              * - don't start timer, we are responder
              */
             if (first == 'c') {
                 ZrtpPacketCommit cpkt = new ZrtpPacketCommit(pkt);
-                ZrtpPacketDHPart dhPart1 = parent.prepareDHPart1(cpkt, errorCode);
+                
+                if (!multiStream) {
+                    ZrtpPacketDHPart dhPart1 = parent.prepareDHPart1(cpkt,
+                            errorCode);
 
-                // Something went wrong during processing of the Commit packet
-                if (dhPart1 == null) {
-                    if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                        sendErrorPacket(EnumSet.of(errorCode[0]));
+                    // Something went wrong during processing of the Commit
+                    // packet
+                    if (dhPart1 == null) {
+                        if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
+                            sendErrorPacket(EnumSet.of(errorCode[0]));
+                        }
+                        return;
                     }
-                    return;
-                }
-                sentPacket = dhPart1;
-                inState =ZrtpStates.WaitDHPart2;
+                    sentPacket = dhPart1;
+                    inState = ZrtpStates.WaitDHPart2;
+                } else {
+                    ZrtpPacketConfirm confirm = parent.prepareConfirm1MultiStream(cpkt, errorCode);
 
+                    // Something went wrong during processing of the Commit packet
+                    if (confirm == null) {
+                        if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
+                            sendErrorPacket(EnumSet.of(errorCode[0]));
+                        }
+                        return;
+                    }
+                    sentPacket = confirm;
+                    inState = ZrtpStates.WaitConfirm2;
+                }
                 if (!parent.sendPacketZRTP(sentPacket)) {
                     sendFailed();       // returns to state Initial
                 }
@@ -898,7 +928,7 @@ public class ZrtpStateClass {
              *   - prepare and send DH1Packt,
              *   - switch to state WaitDHPart2, implies Responder path
              */
-            if (first == 'c') {
+            if (first == 'c' && last == ' ') {
                 ZrtpPacketCommit zpCo = new ZrtpPacketCommit(pkt);
 
                 if (!parent.verifyH2(zpCo)) {
@@ -912,18 +942,34 @@ public class ZrtpStateClass {
                 // necessary
                 //
                 if (parent.compareCommit(zpCo) < 0) {
-                    ZrtpPacketDHPart dhPart1 = parent.prepareDHPart1(zpCo, errorCode);
+                    if (!multiStream) {
+                        ZrtpPacketDHPart dhPart1 = parent.prepareDHPart1(zpCo,
+                                errorCode);
 
-                    // Something went wrong during processing of the Commit packet
-                    if (dhPart1 == null) {
-                        if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                            sendErrorPacket(EnumSet.of(errorCode[0]));
+                        // Something went wrong during processing of the Commit
+                        // packet
+                        if (dhPart1 == null) {
+                            if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
+                                sendErrorPacket(EnumSet.of(errorCode[0]));
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    inState = ZrtpStates.WaitDHPart2;
-                    sentPacket = dhPart1;
+                        inState = ZrtpStates.WaitDHPart2;
+                        sentPacket = dhPart1;
+                    } else {
+                        ZrtpPacketConfirm confirm = parent.prepareConfirm1MultiStream(zpCo, errorCode);
 
+                        // Something went wrong during processing of the Commit packet
+                        if (confirm == null) {
+                            if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
+                                sendErrorPacket(EnumSet.of(errorCode[0]));
+                            }
+                            return;
+                        }
+                        sentPacket = confirm;
+                        inState = ZrtpStates.WaitConfirm2;
+
+                    }
                     if (!parent.sendPacketZRTP(sentPacket)) {
                         sendFailed();       // returns to state Initial
                     }
@@ -966,6 +1012,30 @@ public class ZrtpStateClass {
                 }
                 if (startTimer(t2) <= 0) {
                     timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);       // returns to state Initial
+                }
+            }
+            
+            if (multiStream && (first == 'c' && last == '1')) {
+                cancelTimer();
+                ZrtpPacketConfirm cpkt = new ZrtpPacketConfirm(pkt);
+                sentPacket = null;
+
+                ZrtpPacketConfirm confirm = parent.prepareConfirm2MultiStream(cpkt, errorCode);
+
+                // Something went wrong during processing of the Confirm1 packet
+                if (confirm == null) {
+                    sendErrorPacket(EnumSet.of(errorCode[0]));
+                    return;
+                }
+                inState = ZrtpStates.WaitConfAck;
+
+                sentPacket = confirm;
+                if (!parent.sendPacketZRTP(sentPacket)) {
+                    sendFailed();         // returns to state Initial
+                    return;
+                }
+                if (startTimer(t2) <= 0) {
+                    timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);  // returns to state Initial
                 }
             }
             break;
@@ -1195,11 +1265,11 @@ public class ZrtpStateClass {
             last = Character.toLowerCase(last);
 
             /*
-             * DHPart2:
+             * DHPart2 or Commit in multi stream mode:
              * - resend Confirm1 packet via SRTP
              * - stay in state
              */
-            if (first == 'd') {
+            if (first == 'd' || (multiStream && (first == 'c' && last == ' '))) {
                 if (!parent.sendPacketZRTP(sentPacket)) {
                     sendFailed();             // returns to state Initial
                 }
