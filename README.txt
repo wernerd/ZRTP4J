@@ -6,11 +6,11 @@ implementation that can be directly embedded into client and server
 applications.
 
 The GNU ZRTP4J implementation is compliant to the basic functions of
-ZRTP as described in ''draft-zimmermann-avt-zrtp-08*''. Currently GNU
+ZRTP as described in ''draft-zimmermann-avt-zrtp-10*''. Currently GNU
 ZRTP4J supports the basic features only, not the enhanced features like
-PBX SAS relay and Multi-Stream mode. The GNU ZRTP4J implementation
-already defines the necessary external interfaces and functions for
-these enhanced features but they are not yet implemented (stubs only).
+PBX SAS relay. The GNU ZRTP4J implementation already defines the necessary
+external interfaces and functions for these enhanced features but they 
+are not yet implemented (stubs only).
 
 You may access the ZRTP specification at this URL:
 [http://zfoneproject.com/zrtp_ietf.html]

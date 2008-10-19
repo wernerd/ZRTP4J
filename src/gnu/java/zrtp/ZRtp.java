@@ -696,7 +696,22 @@ public class ZRtp {
         return signatureLength;
     }
     
-    
+    /**
+     * Emulate a Conf2Ack packet.
+     *
+     * This method emulates a Conf2Ack packet. According to ZRTP specification
+     * the first valid SRTP packet that the Initiator receives must switch 
+     * on secure mode. Refer to chapter 5.6 in the specificaton
+     *
+     */
+    public void conf2AckSecure() {
+        if (stateEngine != null) {
+            ZrtpStateClass.Event ev = stateEngine.new Event(
+                    ZrtpStateClass.EventDataType.ZrtpPacket, zrtpConf2Ack.getHeaderBase());
+            stateEngine.processEvent(ev);            
+        }
+    }
+
     /*
      * The following methods are helper functions for ZrtpStateClass.
      * ZrtpStateClass calls them to prepare packets, send data, report
@@ -1333,7 +1348,17 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
-
+        hash = commit.getHash();
+        if (hash == ZrtpConstants.SupportedHashes.END) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppHashType;
+            return null;
+        }
+        // check if we support the commited pub key type
+        // pubKey = commit.getPubKey();
+        if (commit.getPubKey() != ZrtpConstants.SupportedPubKeys.MULT) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppPKExchange;
+            return null;
+        }
         myRole = ZrtpCallback.Role.Responder;
         // We are responder. Reset message SHA context
         msgShaContext.reset();

@@ -89,8 +89,8 @@ public class ZrtpStateClass {
      */
     private static final int MESSAGE_OFFSET = 4; 
 
-//  The ZRTP states
-    protected enum ZrtpStates {
+    //  The ZRTP states
+    public enum ZrtpStates {
         Initial,
         Detect,
         AckDetected,
@@ -1037,6 +1037,13 @@ public class ZrtpStateClass {
                 if (startTimer(t2) <= 0) {
                     timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);  // returns to state Initial
                 }
+                if (!parent.srtpSecretsReady(ZrtpCallback.EnableSecurity.ForReceiver)) {
+                    parent.sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
+                            .of(ZrtpCodes.SevereCodes.SevereSecurityException));
+                    sendErrorPacket(EnumSet
+                            .of(ZrtpCodes.ZrtpErrorCodes.CriticalSWError));
+                    return;
+                }
             }
             break;
             
@@ -1204,6 +1211,13 @@ public class ZrtpStateClass {
                 if (startTimer(t2) <= 0) {
                     timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);  // returns to state Initial
                 }
+                if (!parent.srtpSecretsReady(ZrtpCallback.EnableSecurity.ForReceiver)) {
+                    parent.sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
+                            .of(ZrtpCodes.SevereCodes.SevereSecurityException));
+                    sendErrorPacket(EnumSet
+                            .of(ZrtpCodes.ZrtpErrorCodes.CriticalSWError));
+                    return;
+                }
             }
             break;
             
@@ -1364,10 +1378,10 @@ public class ZrtpStateClass {
             if (first == 'c') {
                 cancelTimer();
                 sentPacket = null;
+                // Receiver was already enabled after sending Confirm2 packet
+                // see previous states.
                 if (!parent
-                        .srtpSecretsReady(ZrtpCallback.EnableSecurity.ForSender)
-                        || !parent
-                                .srtpSecretsReady(ZrtpCallback.EnableSecurity.ForReceiver)) {
+                        .srtpSecretsReady(ZrtpCallback.EnableSecurity.ForSender)) {
                     parent.sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                             .of(ZrtpCodes.SevereCodes.SevereSecurityException));
                     sendErrorPacket(EnumSet

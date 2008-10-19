@@ -10,6 +10,7 @@ import gnu.java.zrtp.ZRtp;
 import gnu.java.zrtp.ZrtpCallback;
 import gnu.java.zrtp.ZrtpCodes;
 import gnu.java.zrtp.ZrtpSrtpSecrets;
+import gnu.java.zrtp.ZrtpStateClass;
 import gnu.java.zrtp.ZrtpUserCallback;
 import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.jmf.transform.PacketTransformer;
@@ -428,12 +429,18 @@ public class ZRTPTransformEngine
                 return pkt;
             }
             pkt = srtpInTransformer.reverseTransform(pkt);
+            // if packet was valid (i.e. not null) and ZRTP engine started and
+            // not yet in secure state - emulate a Conf2Ack packet. See ZRTP spec
+            // chap. 5.6
+            if (pkt != null && zrtpEngine != null && !zrtpEngine.inState(ZrtpStateClass.ZrtpStates.SecureState)) {
+                zrtpEngine.conf2AckSecure();
+            }
             return pkt;
         }
 
         /*
-         * If ZRTP is enabled process it. In any case return null 
-         * because ZRTP packets never reach the application.
+         * If ZRTP is enabled process packet. In any case return null 
+         * because ZRTP packets must never reach the application.
          */
         if (enableZrtp) {
             if (!zPkt.checkCrc()) {
