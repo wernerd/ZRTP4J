@@ -1476,8 +1476,6 @@ public class ZRtp {
 
         // Inform GUI about security state and SAS state
         boolean sasVerified = zidRec.isSasVerified();
-        String cs = new String((cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128" : "AES-CM-256");
-        callback.srtpSecretsOn(cs, SAS, sasVerified);
 
         // now we are ready to save the new RS1 which inherits the verified
         // flag from old RS1
@@ -1515,6 +1513,8 @@ public class ZRtp {
         zrtpConfirm2.setDataToSecure(dataToSecure);
         zrtpConfirm2.setHmac(confMac);
         
+        String cs = new String((cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128" : "AES-CM-256");
+        callback.srtpSecretsOn(cs, SAS, sasVerified);
         return zrtpConfirm2;
     }
 
@@ -1585,10 +1585,6 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
-        String cs = new String((cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128" : "AES-CM-256");
-        // Inform GUI about security state, don't show SAS and its state
-        callback.srtpSecretsOn(cs, null, true);
-
         // now generate my Confirm2 message
         zrtpConfirm2.setMessageType(ZrtpConstants.Confirm2Msg);
         zrtpConfirm2.setSignatureLength(0);
@@ -1615,6 +1611,9 @@ public class ZRtp {
         zrtpConfirm2.setDataToSecure(dataToSecure);
         zrtpConfirm2.setHmac(confMac);
         
+        String cs = new String((cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128" : "AES-CM-256");
+        // Inform GUI about security state, don't show SAS and its state
+        callback.srtpSecretsOn(cs, null, true);
         return zrtpConfirm2;
     }
     
@@ -1660,6 +1659,8 @@ public class ZRtp {
         }
         confirm2.setDataToSecure(dataToSecure);
 
+        String cs = null;
+        boolean sasVerified = false;
         if (!multiStream) {
             // Check HMAC of DHPart2 packet stored in temporary buffer. The
             // HMAC key of the DHPart2 packet is peer's H0 that is contained in
@@ -1689,15 +1690,14 @@ public class ZRtp {
             }
 
             // Inform GUI about security state and SAS state
-            boolean sasVerified = zidRec.isSasVerified();
-            String cs = new String(
+            sasVerified = zidRec.isSasVerified();
+            cs = new String(
                     (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128"
                             : "AES-CM-256");
-            callback.srtpSecretsOn(cs, SAS, sasVerified);
-
             // save new RS1, this inherits the verified flag from old RS1
             zidRec.setNewRs1(newRs1, -1);
             zidf.saveRecord(zidRec);
+            callback.srtpSecretsOn(cs, SAS, sasVerified);
         } 
         else {
             byte[] tmpHash = sha256.digest(confirm2.getHashH0()); // Compute initiator's H1 in tmpHash
@@ -1713,7 +1713,7 @@ public class ZRtp {
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
                 return null;
             }
-            String cs = new String(
+            cs = new String(
                     (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128"
                             : "AES-CM-256");
             // Inform GUI about security state, don't show SAS and its state
