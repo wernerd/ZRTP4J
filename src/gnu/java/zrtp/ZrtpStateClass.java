@@ -1613,7 +1613,7 @@ public class ZrtpStateClass {
         sentPacket = null;
         inState = ZrtpStates.Initial;
         parent.zrtpNegotiationFailed(ZrtpCodes.MessageSeverity.Severe,
-                EnumSet.of(ZrtpCodes.SevereCodes.SevereCannotSend));
+                EnumSet.of(ZrtpCodes.SevereCodes.SevereNoTimer));
     }
 
     /**
