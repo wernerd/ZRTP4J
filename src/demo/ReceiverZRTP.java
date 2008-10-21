@@ -41,12 +41,6 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
 
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
             Iterator<?> ii = subCode.iterator();
-            if (sev == ZrtpCodes.MessageSeverity.Info) {
-                if (ii.next() == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
-                    System.err.println("Rx show message sub code: " + ZrtpCodes.InfoCodes.InfoSecureStateOn);
-                    return;
-                }
-            }
             System.err.println("Rx show message sub code: " + ii.next());
         }
 
