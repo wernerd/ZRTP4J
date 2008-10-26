@@ -549,12 +549,13 @@ public class ZRtp {
         byte[] tmp = null;
         
         if (inState(ZrtpStateClass.ZrtpStates.SecureState) && !multiStream) {
-            // digest length + cipher + authLength
-            tmp = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH + 1 + 1];
-            // construct array that holds zrtpSession, cipher type and auth-length
+            // digest length + cipher + authLength + hash
+            tmp = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH + 1 + 1 + 1];
+            // construct array that holds zrtpSession, cipher type, auth-length, and has
             System.arraycopy(zrtpSession, 0, tmp, 0, ZrtpConstants.SHA256_DIGEST_LENGTH);
             tmp[ZrtpConstants.SHA256_DIGEST_LENGTH] = (byte)cipher.value;          //cipher is enumeration (int)
             tmp[ZrtpConstants.SHA256_DIGEST_LENGTH + 1] = (byte)authLength.value;  //authLength is enumeration (int)
+            tmp[ZrtpConstants.SHA256_DIGEST_LENGTH + 2] = (byte)hash.value;        //hash is enumeration (int)
         }
         return tmp;
     }
@@ -589,6 +590,13 @@ public class ZRtp {
                 .values()) {
             if (a.value == (parameters[ZrtpConstants.SHA256_DIGEST_LENGTH + 1] & 0xff)) {
                 authLength = a;
+                break;
+            }
+        }
+        for (ZrtpConstants.SupportedHashes a : ZrtpConstants.SupportedHashes
+                .values()) {
+            if (a.value == (parameters[ZrtpConstants.SHA256_DIGEST_LENGTH + 2] & 0xff)) {
+                hash = a;
                 break;
             }
         }
@@ -837,11 +845,9 @@ public class ZRtp {
             }
             else {
                 // we are in multi-stream but peer does not offer multi-stream
-                // switch off multi-stream and fall back to DH mode
-                multiStream = false;
-                authLength = hello.findBestAuthLen();
-                cipher = hello.findBestCipher();
-                pubKey = hello.findBestPubkey();            
+                // return error message Unspported PK, we require Mult in the Hello 
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppPKExchange;
+                return null;
             }
         }
 
@@ -1348,15 +1354,28 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
+        // check if we support the commited pub key type
+        if (commit.getPubKey() != ZrtpConstants.SupportedPubKeys.MULT) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppPKExchange;
+            return null;
+        }
+
+        cipher = commit.getCipher();
+        if (cipher == ZrtpConstants.SupportedSymCiphers.END) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppCiphertype;
+            return null;
+        }
+
+        // check if we support the commited Authentication length
+        authLength = commit.getAuthlen();
+        if (authLength == ZrtpConstants.SupportedAuthLengths.END) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppSRTPAuthTag;
+            return null;
+        }
+
         hash = commit.getHash();
         if (hash == ZrtpConstants.SupportedHashes.END) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppHashType;
-            return null;
-        }
-        // check if we support the commited pub key type
-        // pubKey = commit.getPubKey();
-        if (commit.getPubKey() != ZrtpConstants.SupportedPubKeys.MULT) {
-            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppPKExchange;
             return null;
         }
         myRole = ZrtpCallback.Role.Responder;
@@ -1567,15 +1586,10 @@ public class ZRtp {
         
         // Because we are initiator the protocol engine didn't receive Commit and
         // because we are using multi-stream mode here we also did not receive a DHPart1 and
-        // thus could not store a responder's H2 or H1. A three step SHA256 is required to 
-        // re-compute H1, H2, and H3. Then compare with peer's H3 from peer's Hello packet.
+        // thus could not store a responder's H2 or H1. A two step SHA256 is required to 
+        // re-compute H1 and H2.
         byte[] tmpHash = sha256.digest(confirm1.getHashH0()); // Compute peer's H1 in tmpHash
         peerH2 = sha256.digest(tmpHash);               // Compute peer's H2
-//        tmpHash = sha256.digest(peerH2);               // Compute peer's H3 (tmpHash)
-//        if (ZrtpUtils.byteArrayCompare(tmpHash, peerH3, ZrtpConstants.SHA256_DIGEST_LENGTH) != 0) {
-//            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.IgnorePacket;
-//            return null;
-//        }
 
         // Check HMAC of previous Hello packet stored in temporary buffer. The
         // HMAC key of the Hello packet is peer's H2 that was computed above.
