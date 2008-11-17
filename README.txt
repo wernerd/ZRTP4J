@@ -5,15 +5,14 @@ together with Sun's JMF or the free alternative FMJ provides a ZRTP
 implementation that can be directly embedded into client and server
 applications.
 
-The GNU ZRTP4J implementation is compliant to the basic functions of
-ZRTP as described in ''draft-zimmermann-avt-zrtp-10*''. Currently GNU
-ZRTP4J supports the basic features only, not the enhanced features like
-PBX SAS relay. The GNU ZRTP4J implementation already defines the necessary
-external interfaces and functions for these enhanced features but they 
-are not yet implemented (stubs only).
+The GNU ZRTP4J implementation is compliant to the required functions of
+ZRTP as described in ''draft-zimmermann-avt-zrtp-10''. Currently GNU
+does not support the feature PBX SAS relay. The GNU ZRTP4J implementation 
+already defines the necessary external interfaces and functions for this
+feature but they are not yet implemented (stubs only).
 
 You may access the ZRTP specification at this URL:
-[http://zfoneproject.com/zrtp_ietf.html]
+[http://tools.ietf.org/html/draft-zimmermann-avt-zrtp-10]
 
 The first application that included this libarary was a SIP Communicator
 release produced by Emanuel Onica during Google Summer of Code (GSoC) 2008.
