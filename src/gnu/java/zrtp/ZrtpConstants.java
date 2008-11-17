@@ -32,11 +32,11 @@ public class ZrtpConstants {
 
     //                                               1
     //                                     0123456789012345
-    public static final String clientId = "GNU ZRTP4J 1.3.1"  ;
+    public static final String clientId = "GNU ZRTP4J 1.4.0"  ;
  
-//  "0.90"
+//  "1.00"
     public static final byte[] zrtpVersion = {
-        (byte)0x30, (byte)0x2e, (byte)0x39, (byte)0x30};
+        (byte)0x31, (byte)0x2e, (byte)0x30, (byte)0x30};
 
    /**
     * The message names as defined in ZRTP specification.

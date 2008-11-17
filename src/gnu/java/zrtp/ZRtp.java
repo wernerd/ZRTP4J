@@ -522,8 +522,10 @@ public class ZRtp {
      *         hello hash is available immediately after class instantiation.
      */
     public String getHelloHash() {
-        return new String(ZrtpUtils.bytesToHexString(helloHash,
+        String pv = new String(ZrtpConstants.zrtpVersion);
+        String hs = new String(ZrtpUtils.bytesToHexString(helloHash,
                 ZrtpConstants.SHA256_DIGEST_LENGTH));
+        return new String(pv + " " + hs);
     }
 
     /**
@@ -720,6 +722,26 @@ public class ZRtp {
         }
     }
 
+    /**
+     * Get other party's ZID (ZRTP Identifier) data
+     *
+     * This functions returns the other party's ZID that was receivied 
+     * during ZRTP processing. 
+     *
+     * The ZID data can be retrieved after ZRTP receive the first Hello
+     * packet from the other party. The application may call this method
+     * for example during SAS processing in showSAS(...) user callback
+     * method.
+     *
+     * @return
+     *    the ZID data as byte array.
+     */
+    
+    public byte[] getZid() {
+        byte[] ret = new byte[ZidRecord.IDENTIFIER_LENGTH];
+        System.arraycopy(peerZid, 0, ret, 0, ZidRecord.IDENTIFIER_LENGTH);
+        return ret;
+    }
     /*
      * The following methods are helper functions for ZrtpStateClass.
      * ZrtpStateClass calls them to prepare packets, send data, report

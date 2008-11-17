@@ -778,6 +778,25 @@ public class ZRTPTransformEngine
        return started;
     }
 
+    /**
+     * Get other party's ZID (ZRTP Identifier) data
+     *
+     * This functions returns the other party's ZID that was receivied 
+     * during ZRTP processing. 
+     *
+     * The ZID data can be retrieved after ZRTP receive the first Hello
+     * packet from the other party. The application may call this method
+     * for example during SAS processing in showSAS(...) user callback
+     * method.
+     *
+     * @return
+     *    the ZID data as byte array.
+     */
+    
+    public byte[] getetZid() {
+        return ((zrtpEngine != null) ? zrtpEngine.getZid() : null);
+    }
+
 /*
     public static void main(String argv[]) {
         System.err.println(System.getenv("HOMEDRIVE"));

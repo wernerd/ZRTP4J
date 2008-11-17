@@ -103,7 +103,7 @@ public class TransmitterZRTP implements SendStreamListener {
         rtpManager = RTPManager.newInstance();
 
         try {
-            // create a SRTP connector with own bind address
+            // create a ZRTP connector with own bind address
             transConnector = (ZrtpTransformConnector)TransformManager.createZRTPConnector(sa);
             zrtpEngine = transConnector.getEngine();
             zrtpEngine.setUserCallback(new MyCallback());
@@ -112,16 +112,16 @@ public class TransmitterZRTP implements SendStreamListener {
             if (!zrtpEngine.initialize("test_r.zid"))
                 System.err.println("Initialize failed");
             // initialize the RTPManager using the SRTP connector
+            System.err.println("Hello hash: " + zrtpEngine.getHelloHash());
             rtpManager.initialize(transConnector);
             rtpManager.addSendStreamListener(this);
 
 
             // open the connection, must be done in connector
-            System.err.println("transconnector-1: " + transConnector);
+            // System.err.println("transconnector-1: " + transConnector);
             transConnector.addTarget(target);
 
             SendStream sendStream = rtpManager.createSendStream(dataOutput, 0);
-//            zrtpEngine.startZrtp();
             sendStream.start();
         } catch (java.io.IOException ex) {
             System.err.println("Cannot start sendStream: " + ex.getMessage());
