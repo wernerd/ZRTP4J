@@ -2153,59 +2153,109 @@ public class ZRtp {
 
     private void generateKeysMultiStream() {
         // Compute the Multi Stream mode s0
-        s0 = computeHmac(zrtpSession, messageHash, messageHash.length);
+        // Construct the KDF context as per ZRTP specification:
+        // ZIDi || ZIDr || total_hash
+        byte[] KDFcontext = new byte[zid.length + peerZid.length + messageHash.length];
+        
+        if (myRole == ZrtpCallback.Role.Responder) {
+            System.arraycopy(peerZid, 0, KDFcontext, 0, peerZid.length);
+            System.arraycopy(zid, 0, KDFcontext, peerZid.length, zid.length);
+        }
+        else {
+            System.arraycopy(zid, 0, KDFcontext, 0, zid.length);        
+            System.arraycopy(peerZid, 0, KDFcontext, zid.length, peerZid.length);
+        }
+        System.arraycopy(messageHash, 0, KDFcontext, zid.length+peerZid.length, messageHash.length);
+        
+        s0 = KDF(zrtpSession, ZrtpConstants.zrtpMsk, KDFcontext, sha256.getDigestLength()*8);
         computeSRTPKeys();
     }
 
+    /*
+     * The ZRTP KDF function as per ZRT specification 4.5.1
+     */
+    private byte[] KDF(byte[] ki, byte[] label, byte[] context, int L) {
+        SecretKey key = new SecretKeySpec(ki, "HMAC");
+        try {
+            hmacSha256.init(key);
+        } catch (GeneralSecurityException e) {
+            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
+                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
+            return null;
+        }
+        byte[] counter = ZrtpUtils.int32ToArray(1);
+        hmacSha256.update(counter, 0, 4);        
+        hmacSha256.update(label, 0, label.length);   // the label includes the 0 byte separator
+        hmacSha256.update(context, 0, context.length);
+        byte[] length = ZrtpUtils.int32ToArray(L);
+        hmacSha256.update(length, 0, 4);        
+
+        return hmacSha256.doFinal();
+    }
+    
+    
     private void computeSRTPKeys() {
 
+        // Construct the KDF context as per ZRTP specification:
+        // ZIDi || ZIDr || total_hash
+        // and the SAS context: ZIDi || ZIDr
+        byte[] KDFcontext = new byte[zid.length + peerZid.length + messageHash.length];
+        byte sasContext[] = new byte[zid.length + peerZid.length];
+        
+        if (myRole == ZrtpCallback.Role.Responder) {
+            System.arraycopy(peerZid, 0, KDFcontext, 0, peerZid.length);
+            System.arraycopy(zid, 0, KDFcontext, peerZid.length, zid.length);
+            System.arraycopy(peerZid, 0, sasContext, 0, peerZid.length);
+            System.arraycopy(zid, 0, sasContext, peerZid.length, zid.length);
+        }
+        else {
+            System.arraycopy(zid, 0, KDFcontext, 0, zid.length);        
+            System.arraycopy(peerZid, 0, KDFcontext, zid.length, peerZid.length);
+            System.arraycopy(zid, 0, sasContext, 0, zid.length);        
+            System.arraycopy(peerZid, 0, sasContext, zid.length, peerZid.length);
+        }
+        System.arraycopy(messageHash, 0, KDFcontext, zid.length+peerZid.length, messageHash.length);
+
+        int keyLen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 128 :256;
+
         // Inititiator key and salt
-        srtpKeyI = computeHmac(s0, ZrtpConstants.iniMasterKey,
-                ZrtpConstants.iniMasterKey.length);
-        srtpSaltI = computeHmac(s0, ZrtpConstants.iniMasterSalt,
-                ZrtpConstants.iniMasterSalt.length);
+        srtpKeyI = KDF(s0, ZrtpConstants.iniMasterKey,KDFcontext, keyLen);
+        srtpSaltI = KDF(s0, ZrtpConstants.iniMasterSalt, KDFcontext, 112);
 
         // Responder key and salt
-        srtpKeyR = computeHmac(s0, ZrtpConstants.respMasterKey,
-                ZrtpConstants.respMasterKey.length);
-        srtpSaltR = computeHmac(s0, ZrtpConstants.respMasterSalt,
-                ZrtpConstants.respMasterSalt.length);
+        srtpKeyR = KDF(s0, ZrtpConstants.respMasterKey, KDFcontext, keyLen);
+        srtpSaltR = KDF(s0, ZrtpConstants.respMasterSalt, KDFcontext, 112);
 
         // The HMAC keys
-        hmacKeyI = computeHmac(s0, ZrtpConstants.iniHmacKey,
-                ZrtpConstants.iniHmacKey.length);
-        hmacKeyR = computeHmac(s0, ZrtpConstants.respHmacKey,
-                ZrtpConstants.respHmacKey.length);
+        hmacKeyI = KDF(s0, ZrtpConstants.iniHmacKey, KDFcontext, sha256.getDigestLength()*8);
+        hmacKeyR = KDF(s0, ZrtpConstants.respHmacKey, KDFcontext, sha256.getDigestLength()*8);
 
         // The keys for Confirm messages
-        zrtpKeyI = computeHmac(s0, ZrtpConstants.iniZrtpKey,
-                ZrtpConstants.iniZrtpKey.length);
-        zrtpKeyR = computeHmac(s0, ZrtpConstants.respZrtpKey,
-                ZrtpConstants.respZrtpKey.length);
+        zrtpKeyI = KDF(s0, ZrtpConstants.iniZrtpKey, KDFcontext, keyLen);
+        zrtpKeyR = KDF(s0, ZrtpConstants.respZrtpKey, KDFcontext, keyLen);
 
-        // Compute the new Retained Secret
-        newRs1 = computeHmac(s0, ZrtpConstants.retainedSec,
-                ZrtpConstants.retainedSec.length);
+        if (!multiStream) {
+            // Compute the new Retained Secret
+            newRs1 = KDF(s0, ZrtpConstants.retainedSec, KDFcontext, sha256.getDigestLength()*8);
+            
+            // Compute the ZRTP Session Key
+            zrtpSession = KDF(s0, ZrtpConstants.zrtpSessionKey, KDFcontext, sha256.getDigestLength()*8);
 
-        // Compute the ZRTP Session Key
-        zrtpSession = computeHmac(s0, ZrtpConstants.zrtpSessionKey,
-                ZrtpConstants.zrtpSessionKey.length);
+            // perform SAS generation according to chapter 5.5 and 8.
+            // we don't need a speciai sasValue filed. sasValue are the first
+            // (leftmost) 32 bits (4 bytes) of sasHash
+            sasHash = KDF(zrtpSession, ZrtpConstants.sasString, sasContext, sha256.getDigestLength()*8);
 
-        // perform SAS generation according to chapter 5.5 and 8.
-        // we don't need a speciai sasValue filed. sasValue are the first
-        // (leftmost) 32 bits (4 bytes) of sasHash
-        sasHash = computeHmac(zrtpSession, ZrtpConstants.sasString,
-                ZrtpConstants.sasString.length);
-
-        // according to chapter 8 only the leftmost 20 bits of sasValue (aka
-        // sasHash) are used to create the character SAS string of type SAS
-        // base 32 (5 bits per character)
-        byte[] sasBytes = new byte[4];
-        sasBytes[0] = sasHash[0];
-        sasBytes[1] = sasHash[1];
-        sasBytes[2] = (byte) (sasHash[2] & 0xf0);
-        sasBytes[3] = 0;
-        SAS = Base32.binary2ascii(sasBytes, 20);
+            // according to chapter 8 only the leftmost 20 bits of sasValue (aka
+            // sasHash) are used to create the character SAS string of type SAS
+            // base 32 (5 bits per character)
+            byte[] sasBytes = new byte[4];
+            sasBytes[0] = sasHash[0];
+            sasBytes[1] = sasHash[1];
+            sasBytes[2] = (byte) (sasHash[2] & 0xf0);
+            sasBytes[3] = 0;
+            SAS = Base32.binary2ascii(sasBytes, 20);
+        }
     }
 
     private void generateKeysInitiator(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
