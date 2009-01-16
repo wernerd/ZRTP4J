@@ -218,7 +218,7 @@ public class ZRTPTransformEngine
                 long endTime = System.currentTimeMillis() + nextDelay;
                 long currentTime = System.currentTimeMillis();
                 synchronized (sync) {
-                    while ((currentTime <= endTime) && newTask && !stop) {
+                    while ((currentTime < endTime) && newTask && !stop) {
                         try {
                             sync.wait(endTime - currentTime);
                         } catch (InterruptedException e) {
