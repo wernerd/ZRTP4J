@@ -197,6 +197,8 @@ public class ZrtpConstants {
         (byte)0x44, (byte)0x48, (byte)0x34, (byte)0x6b};        // "DH4k"
     public static final byte[] dh3k = {
         (byte)0x44, (byte)0x48, (byte)0x33, (byte)0x6b};        // "DH3k"
+    public static final byte[] dh2k = {
+        (byte)0x44, (byte)0x48, (byte)0x32, (byte)0x6b};        // "DH2k"
     public static final byte[] mult = {
         (byte)0x4D, (byte)0x75, (byte)0x6c, (byte)0x74};        // "Mult"
     public static final byte[] b32 = {
@@ -241,6 +243,7 @@ public class ZrtpConstants {
     public static enum SupportedPubKeys {
         DH3K(0, dh3k),
         MULT(1, mult),
+        // DH2K(2, dh2k)
         END(0, null);
         // NumSupportedPubKeys(1);
         
@@ -285,6 +288,23 @@ public class ZrtpConstants {
 
     
     // The Diffie-Helman constants as defined in the ZRTP specification
+    // The DH prime for DH2k (2048 bit) as defined in RFC 3526
+    public static final BigInteger P2048 = new BigInteger(
+//                        1                   2        
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3           24 bytes per line
+    "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +        // 0
+    "29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +        // 1
+    "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +        // 2
+    "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +        // 3
+    "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +        // 4
+    "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +        // 5
+    "83655D23DCA3AD961C62F356208552BB9ED529077096966D" +        // 6
+    "670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +        // 7
+    "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +        // 8
+    "DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +        // 9
+    "15728E5A8AACAA68FFFFFFFFFFFFFFFF", 16);                    // Total = 16 + 24 * 10 = 256
+    
+   
     // The DH prime for DH3k (3072 bit) as defined in RFC 3526
     public static final BigInteger P3072 = new BigInteger(
 //                        1                   2        
@@ -336,12 +356,14 @@ public class ZrtpConstants {
     // DH generator 2
     public static final BigInteger two = new BigInteger("2");
     
+    public static final BigInteger P2048MinusOne = P2048.subtract(BigInteger.ONE);
     public static final BigInteger P3072MinusOne = P3072.subtract(BigInteger.ONE);
     public static final BigInteger P4096MinusOne = P4096.subtract(BigInteger.ONE);
     
 
-    public static final DHParameterSpec  specDh3k = new DHParameterSpec(ZrtpConstants.P3072, ZrtpConstants.two, 256);
-    public static final DHParameterSpec  specDh4k = new DHParameterSpec(ZrtpConstants.P4096, ZrtpConstants.two, 512);
+    public static final DHParameterSpec specDh2k = new DHParameterSpec(ZrtpConstants.P2048, ZrtpConstants.two, 128);
+    public static final DHParameterSpec specDh3k = new DHParameterSpec(ZrtpConstants.P3072, ZrtpConstants.two, 256);
+    public static final DHParameterSpec specDh4k = new DHParameterSpec(ZrtpConstants.P4096, ZrtpConstants.two, 512);
 
 
     
