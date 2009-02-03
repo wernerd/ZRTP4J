@@ -7,7 +7,6 @@ import gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine;
 import gnu.java.zrtp.jmf.transform.zrtp.ZrtpTransformConnector;
 
 import java.net.*;
-import java.security.Provider;
 import java.util.EnumSet;
 import java.util.Iterator;
 
@@ -73,22 +72,7 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
      * Initializes a RTP/ZRTP/SRTP session
      */
     protected void initialize() {
-        Provider cryptoProvider = null;
-        try {
-            Class<?> c = Class
-                    .forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-            cryptoProvider = (Provider) c.newInstance();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
+        
         InetAddress ia = null;
         try {
             ia = InetAddress.getByName("localhost");
@@ -105,7 +89,6 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
                     .createZRTPConnector(sa);
             zrtpEngine = transConnector.getEngine();
             zrtpEngine.setUserCallback(new MyCallback());
-            zrtpEngine.setCryptoProvider(cryptoProvider);
             
             if (!zrtpEngine.initialize("test_t.zid"))
                 System.out.println("iniatlize failed");

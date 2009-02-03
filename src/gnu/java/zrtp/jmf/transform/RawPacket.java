@@ -173,6 +173,29 @@ public class RawPacket
     }
     
     /**
+     * Read a byte region from specified offset with specified length in given buffer
+     *
+     * @param off start offset of the region to be read 
+     * @param len length of the region to be read
+     * @param outBuff output buffer
+     */
+    public void readRegionToBuff(int off, int len, byte[] outBuff)
+    {
+        int startOffset = this.offset + off;
+        if (off < 0 || len <= 0 
+            || startOffset + len > this.buffer.length)
+        {
+            return;
+        }
+
+        if (outBuff.length < len)
+        {
+            return;
+        }
+        System.arraycopy(this.buffer, startOffset, outBuff, 0, len);
+    }
+
+    /**
      * Append a byte array to then end of the packet. This will change the data
      * buffer of this packet. 
      *

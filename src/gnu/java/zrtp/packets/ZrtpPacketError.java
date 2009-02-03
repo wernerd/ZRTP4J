@@ -69,7 +69,7 @@ public class ZrtpPacketError extends ZrtpPacketBase {
      * 
      * @param data received from the network.
      */
-    public ZrtpPacketError(byte[] data) {
+    public ZrtpPacketError(final byte[] data) {
         super(data);
     }
  
@@ -80,7 +80,7 @@ public class ZrtpPacketError extends ZrtpPacketBase {
      * 
      * @return the error code.
      */
-    public int getErrorCode() { 
+    public final int getErrorCode() { 
         return ZrtpUtils.readInt(packetBuffer, CODE_OFFSET); 
     }
 
@@ -91,10 +91,11 @@ public class ZrtpPacketError extends ZrtpPacketBase {
      * 
      * @param code the error code.
      */
-    public void setErrorCode(int code) {
+    public final void setErrorCode(final int code) {
         ZrtpUtils.int32ToArrayInPlace(code, packetBuffer, CODE_OFFSET);
     }
 
+    /* ***
     public static void main(String[] args) {
         ZrtpPacketError pkt = new ZrtpPacketError();
         System.err.println("error length: " + pkt.getLength());
@@ -102,4 +103,5 @@ public class ZrtpPacketError extends ZrtpPacketBase {
         pkt.setErrorCode(0x0102);
         ZrtpUtils.hexdump("error packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
     }
+    *** */
 }

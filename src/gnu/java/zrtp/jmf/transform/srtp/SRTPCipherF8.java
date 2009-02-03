@@ -26,11 +26,9 @@
 package gnu.java.zrtp.jmf.transform.srtp;
 
 import java.util.*;
-import java.security.GeneralSecurityException;
 
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
+import org.bouncycastle.crypto.engines.AESFastEngine;
+import org.bouncycastle.crypto.params.KeyParameter;
 
 /**
  * SRTPCipherF8 implements SRTP F8 Mode AES Encryption (AES-f8).
@@ -80,8 +78,8 @@ public class SRTPCipherF8
      * @see net.java.sip.communicator.impl.media.transform.srtp.
      * SRTPCipher#process(byte[], int, int, byte[])
      */
-    public static void process(Cipher aesCipher, byte[] data, int off, int len,
-            byte[] iv, byte[] key, byte[] salt, Cipher f8Cipher) {
+    public static void process(AESFastEngine aesCipher, byte[] data, int off, int len,
+            byte[] iv, byte[] key, byte[] salt, AESFastEngine f8Cipher) {
         F8Context f8ctx = new SRTPCipherF8().new F8Context();
 
         /*
@@ -116,18 +114,12 @@ public class SRTPCipherF8
         /*
          * Prepare the f8Cipher with the special key to compute IV'
          */
-        SecretKey encryptionKey = new SecretKeySpec(maskedKey, 0,
-                maskedKey.length, "AES");
-        try {
-            f8Cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
-            /*
-             * Use the masked key to encrypt the original IV to produce IV'.
-             */
-            f8Cipher.doFinal(iv, 0, BLKLEN, f8ctx.ivAccent, 0);
-        } catch (GeneralSecurityException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        KeyParameter encryptionKey = new KeyParameter(maskedKey);
+        f8Cipher.init(true, encryptionKey);
+        /*
+         * Use the masked key to encrypt the original IV to produce IV'.
+         */
+        f8Cipher.processBlock(iv, 0, f8ctx.ivAccent, 0);
         saltMask = null;
         maskedKey = null;
 
@@ -166,7 +158,7 @@ public class SRTPCipherF8
      * @param len
      *            length of the input data
      */
-    private static void processBlock(Cipher aesCipher, F8Context f8ctx,
+    private static void processBlock(AESFastEngine aesCipher, F8Context f8ctx,
             byte[] in, int inOff, byte[] out, int outOff, int len) {
 
         /*
@@ -190,12 +182,7 @@ public class SRTPCipherF8
         /*
          * Now compute the new key stream using AES encrypt
          */
-        try {
-            aesCipher.doFinal(f8ctx.S, 0, BLKLEN, f8ctx.S, 0);
-        } catch (GeneralSecurityException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        aesCipher.processBlock(f8ctx.S, 0, f8ctx.S, 0);
 
         /*
          * As the last step XOR the plain text with the key stream to produce

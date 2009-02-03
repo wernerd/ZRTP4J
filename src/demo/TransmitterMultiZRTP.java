@@ -11,8 +11,6 @@ import java.net.*;
 import java.util.EnumSet;
 import java.util.Iterator;
 
-import java.security.Provider;
-
 import javax.media.rtp.*;
 import javax.media.rtp.event.NewSendStreamEvent;
 import javax.media.rtp.event.SendStreamEvent;
@@ -23,7 +21,6 @@ public class TransmitterMultiZRTP {
     Thread multiSenderThread = null;
     SenderMulti senderFirst = null;
     SenderMulti senderSecond = null;
-    Provider cryptoProvider = null;
     
     public class SenderMulti implements SendStreamListener, Runnable {
 
@@ -113,22 +110,6 @@ public class TransmitterMultiZRTP {
             }
 
             System.err.println("Internet address: " + ia);
-            if (cryptoProvider == null) {
-            try {
-                Class<?> c = Class
-                        .forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-                cryptoProvider = (Provider) c.newInstance();
-            } catch (ClassNotFoundException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch (InstantiationException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            }
 
         }
 
@@ -155,7 +136,6 @@ public class TransmitterMultiZRTP {
                 zrtpEngine = transConnector.getEngine();
                 
                 // IMPORTANT: crypto provider must be set before initialization
-                zrtpEngine.setCryptoProvider(cryptoProvider);
                 if (!zrtpEngine.initialize("test_r.zid"))
                     System.err.println("TX: Initialize failed, multi: "
                             + multiStream);

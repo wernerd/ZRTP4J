@@ -42,10 +42,10 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     
     // private boolean passive;
     // number of the algorithms
-    private int nHash, nCipher, nPubkey, nSas, nAuth;
+    private final int nHash, nCipher, nPubkey, nSas, nAuth;
     
     // offsets in bytes into hello packet where algo names are stored
-    private int oHash, oCipher, oPubkey, oSas, oAuth, oHmac;
+    private final int oHash, oCipher, oPubkey, oSas, oAuth, oHmac;
 
     /*
      * The length of the Hello specific ZRTP packet part in words
@@ -148,7 +148,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         }
     }
 
-    public ZrtpPacketHello(byte[] data) {
+    public ZrtpPacketHello(final byte[] data) {
         super(data);
         
         int temp = packetBuffer[FLAG_LENGTH_OFFSET];    // check for passive flag (0x10)
@@ -171,7 +171,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         oHmac = oSas + (nSas * ZRTP_WORD_SIZE);         // offset to HMAC
     }
 
-    public void setClientId(String text) {
+    public final void setClientId(final String text) {
         byte[] data = null;
         try {
             data = text.getBytes("UTF-8");
@@ -183,47 +183,47 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         System.arraycopy(data, 0, packetBuffer, CLIENT_ID_OFFSET, length);
     }
     
-    public void setH3(byte[] data)          { 
+    public final void setH3(final byte[] data)          { 
         System.arraycopy(data, 0, packetBuffer, HASH_H3_OFFSET, 8*ZRTP_WORD_SIZE);
     }
     
-    public byte[] getH3() {
+    public final byte[] getH3() {
         return ZrtpUtils.readRegion(packetBuffer, HASH_H3_OFFSET, 8*ZRTP_WORD_SIZE);
     }
 
-    public void setZid(byte[] data)         { 
+    public final void setZid(final byte[] data)         { 
         System.arraycopy(data, 0, packetBuffer, ZID_OFFSET, 3*ZRTP_WORD_SIZE);
     }
 
-    public byte[] getZid() {
+    public final byte[] getZid() {
         return ZrtpUtils.readRegion(packetBuffer, ZID_OFFSET, 3*ZRTP_WORD_SIZE);
     }
 
-    public void setVersion(byte[] data) {
+    public final void setVersion(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, VERSION_OFFSET, ZRTP_WORD_SIZE);
     }
 
-    public void setHashType(int n, byte[] data) {
+    public final void setHashType(final int n, final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, oHash+(n*ZRTP_WORD_SIZE), ZRTP_WORD_SIZE);
     }
     
-    public void setCipherType(int n, byte[] data) {
+    public final void setCipherType(final int n, final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, oCipher+(n*ZRTP_WORD_SIZE), ZRTP_WORD_SIZE);
     }
 
-    public void setAuthLen(int n, byte[] data) {
+    public final void setAuthLen(final int n, final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, oAuth+(n*ZRTP_WORD_SIZE), ZRTP_WORD_SIZE);
     }
 
-    public void setPubKeyType(int n, byte[] data) {
+    public final void setPubKeyType(final int n, final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, oPubkey+(n*ZRTP_WORD_SIZE), ZRTP_WORD_SIZE);
     }
     
-    public void setSasType(int n, byte[] data) {
+    public final void setSasType(final int n, final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, oSas+(n*ZRTP_WORD_SIZE), ZRTP_WORD_SIZE);
     }
     
-    public void setHMAC(byte[] data) {
+    public final void setHMAC(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, oHmac, 2*ZRTP_WORD_SIZE);
     }
     
@@ -233,7 +233,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
      * @param data The data to compare against.
      * @return true if data matches the packet version data, false other wise.
      */
-    public boolean isSameVersion(byte[] data) {
+    public final boolean isSameVersion(final byte[] data) {
         for (int i = 0; i < ZRTP_WORD_SIZE; i++) {
             if (packetBuffer[VERSION_OFFSET+i] != data[i]) {
                 return false;
@@ -265,7 +265,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
      * 
      * @return found matching hash or default SHA 256.
      */
-    public ZrtpConstants.SupportedHashes findBestHash() {
+    public final ZrtpConstants.SupportedHashes findBestHash() {
         if (nHash == 0)
             return ZrtpConstants.SupportedHashes.S256;
         
@@ -285,7 +285,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return ZrtpConstants.SupportedHashes.S256;
     }
 
-    public ZrtpConstants.SupportedSymCiphers findBestCipher() {
+    public final ZrtpConstants.SupportedSymCiphers findBestCipher() {
         if (nCipher == 0)
             return ZrtpConstants.SupportedSymCiphers.AES1;
         
@@ -305,7 +305,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return ZrtpConstants.SupportedSymCiphers.AES1;
     }
     
-    public ZrtpConstants.SupportedPubKeys findBestPubkey() {
+    public final ZrtpConstants.SupportedPubKeys findBestPubkey() {
         if (nPubkey == 0)
             return ZrtpConstants.SupportedPubKeys.DH3K;
         
@@ -325,7 +325,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return ZrtpConstants.SupportedPubKeys.DH3K;
     }
 
-    public ZrtpConstants.SupportedSASTypes findBestSASType() {
+    public final ZrtpConstants.SupportedSASTypes findBestSASType() {
         if (nSas == 0)
             return ZrtpConstants.SupportedSASTypes.B32;
         
@@ -345,7 +345,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return ZrtpConstants.SupportedSASTypes.B32;
     }
 
-    public ZrtpConstants.SupportedAuthLengths findBestAuthLen() {
+    public final ZrtpConstants.SupportedAuthLengths findBestAuthLen() {
         if (nAuth == 0)
             return ZrtpConstants.SupportedAuthLengths.HS32;
         
@@ -365,7 +365,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return ZrtpConstants.SupportedAuthLengths.HS32;
     }
 
-    public boolean checkMultiStream() {
+    public final boolean checkMultiStream() {
         // Multi Stream mode is mandatory, thus if nothing is offered then it is
         // supported :-)
         if (nPubkey == 0)
@@ -384,26 +384,27 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return false;
     }
     
-    public int getNAuth() {
+    public final int getNAuth() {
         return nAuth;
     }
 
-    public int getNCipher() {
+    public final int getNCipher() {
         return nCipher;
     }
 
-    public int getNHash() {
+    public final int getNHash() {
         return nHash;
     }
 
-    public int getNPubkey() {
+    public final int getNPubkey() {
         return nPubkey;
     }
 
-    public int getNSas() {
+    public final int getNSas() {
         return nSas;
     }
-    
+
+    /* ***
     public static void main(String[] args) {
         ZrtpPacketHello pkt = new ZrtpPacketHello();
         System.err.println("Hello length: " + pkt.getLength());
@@ -416,5 +417,5 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         ZrtpUtils.hexdump("Hello packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
         System.err.println("best pubkey: " + pkt.findBestPubkey());
     }
-    
+    **** */
 }

@@ -67,7 +67,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
      * 
      * @param pkt type of DH key agreement to use
      */
-    public ZrtpPacketDHPart(ZrtpConstants.SupportedPubKeys pkt) {    // TODO use enum when ready
+    public ZrtpPacketDHPart(final ZrtpConstants.SupportedPubKeys pkt) {    // TODO use enum when ready
         super(null);
         setPubKeyType(pkt);
     }
@@ -77,7 +77,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
      * 
      * @param data received from the network.
      */
-    public ZrtpPacketDHPart(byte[] data) {
+    public ZrtpPacketDHPart(final byte[] data) {
         super(data);
 
         short len = getLength();
@@ -91,7 +91,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         }
     }
 
-    public void setPubKeyType(ZrtpConstants.SupportedPubKeys pkt) {
+    public void setPubKeyType(final ZrtpConstants.SupportedPubKeys pkt) {
         dhLength = (pkt == ZrtpConstants.SupportedPubKeys.DH3K) ? 384 : 512;
         
         // compute total length of ZRTP message including space for CRC
@@ -105,31 +105,31 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         setZrtpId();
     }
 
-    public byte[] getPv() { 
+    public final byte[] getPv() { 
         return ZrtpUtils.readRegion(packetBuffer, PUBLIC_KEY_OFFSET, dhLength);
     }
 
-    public byte[] getRs1Id() {
+    public final byte[] getRs1Id() {
         return ZrtpUtils.readRegion(packetBuffer, RS1ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
         
-    public byte[] getRs2Id() { 
+    public final byte[] getRs2Id() { 
         return ZrtpUtils.readRegion(packetBuffer, RS2ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
         
-    public byte[] getAuxSecretId() {
+    public final byte[] getAuxSecretId() {
         return ZrtpUtils.readRegion(packetBuffer, S3_ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
 
-    public byte[] getPbxSecretId() {
+    public final byte[] getPbxSecretId() {
         return ZrtpUtils.readRegion(packetBuffer, PBX_SECRET_ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
         
-    public byte[] getH1() { 
+    public final byte[] getH1() { 
         return ZrtpUtils.readRegion(packetBuffer, HASH_H1_OFFSET, 8*ZRTP_WORD_SIZE);
     }
 
-    public byte[] getHMAC() {
+    public final byte[] getHMAC() {
         return ZrtpUtils.readRegion(packetBuffer, PUBLIC_KEY_OFFSET+dhLength, 2*ZRTP_WORD_SIZE);
     }
 
@@ -138,34 +138,35 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
      *
      */
     
-    public void setPv(byte[] data) {
+    public final void setPv(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, PUBLIC_KEY_OFFSET, dhLength);
     }
 
-    public void setRs1Id(byte[] data) {
+    public final void setRs1Id(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, RS1ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
         
-    public void setRs2Id(byte[] data) { 
+    public final void setRs2Id(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, RS2ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
         
-    public void setAuxSecretId(byte[] data) {
+    public final void setAuxSecretId(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, S3_ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
 
-    public void setPbxSecretId(byte[] data) {
+    public final void setPbxSecretId(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, PBX_SECRET_ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
         
-    public void setH1(byte[] data) { 
+    public final void setH1(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, HASH_H1_OFFSET, 8*ZRTP_WORD_SIZE);
     }
 
-    public void setHMAC(byte[] data) {
+    public final void setHMAC(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, PUBLIC_KEY_OFFSET+dhLength, 2*ZRTP_WORD_SIZE);
     }
 
+    /* ***
     public static void main(String[] args) {
         ZrtpPacketDHPart pkt = new ZrtpPacketDHPart(ZrtpConstants.SupportedPubKeys.DH3K);
         System.err.println("DHPart length: " + pkt.getLength());
@@ -174,4 +175,5 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         System.err.println("packetBuffer length in bytes: " + pkt.getHeaderBase().length);
         ZrtpUtils.hexdump("DHPart packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
     }
+    *** */
 }

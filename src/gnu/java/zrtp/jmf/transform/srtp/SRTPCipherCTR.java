@@ -25,8 +25,7 @@
 */
 package gnu.java.zrtp.jmf.transform.srtp;
 
-import javax.crypto.Cipher;
-import java.security.GeneralSecurityException;
+import org.bouncycastle.crypto.engines.AESFastEngine;
 
 /**
  * SRTPCipherCTR implements SRTP Counter Mode AES Encryption (AES-CM).
@@ -52,23 +51,44 @@ import java.security.GeneralSecurityException;
  *
  * We use AESCipher to handle basic AES encryption / decryption.
  * 
+ * @author Werner Dittmann (Werner.Dittmann@t-online.de)
  * @author Bing SU (nova.su@gmail.com)
  */
 public class SRTPCipherCTR
 {
 
+    private final static int BLKLEN = 16;
+    private final static int MAX_BUFFER_LENGTH = 10*1024;
+    private final byte[] cipherInBlock = new byte[BLKLEN];
+    private final byte[] tmpCipherBlock = new byte[BLKLEN];
+    private byte[] streamBuf = new byte[1024];
+    
+    public SRTPCipherCTR() {
+    }
+    
     /* (non-Javadoc)
      * @see net.java.sip.communicator.impl.media.transform.srtp.
      * SRTPCipher#process(byte[], int, int, byte[])
      */
-    public static void process(Cipher aesCipher, byte[] data, int off, int len,
+    public void process(AESFastEngine aesCipher, byte[] data, int off, int len,
             byte[] iv) {
 
         if (off + len > data.length) {
-            // TODO this is invalid, need error handling
             return;
         }
-        byte[] cipherStream = new byte[len];
+        // if data fits in inter buffer - use it. Otherwise allocate bigger
+        // buffer store it to use it for later processing - up to a defined
+        // maximum size.
+        byte[] cipherStream = null;
+        if (len > streamBuf.length) {
+            cipherStream = new byte[len];
+            if (cipherStream.length <= MAX_BUFFER_LENGTH) {
+                streamBuf = cipherStream;
+            }
+        }
+        else {
+            cipherStream = streamBuf;
+        }
 
         getCipherStream(aesCipher, cipherStream, len, iv);
 
@@ -88,35 +108,24 @@ public class SRTPCipherCTR
      * @param iv
      *            initialization vector used to generate this cipher stream
      */
-    public static void getCipherStream(Cipher aesCipher, byte[] out, int length, byte[] iv)
+    public void getCipherStream(AESFastEngine aesCipher, byte[] out, int length, byte[] iv)
     {
-        final int BLKLEN = 16;
-        
-        byte[] in  = new byte[BLKLEN];
-        byte[] tmp = new byte[BLKLEN];
+        System.arraycopy(iv, 0, cipherInBlock, 0, 14);
 
-        System.arraycopy(iv, 0, in, 0, 14);
+        int ctr;
+        for (ctr = 0; ctr < length / BLKLEN; ctr++) {
+            // compute the cipher stream
+            cipherInBlock[14] = (byte) ((ctr & 0xFF00) >> 8);
+            cipherInBlock[15] = (byte) ((ctr & 0x00FF));
 
-        try {
-            int ctr;
-            for (ctr = 0; ctr < length / BLKLEN; ctr++)
-            {
-                // compute the cipher stream
-                in[14] = (byte) ((ctr & 0xFF00) >> 8);
-                in[15] = (byte) ((ctr & 0x00FF));
-
-                aesCipher.update(in, 0, BLKLEN, out, ctr * BLKLEN);
-            }
-
-            // Treat the last bytes:
-            in[14] = (byte) ((ctr & 0xFF00) >> 8);
-            in[15] = (byte) ((ctr & 0x00FF));
-
-            aesCipher.doFinal(in, 0, BLKLEN, tmp, 0);
-            System.arraycopy(tmp, 0, out, ctr * BLKLEN, length % BLKLEN);
-        } catch (GeneralSecurityException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            aesCipher.processBlock(cipherInBlock, 0, out, ctr * BLKLEN);
         }
+
+        // Treat the last bytes:
+        cipherInBlock[14] = (byte) ((ctr & 0xFF00) >> 8);
+        cipherInBlock[15] = (byte) ((ctr & 0x00FF));
+
+        aesCipher.processBlock(cipherInBlock, 0, tmpCipherBlock, 0);
+        System.arraycopy(tmpCipherBlock, 0, out, ctr * BLKLEN, length % BLKLEN);
     }
 }

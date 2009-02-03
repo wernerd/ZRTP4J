@@ -61,10 +61,12 @@ public class ZrtpPacketHelloAck extends ZrtpPacketBase {
         super(data);
     }
     
+    /* ***
     public static void main(String[] args) {
         ZrtpPacketHelloAck helloAck = new ZrtpPacketHelloAck();
         System.err.println("helloAck length: " + helloAck.getLength());
         System.err.println("packetBuffer length in bytes: " + helloAck.getHeaderBase().length);
         ZrtpUtils.hexdump("helloAck packet", helloAck.getHeaderBase(), helloAck.getHeaderBase().length);
     }
+    *** */
 }

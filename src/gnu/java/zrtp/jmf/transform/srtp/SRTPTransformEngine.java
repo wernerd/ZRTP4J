@@ -9,10 +9,6 @@ package gnu.java.zrtp.jmf.transform.srtp;
 import gnu.java.zrtp.jmf.transform.PacketTransformer;
 import gnu.java.zrtp.jmf.transform.TransformEngine;
 
-import java.security.Provider;
-import java.security.GeneralSecurityException;
-
-
 /**
  * SRTPTransformEngine class implements TransformEngine interface.
  * It stores important information / objects regarding SRTP processing.
@@ -65,7 +61,8 @@ public class SRTPTransformEngine
      *            SRTCP policy
      */
     public SRTPTransformEngine(byte[] masterKey, byte[] masterSalt,
-            SRTPPolicy srtpPolicy, SRTPPolicy srtcpPolicy, Provider cp) throws GeneralSecurityException {
+            SRTPPolicy srtpPolicy, SRTPPolicy srtcpPolicy) 
+    {
         this.masterKey = new byte[masterKey.length];
         System.arraycopy(masterKey, 0, this.masterKey, 0, masterKey.length);
 
@@ -76,7 +73,7 @@ public class SRTPTransformEngine
         this.srtcpPolicy = srtcpPolicy;
 
         this.defaultContext = new SRTPCryptoContext(0, 0, 0, this.masterKey,
-                this.masterSalt, this.srtpPolicy, cp);
+                this.masterSalt, this.srtpPolicy);
     }
     
     /*

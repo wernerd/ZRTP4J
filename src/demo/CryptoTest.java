@@ -20,6 +20,7 @@ import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
+import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -34,6 +35,7 @@ import javax.crypto.spec.SecretKeySpec;
  *  standard policy file limits the key length of some alorithms.
  */
 public class CryptoTest {
+    public static final DHParameterSpec specDh3kjce = new DHParameterSpec(ZrtpConstants.P3072, ZrtpConstants.two, 256);
 
     private Provider cryptoProvider = null;
     
@@ -94,7 +96,7 @@ public class CryptoTest {
 
         // test DH key pair 
         try {
-            dhKeyPairGen.initialize(ZrtpConstants.specDh3k);
+            dhKeyPairGen.initialize(specDh3kjce);
         } catch (InvalidAlgorithmParameterException e1) {
             // TODO Auto-generated catch block
             e1.printStackTrace();

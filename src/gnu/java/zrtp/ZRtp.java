@@ -38,22 +38,23 @@ import java.util.Random;
 import java.util.Arrays;
 
 import java.math.BigInteger;
-import java.security.Provider;
-import java.security.MessageDigest;
-import java.security.KeyPair;
-import java.security.KeyFactory;
-import java.security.KeyPairGenerator;
-import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
 
-import javax.crypto.Cipher;
-import javax.crypto.Mac;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import javax.crypto.KeyAgreement;
-import javax.crypto.interfaces.DHPublicKey;
-import javax.crypto.spec.DHPublicKeySpec;
 
+import org.bouncycastle.crypto.generators.DHBasicKeyPairGenerator;
+import org.bouncycastle.crypto.params.DHKeyGenerationParameters;
+import org.bouncycastle.crypto.params.ParametersWithIV;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.BufferedBlockCipher;
+
+import org.bouncycastle.crypto.agreement.DHBasicAgreement;
+import org.bouncycastle.crypto.params.DHPublicKeyParameters;
+
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.engines.AESFastEngine;
+import org.bouncycastle.crypto.macs.HMac;
+import org.bouncycastle.crypto.modes.CFBBlockCipher;
+import org.bouncycastle.crypto.params.KeyParameter;
 
 /**
  * The main ZRTP class.
@@ -99,17 +100,17 @@ public class ZRtp {
     /**
      * The state engine takes care of protocol processing.
      */
-    private ZrtpStateClass stateEngine = null;;
+    private final ZrtpStateClass stateEngine;
 
     /**
      * This is my ZID that I send to the peer.
      */
-    private byte[] zid = new byte[ZidRecord.IDENTIFIER_LENGTH];
+    private final byte[] zid = new byte[ZidRecord.IDENTIFIER_LENGTH];
 
     /**
      * The peer's ZID
      */
-    private byte[] peerZid = null;
+    private byte[] peerZid;
 
     /**
      * The callback class provides me with the interface to send
@@ -120,12 +121,13 @@ public class ZRtp {
     /**
      * My active Diffie-Helman context
      */
-    private KeyAgreement dhContext;
-    private KeyPairGenerator dhKeyPairGen;
-    private KeyPair myKeyPair = null;
-    private KeyFactory DHKeyFactory = null;
-    private Provider cryptoProvider= null;
-    private Cipher AEScipher = null;
+    private DHBasicAgreement dhContext;
+    private DHBasicKeyPairGenerator dhKeyPairGen;
+    private AsymmetricCipherKeyPair myKeyPair = null;
+    private BufferedBlockCipher AEScipher = null;
+    
+    private SecureRandom secRand = new SecureRandom();
+
     /**
      * The computed DH shared secret
      */
@@ -173,7 +175,7 @@ public class ZRtp {
     /**
      * My hvi
      */
-    private byte[] hvi = null;
+    private byte[] hvi = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
 
     /**
      * The peer's hvi
@@ -184,9 +186,9 @@ public class ZRtp {
      * Context to compute the4 SHA256 hash of selected messages.
      * Used to compute the s0, refer to chapter 5.4.1.4
      */
-    private MessageDigest msgShaContext;
-    private MessageDigest sha256;       // used for various SHA256 computations 
-    private Mac hmacSha256;             // used for various HMAC computations
+    private SHA256Digest msgShaContext;
+    private SHA256Digest sha256;         // used for various SHA256 computations 
+    private HMac hmacSha256;             // used for various HMAC computations
     /**
      * Commited Hash, Cipher, and public key algorithms
      */
@@ -209,19 +211,19 @@ public class ZRtp {
      * only the leftmost 128 bits are used in computations and comparisons.
      */
     private byte[] H0 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
-    private byte[] H1 = null;
-    private byte[] H2 = null;
-    private byte[] H3 = null;
-    private byte[] helloHash = null;
+    private byte[] H1 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+    private byte[] H2 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+    private byte[] H3 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+    private byte[] helloHash = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
 
     // need 128 bits only to store peer's values
-    private byte[] peerH2 = null;
-    private byte[] peerH3 = null;
+    private byte[] peerH2 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+    private byte[] peerH3 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
 
     /**
      * The SHA256 hash over selected messages
      */
-    private byte[] messageHash = null;
+    private byte[] messageHash = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
     /**
      * The s0
      */
@@ -308,37 +310,40 @@ public class ZRtp {
      * Constructor intializes all relevant data but does not start the
      * engine.
      */
-    public ZRtp(byte[] myZid, ZrtpCallback cb, String id, Provider prov) throws GeneralSecurityException {
+    public ZRtp(byte[] myZid, ZrtpCallback cb, String id)  {
 
          System.arraycopy(myZid, 0, zid, 0, ZidRecord.IDENTIFIER_LENGTH);
-         cryptoProvider = prov;
          callback = cb;
          
-         if (cryptoProvider == null) {
-            throw new GeneralSecurityException("ZRTP engine: no crypto provider available");
-         }
         /*
          * Get all required crypto algorithms here, used everywhere :-)
          */
-        sha256 = MessageDigest.getInstance("SHA256", cryptoProvider);
-        msgShaContext = MessageDigest.getInstance("SHA256", cryptoProvider);
-        hmacSha256 = Mac.getInstance("HMACSHA256", cryptoProvider);
-        dhContext = KeyAgreement.getInstance("DH", cryptoProvider);
-        dhKeyPairGen = KeyPairGenerator.getInstance("DH", cryptoProvider);
-        DHKeyFactory = KeyFactory.getInstance("DH", cryptoProvider);
-        AEScipher = Cipher.getInstance("AES/CFB128/NOPADDING", cryptoProvider);
+        sha256 = new SHA256Digest();
+        msgShaContext = new SHA256Digest();
+        hmacSha256 = new HMac(new SHA256Digest());
+        dhContext = new DHBasicAgreement();
+        dhKeyPairGen = new DHBasicKeyPairGenerator();
 
-
+        AESFastEngine aes = new AESFastEngine();
+        CFBBlockCipher cfbAes = new CFBBlockCipher(aes, aes.getBlockSize() * 8);
+        AEScipher = new BufferedBlockCipher(cfbAes);
+        
         /*
          * Generate H0 as a random number (256 bits, 32 bytes) and then the hash
          * chain, refer to chapter 10
          */
         Random ran = new Random();
         ran.nextBytes(H0);
-        H1 = sha256.digest(H0);        // hash H0 and generate H1
-        H2 = sha256.digest(H1);        // H2
-        H3 = sha256.digest(H2);        // H3
-
+        
+        sha256.update(H0, 0, H0.length);   // hash H0 and generate H1
+        sha256.doFinal(H1, 0);
+        
+        sha256.update(H1, 0, H1.length);   // H2
+        sha256.doFinal(H2, 0);
+        
+        sha256.update(H2, 0, H2.length);   // H3
+        sha256.doFinal(H3, 0);
+        
         zrtpHello.setH3(H3);            // set H3 in Hello, included in helloHash
 
         ran.nextBytes(randomIV);        // IV used in ZRTP packet encryption
@@ -525,7 +530,7 @@ public class ZRtp {
         String pv = new String(ZrtpConstants.zrtpVersion);
         String hs = new String(ZrtpUtils.bytesToHexString(helloHash,
                 ZrtpConstants.SHA256_DIGEST_LENGTH));
-        return new String(pv + " " + hs);
+        return pv + " " + hs;
     }
 
     /**
@@ -875,23 +880,16 @@ public class ZRtp {
 
         // Generate the DH data and keys according to the selected DH algorithm
         int maxPubKeySize;
-        try {
-            if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
-                dhKeyPairGen.initialize(ZrtpConstants.specDh3k);
-                maxPubKeySize = 384;
-            } else {
-                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
-                return null;
-                // Error - shouldn't happen
-            }
-        } catch (GeneralSecurityException e) {
-            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
-                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
+        if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
+            dhKeyPairGen.init(new DHKeyGenerationParameters(secRand, ZrtpConstants.specDh3k));
+            maxPubKeySize = 384;
+        } else {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
+            // Error - shouldn't happen
         }
         myKeyPair = dhKeyPairGen.generateKeyPair();
-        pubKeyBytes = ((DHPublicKey)myKeyPair.getPublic()).getY().toByteArray();
+        pubKeyBytes = ((DHPublicKeyParameters)myKeyPair.getPublic()).getY().toByteArray();
 
         // check for leading zero byte if public key resulted in negtive
         // value. BigInteger adds a leading zero to hide the negative sign bit
@@ -978,9 +976,8 @@ public class ZRtp {
 
     protected ZrtpPacketCommit prepareCommitMultiStream(ZrtpPacketHello hello) {
         
-        Random ran = new Random();
         byte[] nonce = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
-        ran.nextBytes(nonce);
+        secRand.nextBytes(nonce);
 
         zrtpCommit.setZid(zid);
         zrtpCommit.setHashType(hash.name);
@@ -1033,8 +1030,10 @@ public class ZRtp {
         // false ZRTP packets
 
         peerH2 = commit.getH2();
-        byte[] tmpH3 = sha256.digest(peerH2);
-
+        byte[] tmpH3 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+        sha256.update(peerH2, 0, peerH2.length);
+        sha256.doFinal(tmpH3, 0);
+        
         if (ZrtpUtils.byteArrayCompare(tmpH3, peerH3,
                 ZrtpConstants.SHA256_DIGEST_LENGTH) != 0) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.IgnorePacket;
@@ -1070,7 +1069,9 @@ public class ZRtp {
             return null;
         }
 
-        // check if we support the commited pub key type
+        // check if we support the commited pub key type (check here for different
+        // pubkey - maybe we need to create a new own public key here if the peers
+        // commit differs with respect to our preparation do in prepareCommit(...)
         pubKey = commit.getPubKey();
         if (pubKey == ZrtpConstants.SupportedPubKeys.END) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppPKExchange;
@@ -1106,8 +1107,7 @@ public class ZRtp {
         myRole = ZrtpCallback.Role.Responder;
         peerHvi = commit.getHvi();
 
-        // We are responder. Release a possibly pre-computed SHA256 context
-        // because this was prepared for Initiator. Then create a new one.
+        // We are responder. Reset the message SHA context.
         msgShaContext.reset();
 
         // Hash messages to produce overall message hash:
@@ -1144,8 +1144,12 @@ public class ZRtp {
         // Because we are initiator the protocol engine didn't receive Commit
         // thus could not store a peer's H2. A two step SHA256 is required to
         // re-compute H3. Then compare with peer's H3 from peer's Hello packet.
-        peerH2 = sha256.digest(dhPart1.getH1()); // Compute peer's H2
-        byte[] tmpHash = sha256.digest(peerH2); // Compute peer's H3 (tmpHash)
+        sha256.update(dhPart1.getH1(), 0, dhPart1.getH1().length); // Compute peer's H2
+        sha256.doFinal(peerH2, 0);
+        
+        byte[] tmpHash = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+        sha256.update(peerH2, 0, peerH2.length); // Compute peer's H3 (tmpHash)
+        sha256.doFinal(tmpHash, 0);
 
         if (ZrtpUtils.byteArrayCompare(tmpHash, peerH3,
                 ZrtpConstants.SHA256_DIGEST_LENGTH) != 0) {
@@ -1166,32 +1170,27 @@ public class ZRtp {
         // get and check Responder's public value, see chap. 5.4.3 in the spec
         byte[] pvrBytes = dhPart1.getPv();
         BigInteger pvrBigInt = new BigInteger(1, pvrBytes);
-        DHPublicKeySpec dhs = null;
 
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
             if (!checkPubKey(pvrBigInt, ZrtpConstants.SupportedPubKeys.DH3K)) {
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongPV;
                 return null;
             }
-            dhs = new DHPublicKeySpec(pvrBigInt, ZrtpConstants.specDh3k.getP(),
-                    ZrtpConstants.specDh3k.getG());
-
         }
         // generate the resonpder's public key from the pvr data and the key
         // specs, then compute the shared secret.
-        try {
-            DHPublicKey pvr = null;
-            pvr = (DHPublicKey) DHKeyFactory.generatePublic(dhs);
-            dhContext.init(myKeyPair.getPrivate());
-            dhContext.doPhase(pvr, true);
-        } catch (GeneralSecurityException e) {
-            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
-                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
-            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
-            return null;
-        }
-        DHss = dhContext.generateSecret();
+        dhContext.init(myKeyPair.getPrivate());
+        DHPublicKeyParameters pvr = new DHPublicKeyParameters(pvrBigInt, ZrtpConstants.specDh3k);
+        DHss = dhContext.calculateAgreement(pvr).toByteArray();
 
+        // adjust byte arry if we have a leading zero
+        if (DHss[0] == 0) {
+            byte[] tmp = new byte[DHss.length - 1];
+            System.arraycopy(DHss, 1, tmp, 0, tmp.length);
+            DHss = tmp;
+        }
+        
+        
         myRole = ZrtpCallback.Role.Initiator;
 
         // We are Inititaor: the Responder's Hello and the Initiator's (our)
@@ -1203,7 +1202,7 @@ public class ZRtp {
                 * ZrtpPacketBase.ZRTP_WORD_SIZE);
 
         // Compute the message Hash
-        messageHash = msgShaContext.digest();
+        msgShaContext.doFinal(messageHash, 0);
         msgShaContext = null;
 
         // To compute the S0 for the Initiator we need the retained secrets of
@@ -1237,7 +1236,10 @@ public class ZRtp {
 
         // Because we are responder we received a Commit and stored its H2. 
         // Now re-compute H2 from received H1 and compare with stored peer's H2.
-        byte[] tmpHash = sha256.digest(dhPart2.getH1());
+        byte[] tmpHash = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH]; 
+        sha256.update(dhPart2.getH1(), 0, dhPart2.getH1().length);
+        sha256.doFinal(tmpHash, 0);
+        
         if (ZrtpUtils.byteArrayCompare(tmpHash, peerH2, ZrtpConstants.SHA256_DIGEST_LENGTH) != 0) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.IgnorePacket;
             return null;
@@ -1255,31 +1257,25 @@ public class ZRtp {
         // get and check Responder's public value, see chap. 5.4.3 in the spec
         byte[] pviBytes = dhPart2.getPv();
         BigInteger pviBigInt = new BigInteger(1, pviBytes);
-        DHPublicKeySpec dhs = null;
 
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
             if (!checkPubKey(pviBigInt, ZrtpConstants.SupportedPubKeys.DH3K)) {
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongPV;
                 return null;
             }
-            dhs = new DHPublicKeySpec(pviBigInt, ZrtpConstants.specDh3k.getP(),
-                    ZrtpConstants.specDh3k.getG());
-
         }
         // generate the resonpder's public key from the pvr data and the key
         // specs, then compute the shared secret.
-        try {
-            DHPublicKey pvi = null;
-            pvi = (DHPublicKey) DHKeyFactory.generatePublic(dhs);
-            dhContext.init(myKeyPair.getPrivate());
-            dhContext.doPhase(pvi, true);
-        } catch (GeneralSecurityException e) {
-            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
-                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
-            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
-            return null;
+        dhContext.init(myKeyPair.getPrivate());
+        DHPublicKeyParameters pvi = new DHPublicKeyParameters(pviBigInt, ZrtpConstants.specDh3k);
+        DHss = dhContext.calculateAgreement(pvi).toByteArray();
+
+        // adjust byte arry if we have a leading zero
+        if (DHss[0] == 0) {
+            byte[] tmp = new byte[DHss.length - 1];
+            System.arraycopy(DHss, 1, tmp, 0, tmp.length);
+            DHss = tmp;
         }
-        DHss = dhContext.generateSecret();
 
         // Now we have the peer's pvi. Because we are responder re-compute my hvi
         // using my Hello packet and the Initiator's DHPart2 and compare with
@@ -1294,7 +1290,7 @@ public class ZRtp {
         // prepared, see method prepareDHPart1().
         msgShaContext.update(dhPart2.getHeaderBase(), 0,
                   dhPart2.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
-        messageHash = msgShaContext.digest();
+        msgShaContext.doFinal(messageHash, 0);
         msgShaContext = null;
 
         // To compute the S0 for the Initiator we need the retained secrets of our
@@ -1331,13 +1327,11 @@ public class ZRtp {
         byte[] dataToSecure = zrtpConfirm1.getDataToSecure();
         int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16 : 32;
 
-        SecretKey encryptionKey = new SecretKeySpec(zrtpKeyR, 0, keylen, "AES");
-        IvParameterSpec ivp = new IvParameterSpec(randomIV);
-        
         try {
-            AEScipher.init(Cipher.ENCRYPT_MODE, encryptionKey, ivp);
-            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length, dataToSecure);
-        } catch (GeneralSecurityException e) {
+            AEScipher.init(true, new ParametersWithIV(new KeyParameter(zrtpKeyR, 0, keylen), randomIV));
+            int done = AEScipher.processBytes(dataToSecure, 0, dataToSecure.length, dataToSecure, 0);
+            AEScipher.doFinal(dataToSecure, done);
+        } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                     .of(ZrtpCodes.SevereCodes.SevereSecurityException));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1362,7 +1356,10 @@ public class ZRtp {
         // In multi stream mode we don't get a DH packt. Thus we need to recompute
         // the hash chain starting with Commit's H2
         peerH2 = commit.getH2();
-        byte[] tmpH3 = sha256.digest(peerH2);
+        byte[] tmpH3 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH]; 
+        sha256.update(peerH2, 0, peerH2.length);
+        sha256.doFinal(tmpH3, 0);
+        
         if (ZrtpUtils.byteArrayCompare(tmpH3, peerH3, ZrtpConstants.SHA256_DIGEST_LENGTH) != 0) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.IgnorePacket;
             return null;
@@ -1411,7 +1408,7 @@ public class ZRtp {
                 * ZrtpPacketBase.ZRTP_WORD_SIZE);
         msgShaContext.update(commit.getHeaderBase(), 0, commit.getLength()
                 * ZrtpPacketBase.ZRTP_WORD_SIZE);
-        messageHash = msgShaContext.digest();
+        msgShaContext.doFinal(messageHash, 0);
         msgShaContext = null;
 
         generateKeysMultiStream();
@@ -1428,13 +1425,11 @@ public class ZRtp {
         byte[] dataToSecure = zrtpConfirm1.getDataToSecure();
         int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16 : 32;
 
-        SecretKey encryptionKey = new SecretKeySpec(zrtpKeyR, 0, keylen, "AES");
-        IvParameterSpec ivp = new IvParameterSpec(randomIV);
-        
         try {
-            AEScipher.init(Cipher.ENCRYPT_MODE, encryptionKey, ivp);
-            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length, dataToSecure);
-        } catch (GeneralSecurityException e) {
+            AEScipher.init(true, new ParametersWithIV(new KeyParameter(zrtpKeyR, 0, keylen), randomIV));
+            int done = AEScipher.processBytes(dataToSecure, 0, dataToSecure.length, dataToSecure, 0);
+            AEScipher.doFinal(dataToSecure, done);
+        } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                     .of(ZrtpCodes.SevereCodes.SevereSecurityException));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1471,13 +1466,13 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.ConfirmHMACWrong;
             return null;
         }
-        SecretKey decryptionKey = new SecretKeySpec(zrtpKeyR, 0, keylen, "AES");
-        IvParameterSpec ivp = new IvParameterSpec(confirm1.getIv());
-        
+
         try {
-            AEScipher.init(Cipher.DECRYPT_MODE, decryptionKey, ivp);
-            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length, dataToSecure);
-        } catch (GeneralSecurityException e) {
+            // Decrypting here
+            AEScipher.init(false, new ParametersWithIV(new KeyParameter(zrtpKeyR, 0, keylen), confirm1.getIv()));
+            int done = AEScipher.processBytes(dataToSecure, 0, dataToSecure.length, dataToSecure, 0);
+            AEScipher.doFinal(dataToSecure, done);
+        } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                     .of(ZrtpCodes.SevereCodes.SevereSecurityException));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1538,13 +1533,11 @@ public class ZRtp {
         // see ZRTP specification chapter xYxY
         dataToSecure = zrtpConfirm2.getDataToSecure();
 
-        SecretKey encryptionKey = new SecretKeySpec(zrtpKeyI, 0, keylen, "AES");
-        ivp = new IvParameterSpec(randomIV);
-        
         try {
-            AEScipher.init(Cipher.ENCRYPT_MODE, encryptionKey, ivp);
-            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length, dataToSecure);
-        } catch (GeneralSecurityException e) {
+            AEScipher.init(true, new ParametersWithIV(new KeyParameter(zrtpKeyI, 0, keylen), randomIV));
+            int done = AEScipher.processBytes(dataToSecure, 0, dataToSecure.length, dataToSecure, 0);
+            AEScipher.doFinal(dataToSecure, done);
+        } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                     .of(ZrtpCodes.SevereCodes.SevereSecurityException));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1554,7 +1547,7 @@ public class ZRtp {
         zrtpConfirm2.setDataToSecure(dataToSecure);
         zrtpConfirm2.setHmac(confMac);
         
-        String cs = new String((cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128" : "AES-CM-256");
+        String cs = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? ZrtpConstants.AES_128 : ZrtpConstants.AES_256;
         callback.srtpSecretsOn(cs, SAS, sasVerified);
         return zrtpConfirm2;
     }
@@ -1574,7 +1567,7 @@ public class ZRtp {
         // don't update SAS, RS
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoInitConf1Received));
 
-        messageHash = msgShaContext.digest();
+        msgShaContext.doFinal(messageHash, 0);
         msgShaContext = null;
 
         myRole = ZrtpCallback.Role.Initiator;
@@ -1592,13 +1585,13 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.ConfirmHMACWrong;
             return null;
         }
-        SecretKey decryptionKey = new SecretKeySpec(zrtpKeyR, 0, keylen, "AES");
-        IvParameterSpec ivp = new IvParameterSpec(confirm1.getIv());
         
         try {
-            AEScipher.init(Cipher.DECRYPT_MODE, decryptionKey, ivp);
-            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length, dataToSecure);
-        } catch (GeneralSecurityException e) {
+            // Decrypting here
+            AEScipher.init(false, new ParametersWithIV(new KeyParameter(zrtpKeyR, 0, keylen), confirm1.getIv()));
+            int done = AEScipher.processBytes(dataToSecure, 0, dataToSecure.length, dataToSecure, 0);
+            AEScipher.doFinal(dataToSecure, done);
+        } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                     .of(ZrtpCodes.SevereCodes.SevereSecurityException));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1610,9 +1603,13 @@ public class ZRtp {
         // because we are using multi-stream mode here we also did not receive a DHPart1 and
         // thus could not store a responder's H2 or H1. A two step SHA256 is required to 
         // re-compute H1 and H2.
-        byte[] tmpHash = sha256.digest(confirm1.getHashH0()); // Compute peer's H1 in tmpHash
-        peerH2 = sha256.digest(tmpHash);               // Compute peer's H2
-
+        byte[] tmpHash = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH]; 
+        sha256.update(confirm1.getHashH0(), 0, confirm1.getHashH0().length); // Compute peer's H1 in tmpHash
+        sha256.doFinal(tmpHash, 0);
+        
+        sha256.update(tmpHash, 0, tmpHash.length);               // Compute peer's H2
+        sha256.doFinal(peerH2, 0);
+        
         // Check HMAC of previous Hello packet stored in temporary buffer. The
         // HMAC key of the Hello packet is peer's H2 that was computed above.
         // Refer to chapter 9.1 and chapter 10.
@@ -1631,13 +1628,11 @@ public class ZRtp {
         // Encrypt and HMAC with Initiator's key - we are Initiator here
         dataToSecure = zrtpConfirm2.getDataToSecure();
 
-        SecretKey encryptionKey = new SecretKeySpec(zrtpKeyI, 0, keylen, "AES");
-        ivp = new IvParameterSpec(randomIV);
-        
         try {
-            AEScipher.init(Cipher.ENCRYPT_MODE, encryptionKey, ivp);
-            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length, dataToSecure);
-        } catch (GeneralSecurityException e) {
+            AEScipher.init(true, new ParametersWithIV(new KeyParameter(zrtpKeyI, 0, keylen), randomIV));
+            int done = AEScipher.processBytes(dataToSecure, 0, dataToSecure.length, dataToSecure, 0);
+            AEScipher.doFinal(dataToSecure, done);
+        } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                     .of(ZrtpCodes.SevereCodes.SevereSecurityException));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1647,7 +1642,7 @@ public class ZRtp {
         zrtpConfirm2.setDataToSecure(dataToSecure);
         zrtpConfirm2.setHmac(confMac);
         
-        String cs = new String((cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128" : "AES-CM-256");
+        String cs = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? ZrtpConstants.AES_128 : ZrtpConstants.AES_256;
         // Inform GUI about security state, don't show SAS and its state
         callback.srtpSecretsOn(cs, null, true);
         return zrtpConfirm2;
@@ -1680,14 +1675,13 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.ConfirmHMACWrong;
             return null;
         }
-        SecretKey decryptionKey = new SecretKeySpec(zrtpKeyI, 0, keylen, "AES");
-        IvParameterSpec ivp = new IvParameterSpec(confirm2.getIv());
 
         try {
-            AEScipher.init(Cipher.DECRYPT_MODE, decryptionKey, ivp);
-            AEScipher.doFinal(dataToSecure, 0, dataToSecure.length,
-                    dataToSecure);
-        } catch (GeneralSecurityException e) {
+            // Decrypting here
+            AEScipher.init(false, new ParametersWithIV(new KeyParameter(zrtpKeyI, 0, keylen), confirm2.getIv()));
+            int done = AEScipher.processBytes(dataToSecure, 0, dataToSecure.length, dataToSecure, 0);
+            AEScipher.doFinal(dataToSecure, done);
+        } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                     .of(ZrtpCodes.SevereCodes.SevereSecurityException));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1695,7 +1689,7 @@ public class ZRtp {
         }
         confirm2.setDataToSecure(dataToSecure);
 
-        String cs = null;
+        String cs = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? ZrtpConstants.AES_128 : ZrtpConstants.AES_256;
         boolean sasVerified = false;
         if (!multiStream) {
             // Check HMAC of DHPart2 packet stored in temporary buffer. The
@@ -1727,31 +1721,22 @@ public class ZRtp {
 
             // Inform GUI about security state and SAS state
             sasVerified = zidRec.isSasVerified();
-            cs = new String(
-                    (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128"
-                            : "AES-CM-256");
             // save new RS1, this inherits the verified flag from old RS1
             zidRec.setNewRs1(newRs1, -1);
             zidf.saveRecord(zidRec);
             callback.srtpSecretsOn(cs, SAS, sasVerified);
         } 
         else {
-            byte[] tmpHash = sha256.digest(confirm2.getHashH0()); // Compute initiator's H1 in tmpHash
-            /*
-             * sha256(tmpHash, SHA256_DIGEST_LENGTH, tmpH2); // Compute initiator's H2
-             * 
-             * if (memcmp(tmpH2, peerH2, SHA256_DIGEST_LENGTH) != 0) { errMsg =
-             * IgnorePacket; return NULL; }
-             */
+            byte[] tmpHash = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+            sha256.update(confirm2.getHashH0(), 0, confirm2.getHashH0().length); // Compute initiator's H1 in tmpHash
+            sha256.doFinal(tmpHash, 0);
+            
             if (!checkMsgHmac(tmpHash)) {
                 sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                         .of(ZrtpCodes.SevereCodes.SevereCommitHMACFailed));
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
                 return null;
             }
-            cs = new String(
-                    (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? "AES-CM-128"
-                            : "AES-CM-256");
             // Inform GUI about security state, don't show SAS and its state
             callback.srtpSecretsOn(cs, null, true);
 
@@ -1848,7 +1833,10 @@ public class ZRtp {
      */
     protected boolean verifyH2(ZrtpPacketCommit commit) {
 
-        byte[] tmpH3 = sha256.digest(commit.getH2());
+        byte[] tmpH3 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+        sha256.update(commit.getH2(), 0, commit.getH2().length);
+        sha256.doFinal(tmpH3, 0);
+        
         if (ZrtpUtils.byteArrayCompare(tmpH3, peerH3, ZrtpConstants.SHA256_DIGEST_LENGTH) != 0) {
             return false;
         }
@@ -1943,17 +1931,6 @@ public class ZRtp {
         callback.srtpSecretsOff(part);
     }
 
-    /**
-     * ZRTP state engine calls these methods to enter or leave its 
-     * synchronization mutex.
-     */
-    protected void synchEnter() {
-        // callback.synchEnter();
-    }
-    protected void synchLeave() {
-        //callback.synchLeave();
-    }
-
     // Private internal methods
     /**
      * Helper function to store ZRTP message data in a temporary buffer
@@ -1988,16 +1965,12 @@ public class ZRtp {
     private boolean checkMsgHmac(byte[] keyIn) {
         //compute HMAC, but exlude the stored HMAC :-)
         int len = lengthOfMsgData - (2 * ZrtpPacketBase.ZRTP_WORD_SIZE); // :-)
-        SecretKey key = new SecretKeySpec(keyIn, "HMAC");
-        try {
-            hmacSha256.init(key);
-        } catch (GeneralSecurityException e) {
-            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
-                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
-            return false;
-        }
+        KeyParameter key = new KeyParameter(keyIn);
+        hmacSha256.init(key);
         hmacSha256.update(tempMsgBuffer, 0, len);
-        byte data[] = hmacSha256.doFinal();
+        byte data[] = new byte[hmacSha256.getMacSize()];
+        hmacSha256.doFinal(data, 0);
+        
         byte[] storedMac = ZrtpUtils.readRegion(tempMsgBuffer, len,
                 2 * ZrtpPacketBase.ZRTP_WORD_SIZE);
         return (ZrtpUtils.byteArrayCompare(data, storedMac,
@@ -2039,7 +2012,7 @@ public class ZRtp {
         // this array includes the CRC which are not part of the helloHash. 
         // Thus compute digest only for the real message length.
         sha256.update(zrtpHello.getHeaderBase(), 0, len);
-        helloHash = sha256.digest();
+        sha256.doFinal(helloHash, 0);
     }
 
     /**
@@ -2073,28 +2046,24 @@ public class ZRtp {
      *            the length of the data to sign
      * @return the HMAC data
      */
-    private byte[] computeHmac(byte[] keyIn, byte[] toSign, int len) {
-        SecretKey key = new SecretKeySpec(keyIn, "HMAC");
-        try {
-            hmacSha256.init(key);
-        } catch (GeneralSecurityException e) {
-            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
-                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
-            return null;
-        }
+    private final byte[] computeHmac(byte[] keyIn, byte[] toSign, int len) {
+        KeyParameter key = new KeyParameter(keyIn);
+        hmacSha256.init(key);
         hmacSha256.update(toSign, 0, len);
-        return hmacSha256.doFinal();
+        byte[] retval = new byte[hmacSha256.getMacSize()];
+        hmacSha256.doFinal(retval, 0);
+        return retval;
     }
 
     /**
      * Compute my hvi value according to ZRTP specification.
      */
-    private void computeHvi(ZrtpPacketDHPart dh, ZrtpPacketHello hello) {
+    private final void computeHvi(ZrtpPacketDHPart dh, ZrtpPacketHello hello) {
         sha256.update(dh.getHeaderBase(), 0, dh.getLength()
                 * ZrtpPacketBase.ZRTP_WORD_SIZE);
         sha256.update(hello.getHeaderBase(), 0, hello.getLength()
                 * ZrtpPacketBase.ZRTP_WORD_SIZE);
-        hvi = sha256.digest();
+        sha256.doFinal(hvi, 0);
     }
 
     private void computeSharedSecretSet(ZidRecord zidRec) {
@@ -2167,7 +2136,7 @@ public class ZRtp {
         }
         System.arraycopy(messageHash, 0, KDFcontext, zid.length+peerZid.length, messageHash.length);
         
-        s0 = KDF(zrtpSession, ZrtpConstants.zrtpMsk, KDFcontext, sha256.getDigestLength()*8);
+        s0 = KDF(zrtpSession, ZrtpConstants.zrtpMsk, KDFcontext, sha256.getDigestSize()*8);
         computeSRTPKeys();
     }
 
@@ -2175,14 +2144,9 @@ public class ZRtp {
      * The ZRTP KDF function as per ZRT specification 4.5.1
      */
     private byte[] KDF(byte[] ki, byte[] label, byte[] context, int L) {
-        SecretKey key = new SecretKeySpec(ki, "HMAC");
-        try {
-            hmacSha256.init(key);
-        } catch (GeneralSecurityException e) {
-            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
-                    .of(ZrtpCodes.SevereCodes.SevereSecurityException));
-            return null;
-        }
+        KeyParameter key = new KeyParameter(ki);
+        hmacSha256.init(key);
+
         byte[] counter = ZrtpUtils.int32ToArray(1);
         hmacSha256.update(counter, 0, 4);        
         hmacSha256.update(label, 0, label.length);   // the label includes the 0 byte separator
@@ -2190,7 +2154,9 @@ public class ZRtp {
         byte[] length = ZrtpUtils.int32ToArray(L);
         hmacSha256.update(length, 0, 4);        
 
-        return hmacSha256.doFinal();
+        byte[] retval = new byte[hmacSha256.getMacSize()];
+        hmacSha256.doFinal(retval, 0);
+        return retval;
     }
     
     
@@ -2200,19 +2166,19 @@ public class ZRtp {
         // ZIDi || ZIDr || total_hash
         // and the SAS context: ZIDi || ZIDr
         byte[] KDFcontext = new byte[zid.length + peerZid.length + messageHash.length];
-        byte sasContext[] = new byte[zid.length + peerZid.length];
+//        byte sasContext[] = new byte[zid.length + peerZid.length];
         
         if (myRole == ZrtpCallback.Role.Responder) {
             System.arraycopy(peerZid, 0, KDFcontext, 0, peerZid.length);
             System.arraycopy(zid, 0, KDFcontext, peerZid.length, zid.length);
-            System.arraycopy(peerZid, 0, sasContext, 0, peerZid.length);
-            System.arraycopy(zid, 0, sasContext, peerZid.length, zid.length);
+//            System.arraycopy(peerZid, 0, sasContext, 0, peerZid.length);
+//            System.arraycopy(zid, 0, sasContext, peerZid.length, zid.length);
         }
         else {
             System.arraycopy(zid, 0, KDFcontext, 0, zid.length);        
             System.arraycopy(peerZid, 0, KDFcontext, zid.length, peerZid.length);
-            System.arraycopy(zid, 0, sasContext, 0, zid.length);        
-            System.arraycopy(peerZid, 0, sasContext, zid.length, peerZid.length);
+//            System.arraycopy(zid, 0, sasContext, 0, zid.length);        
+//            System.arraycopy(peerZid, 0, sasContext, zid.length, peerZid.length);
         }
         System.arraycopy(messageHash, 0, KDFcontext, zid.length+peerZid.length, messageHash.length);
 
@@ -2227,8 +2193,8 @@ public class ZRtp {
         srtpSaltR = KDF(s0, ZrtpConstants.respMasterSalt, KDFcontext, 112);
 
         // The HMAC keys
-        hmacKeyI = KDF(s0, ZrtpConstants.iniHmacKey, KDFcontext, sha256.getDigestLength()*8);
-        hmacKeyR = KDF(s0, ZrtpConstants.respHmacKey, KDFcontext, sha256.getDigestLength()*8);
+        hmacKeyI = KDF(s0, ZrtpConstants.iniHmacKey, KDFcontext, sha256.getDigestSize()*8);
+        hmacKeyR = KDF(s0, ZrtpConstants.respHmacKey, KDFcontext, sha256.getDigestSize()*8);
 
         // The keys for Confirm messages
         zrtpKeyI = KDF(s0, ZrtpConstants.iniZrtpKey, KDFcontext, keyLen);
@@ -2236,15 +2202,15 @@ public class ZRtp {
 
         if (!multiStream) {
             // Compute the new Retained Secret
-            newRs1 = KDF(s0, ZrtpConstants.retainedSec, KDFcontext, sha256.getDigestLength()*8);
+            newRs1 = KDF(s0, ZrtpConstants.retainedSec, KDFcontext, sha256.getDigestSize()*8);
             
             // Compute the ZRTP Session Key
-            zrtpSession = KDF(s0, ZrtpConstants.zrtpSessionKey, KDFcontext, sha256.getDigestLength()*8);
+            zrtpSession = KDF(s0, ZrtpConstants.zrtpSessionKey, KDFcontext, sha256.getDigestSize()*8);
 
             // perform SAS generation according to chapter 5.5 and 8.
             // we don't need a speciai sasValue filed. sasValue are the first
             // (leftmost) 32 bits (4 bytes) of sasHash
-            sasHash = KDF(zrtpSession, ZrtpConstants.sasString, sasContext, sha256.getDigestLength()*8);
+            sasHash = KDF(s0, ZrtpConstants.sasString, KDFcontext, sha256.getDigestSize()*8);
 
             // according to chapter 8 only the leftmost 20 bits of sasValue (aka
             // sasHash) are used to create the character SAS string of type SAS
@@ -2326,20 +2292,20 @@ public class ZRtp {
         sha256.update(counter, 0, 4);
 
         // Next is the DH result itself
-        sha256.update(DHss);
+        sha256.update(DHss, 0, DHss.length);
 
         // Next the fixed string "ZRTP-HMAC-KDF"
-        sha256.update(ZrtpConstants.KDFString);
+        sha256.update(ZrtpConstants.KDFString, 0, ZrtpConstants.KDFString.length);
 
         // Next is Initiator's id (ZIDi), in this case as Initiator
         // it is zid
-        sha256.update(zid);
+        sha256.update(zid, 0, zid.length);
 
         // Next is Responder's id (ZIDr), in this case our peer's id
-        sha256.update(peerZid);
+        sha256.update(peerZid, 0, peerZid.length);
 
         // Next ist total hash (messageHash) itself
-        sha256.update(messageHash);
+        sha256.update(messageHash, 0, messageHash.length);
 
         /*
          * For each matching shared secret hash the length of the shared secret
@@ -2357,13 +2323,14 @@ public class ZRtp {
         for (int i = 0; i < 3; i++) {
             if (setD[i] != null) { // a matching secret, set length, then
                                     // secret
-                sha256.update(secretHashLen);
-                sha256.update(setD[i]);
+                sha256.update(secretHashLen, 0, secretHashLen.length);
+                sha256.update(setD[i], 0, setD[i].length);
             } else { // no machting secret, set length 0, skip secret
-                sha256.update(nullinger);
+                sha256.update(nullinger, 0, nullinger.length);
             }
         }
-        s0 = sha256.digest();
+        s0 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+        sha256.doFinal(s0, 0);
         // ZrtpUtils.hexdump("S0 I", s0, ZrtpConstants.SHA256_DIGEST_LENGTH);
 
         Arrays.fill(DHss, (byte) 0);
@@ -2440,20 +2407,20 @@ public class ZRtp {
         sha256.update(counter, 0, 4);
 
         // Next is the DH result itself
-        sha256.update(DHss);
+        sha256.update(DHss, 0, DHss.length);
 
         // Next the fixed string "ZRTP-HMAC-KDF"
-        sha256.update(ZrtpConstants.KDFString);
+        sha256.update(ZrtpConstants.KDFString, 0, ZrtpConstants.KDFString.length);
 
         // Next is Initiator's id (ZIDi), in this case as Responder
         // it is peerZid
-        sha256.update(peerZid);
+        sha256.update(peerZid, 0, peerZid.length);
 
         // Next is Responder's id (ZIDr), in this case our own zid
-        sha256.update(zid);
+        sha256.update(zid, 0, zid.length);
 
         // Next ist total hash (messageHash) itself
-        sha256.update(messageHash);
+        sha256.update(messageHash, 0, messageHash.length);
 
         /*
          * For each matching shared secret hash the length of the shared secret
@@ -2471,13 +2438,14 @@ public class ZRtp {
         for (int i = 0; i < 3; i++) {
             if (setD[i] != null) { // a matching secret, set length, then
                                     // secret
-                sha256.update(secretHashLen);
-                sha256.update(setD[i]);
+                sha256.update(secretHashLen, 0, secretHashLen.length);
+                sha256.update(setD[i], 0, setD[i].length);
             } else { // no machting secret, set length 0, skip secret
-                sha256.update(nullinger);
+                sha256.update(nullinger, 0, nullinger.length);
             }
         }
-        s0 = sha256.digest();
+        s0 = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH]; 
+        sha256.doFinal(s0, 0);
         // ZrtpUtils.hexdump("S0 R", s0, ZrtpConstants.SHA256_DIGEST_LENGTH);
 
         Arrays.fill(DHss, (byte) 0);
@@ -2497,17 +2465,17 @@ public class ZRtp {
         return false;
     }
 
-    public static void main(String argv[]) {
-        byte[] data= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32};
-        ZRtp zrtp = null;
-        try {
-            zrtp = new ZRtp(data, null, "GNU ZRTP4J 1.0.0", null);
-        } catch (GeneralSecurityException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        ZrtpUtils.hexdump("Hello packet", zrtp.zrtpHello.getHeaderBase(), zrtp.zrtpHello.getHeaderBase().length);
-        System.err.println("ZRtp done");
-    }
+//    public static void main(String argv[]) {
+//        byte[] data= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32};
+//        ZRtp zrtp = null;
+//        try {
+//            zrtp = new ZRtp(data, null, "GNU ZRTP4J 1.0.0", null);
+//        } catch (GeneralSecurityException e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//        }
+//        ZrtpUtils.hexdump("Hello packet", zrtp.zrtpHello.getHeaderBase(), zrtp.zrtpHello.getHeaderBase().length);
+//        System.err.println("ZRtp done");
+//    }
 
 }

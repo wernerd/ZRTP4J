@@ -5,7 +5,6 @@ import gnu.java.zrtp.jmf.transform.TransformManager;
 import gnu.java.zrtp.jmf.transform.srtp.SRTPPolicy;
 
 import java.net.*;
-import java.security.Provider;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -33,21 +32,6 @@ public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
      * Initializes an RTP session
      */
     protected void initialize() {
-        Provider cryptoProvider = null;
-        try {
-            Class<?> c = Class
-                    .forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-            cryptoProvider = (Provider) c.newInstance();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
 
         InetAddress ia = null;
         try {
@@ -73,7 +57,7 @@ public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
         try {
             // create a SRTP connector with own bind address
             transConnector = TransformManager.createSRTPConnector(sa,
-                    masterKey, masterSalt, srtpPolicy, srtpPolicy, cryptoProvider);
+                    masterKey, masterSalt, srtpPolicy, srtpPolicy);
 
             // initialize the RTPManager using the SRTP connector
 

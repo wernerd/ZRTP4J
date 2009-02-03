@@ -11,8 +11,7 @@ import gnu.java.zrtp.jmf.transform.srtp.SRTPTransformEngine;
 import gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine;
 import gnu.java.zrtp.jmf.transform.zrtp.ZrtpTransformConnector;
 
-import java.security.GeneralSecurityException;
-import java.security.Provider;
+// import java.security.Provider;
 
 import javax.media.rtp.*;
 
@@ -42,16 +41,12 @@ public class TransformManager
      */
     public static TransformConnector createSRTPConnector(SessionAddress addr,
             byte[] masterKey, byte[] masterSalt, SRTPPolicy srtpPolicy,
-            SRTPPolicy srtcpPolicy, Provider cp)
+            SRTPPolicy srtcpPolicy)
             throws InvalidSessionAddressException {
         SRTPTransformEngine engine = null;
-        try {
-            engine = new SRTPTransformEngine(masterKey, masterSalt, srtpPolicy,
-                    srtcpPolicy, cp);
-        } catch (GeneralSecurityException e) {
-            e.printStackTrace();
-            return null;
-        }
+
+        engine = new SRTPTransformEngine(masterKey, masterSalt, srtpPolicy,
+                srtcpPolicy);
 
         TransformConnector connector = null;
         connector = new TransformConnector(addr, engine);

@@ -73,7 +73,7 @@ public class ZrtpPacketBase {
         packetBuffer = pb;
     }
     
-    public byte[] getHeaderBase() { 
+    public final byte[] getHeaderBase() { 
         return (packetBuffer);
     }
 
@@ -82,18 +82,18 @@ public class ZrtpPacketBase {
      * 
      * @return true if packet buffer contains ZRTP id, false otherwise.
      */
-    public boolean isZrtpPacket() {
+    public final boolean isZrtpPacket() {
         if (packetBuffer[0] == zrtpId[0] && packetBuffer[1] == zrtpId[1]) {
             return (true);
         }
         return false;
     }
     
-    public short getLength() { 
+    public final short getLength() { 
         return ZrtpUtils.readShort(packetBuffer, LENGTH_OFFSET);
     }
     
-    public String getMessageType() { 
+    public final String getMessageType() { 
         return new String(packetBuffer, TYPE_OFFSET, TYPE_LENGTH); 
     }
 
@@ -102,7 +102,7 @@ public class ZrtpPacketBase {
      * Copy the unique ZRTP id into the ZRTP packer header
      *
      */
-    protected void setZrtpId() {    
+    protected final void setZrtpId() {    
         System.arraycopy(zrtpId, 0, packetBuffer, ID_OFFSET, zrtpId.length);
     }
     
@@ -113,7 +113,7 @@ public class ZrtpPacketBase {
      *  
      * @param length The length of the packet in ZRTP words
      */
-    protected void setLength(int length) {
+    protected final void setLength(int length) {
         ZrtpUtils.short16ToArrayInPlace(length, packetBuffer, LENGTH_OFFSET);
     }
     
@@ -122,7 +122,7 @@ public class ZrtpPacketBase {
      *  
      * @param messageType The message type name.
      */
-    public void setMessageType(byte[] messageType) {
+    public final void setMessageType(byte[] messageType) {
         System.arraycopy(messageType, 0, packetBuffer, TYPE_OFFSET, 2*ZRTP_WORD_SIZE);
     }
 }

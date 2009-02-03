@@ -55,12 +55,12 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
         setSignatureLength(0);
     }
 
-    public ZrtpPacketConfirm(int sl) {
+    public ZrtpPacketConfirm(final int sl) {
         super(null);
         setSignatureLength(sl);
     }
 
-    public void setSignatureLength(int sl) {
+    public final void setSignatureLength(final int sl) {
         if (sl > 512) {
             return;                     // TODO throw exception here ?
         }
@@ -86,7 +86,7 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
         setZrtpId();
     }
 
-    public ZrtpPacketConfirm(byte[] data) {
+    public ZrtpPacketConfirm(final byte[] data) {
         super(data);
         signatureLength = packetBuffer[SIG_LENGTH_OFFSET] & 0xff;
         if (packetBuffer[FILLER_OFFSET+1] == 1) {  // if we have a 9th bit - set it
@@ -95,75 +95,76 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
     }
 
     
-    public boolean isSASFlag() {
+    public final boolean isSASFlag() {
         return ((packetBuffer[FLAGS_OFFSET] & 0x4) == 0x4); 
     }
     
-    public byte[] getIv() {
+    public final byte[] getIv() {
         return ZrtpUtils.readRegion(packetBuffer, IV_OFFSET, 4*ZRTP_WORD_SIZE);
     }
         
-    public byte[] getHmac() {
+    public final byte[] getHmac() {
         return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
     }
         
-    public int getExpTime() {
+    public final int getExpTime() {
         return ZrtpUtils.readInt(packetBuffer, EXP_TIME_OFFSET);
     }
 
-    public byte[] getDataToSecure() {
+    public final byte[] getDataToSecure() {
         // 9 is ZRTP_HEADER plus non secure confirm data       
         int length = (getLength() - 9) * ZRTP_WORD_SIZE;
         return ZrtpUtils.readRegion(packetBuffer, HASH_H0_OFFSET, length);
     }
     
-    public byte[] getHashH0() { 
+    public final byte[] getHashH0() { 
         return ZrtpUtils.readRegion(packetBuffer, HASH_H0_OFFSET, 8*ZRTP_WORD_SIZE);
     }
 
-    public byte[] getSignatureData() {
+    public final byte[] getSignatureData() {
         return ZrtpUtils.readRegion(packetBuffer, SIG_DATA_OFFSET, signatureLength);
     }
     
-    public int getSignatureLength() {
+    public final int getSignatureLength() {
         return signatureLength;
     }
     /*
      * Setter methods
      */
-    public void setSASFlag() {
+    public final void setSASFlag() {
         packetBuffer[FLAGS_OFFSET] |= 0x4; 
     }
 
-    public void setHmac(byte[] data) {
+    public final void setHmac(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
     }
 
-    public void setIv(byte[] data) {
+    public final void setIv(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, IV_OFFSET, 4*ZRTP_WORD_SIZE);
     }
         
-    public void setExpTime(int t)  { 
+    public final void setExpTime(final int t)  { 
         ZrtpUtils.int32ToArrayInPlace(t, packetBuffer, EXP_TIME_OFFSET);
     }
     
-    public void setDataToSecure(byte[] data) {
+    public final void setDataToSecure(final byte[] data) {
         // 9 is ZRTP_HEADER plus non secure confirm data       
         int length = (getLength() - 9) * ZRTP_WORD_SIZE;
         System.arraycopy(data, 0, packetBuffer, HASH_H0_OFFSET, length);
     }
 
-    public void setHashH0(byte[] data) {
+    public final void setHashH0(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, HASH_H0_OFFSET, 8*ZRTP_WORD_SIZE);
     }
 
-    public void setSignatureData(byte[] data) {
+    public final void setSignatureData(final byte[] data) {
         if (data.length > signatureLength) {
             return;                                 // TODO throw exception here?
         }
         System.arraycopy(data, 0, packetBuffer, SIG_DATA_OFFSET, data.length);       
     }
     
+    /* ***
     public static void main(String[] args) {
         ZrtpPacketConfirm pkt = new ZrtpPacketConfirm(0);
         System.err.println("Confirm length: " + pkt.getLength());
@@ -182,6 +183,6 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
         System.err.println("packetBuffer length in bytes: " + pkt.getHeaderBase().length);
         System.err.println("Signature length in words: " + pkt.getSignatureLength());
         ZrtpUtils.hexdump("Confirm packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
-    
     }
+    *** */
 }

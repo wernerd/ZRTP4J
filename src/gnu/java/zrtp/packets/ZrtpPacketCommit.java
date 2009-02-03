@@ -72,16 +72,11 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         setMessageType(ZrtpConstants.CommitMsg);
     }
     
-    public ZrtpPacketCommit(byte[] data) {
+    public ZrtpPacketCommit(final byte[] data) {
         super(data);
     }
  
-    public byte[] getHashType() {
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, HASH_OFFSET, ZRTP_WORD_SIZE);
-        return arr;
-    }
-    
-    public ZrtpConstants.SupportedHashes getHash() {
+    public final ZrtpConstants.SupportedHashes getHash() {
 
         for (ZrtpConstants.SupportedHashes sh : ZrtpConstants.SupportedHashes
                 .values()) {
@@ -96,12 +91,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         return ZrtpConstants.SupportedHashes.END;
     }
 
-    public byte[] getCipherType()  { 
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, CIPHER_OFFSET, ZRTP_WORD_SIZE);
-        return arr;
-    }
-
-    public ZrtpConstants.SupportedSymCiphers getCipher() {
+    public final ZrtpConstants.SupportedSymCiphers getCipher() {
 
         for (ZrtpConstants.SupportedSymCiphers sh : ZrtpConstants.SupportedSymCiphers
                 .values()) {
@@ -119,12 +109,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         return ZrtpConstants.SupportedSymCiphers.END;
     }
         
-    public byte[] getAuthLenType()     { 
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, AUTHLENGTHS_OFFSET, ZRTP_WORD_SIZE);
-        return arr;
-    }
-
-    public ZrtpConstants.SupportedAuthLengths getAuthlen() {
+    public final ZrtpConstants.SupportedAuthLengths getAuthlen() {
 
         for (ZrtpConstants.SupportedAuthLengths sh : ZrtpConstants.SupportedAuthLengths
                 .values()) {
@@ -139,12 +124,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         return ZrtpConstants.SupportedAuthLengths.END;
     }
 
-    public byte[] getPubKeysType() { 
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, PUBKEY_OFFSET, ZRTP_WORD_SIZE);
-        return arr;
-    }
-       
-    public ZrtpConstants.SupportedPubKeys getPubKey() {
+    public final ZrtpConstants.SupportedPubKeys getPubKey() {
 
         for (ZrtpConstants.SupportedPubKeys sh : ZrtpConstants.SupportedPubKeys
                 .values()) {
@@ -155,15 +135,10 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
                     && s[3] == packetBuffer[o + 3]) {
                 return sh;
             }
-                    }
+        }
         return ZrtpConstants.SupportedPubKeys.END;
     }
-        
-    public byte[] getSasType() {
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, SAS_OFFSET, ZRTP_WORD_SIZE);
-        return arr;
-    }
-        
+                
     public ZrtpConstants.SupportedSASTypes getSas() {
 
         for (ZrtpConstants.SupportedSASTypes sh : ZrtpConstants.SupportedSASTypes
@@ -179,73 +154,67 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         return ZrtpConstants.SupportedSASTypes.END;
     }
 
-    public byte[] getZid() {
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, ZID_OFFSET, 3*ZRTP_WORD_SIZE);
-        return arr;
+    public final byte[] getZid() {
+        return ZrtpUtils.readRegion(packetBuffer, ZID_OFFSET, 3*ZRTP_WORD_SIZE);
     }
        
-    public byte[] getHvi() {
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, HVI_OFFSET, 8*ZRTP_WORD_SIZE);
-        return arr;
+    public final byte[] getHvi() {
+        return ZrtpUtils.readRegion(packetBuffer, HVI_OFFSET, 8*ZRTP_WORD_SIZE);
     }
         
-    public byte[] getH2() {
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, HASH_H2_OFFSET, 8*ZRTP_WORD_SIZE);
-        return arr;
+    public final byte[] getH2() {
+        return ZrtpUtils.readRegion(packetBuffer, HASH_H2_OFFSET, 8*ZRTP_WORD_SIZE);
     }
        
-    public byte[] getHMAC() {
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
-        return arr;
+    public final byte[] getHMAC() {
+        return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
     }
 
-    public byte[] getHMACMulti() {
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, 2*ZRTP_WORD_SIZE);
-        return arr;
+    public final byte[] getHMACMulti() {
+        return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, 2*ZRTP_WORD_SIZE);
     }
 
-    public byte[] getNonce() {
-        byte[] arr = ZrtpUtils.readRegion(packetBuffer, HVI_OFFSET, 4*ZRTP_WORD_SIZE);
-        return arr;        
+    public final byte[] getNonce() {
+        return ZrtpUtils.readRegion(packetBuffer, HVI_OFFSET, 4*ZRTP_WORD_SIZE);
     }
     
-    public void setHashType(byte[] data) {
+    public final void setHashType(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, HASH_OFFSET, ZRTP_WORD_SIZE);
     }
 
-    public void setCipherType(byte[] data) { 
+    public final void setCipherType(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, CIPHER_OFFSET, ZRTP_WORD_SIZE);
     }
     
-    public void setAuthLen(byte[] data) { 
+    public final void setAuthLen(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, AUTHLENGTHS_OFFSET, ZRTP_WORD_SIZE);
     }
     
-    public void setPubKeyType(byte[] data) { 
+    public final void setPubKeyType(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, PUBKEY_OFFSET, ZRTP_WORD_SIZE);
     }
     
-    public void setSasType(byte[] data) { 
+    public final void setSasType(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, SAS_OFFSET, ZRTP_WORD_SIZE);
     }
     
-    public void setZid(byte[] data) { 
+    public final void setZid(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, ZID_OFFSET, 3*ZRTP_WORD_SIZE);
     }
     
-    public void setHvi(byte[] data) { 
+    public final void setHvi(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, HVI_OFFSET, 8*ZRTP_WORD_SIZE);
     }
     
-    public void setH2(byte[] data) { 
+    public final void setH2(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, HASH_H2_OFFSET, 8*ZRTP_WORD_SIZE);
     }
     
-    public void setHMAC(byte[] data) { 
+    public final void setHMAC(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
     }
     
-    public void setHMACMulti(byte[] data) { 
+    public final void setHMACMulti(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, 2*ZRTP_WORD_SIZE);
     }
     /*
@@ -255,7 +224,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
      * and is 4 words shorter. Thus we need to do a resize of the packet buffer
      * and an adjustement of the length.
      */
-    public void setNonce(byte[] data) {
+    public final void setNonce(final byte[] data) {
         byte[] temp = new byte[COMMIT_LENGTH-4*ZRTP_WORD_SIZE];
         System.arraycopy(packetBuffer, 0, temp, 0, COMMIT_LENGTH-4*ZRTP_WORD_SIZE);
         packetBuffer = temp;
@@ -264,6 +233,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         setLength(ZRTP_HEADER_LENGTH + ZRTP_COMMIT_LENGTH - 4);
     }
     
+    /* ***
     public static void main(String[] args) {
         ZrtpPacketCommit commit = new ZrtpPacketCommit();
         System.err.println("Commit length: " + commit.getLength());
@@ -284,6 +254,6 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         data[0] += 1;
         commit.setH2(data);
         ZrtpUtils.hexdump("Commit packet", commit.getHeaderBase(), commit.getHeaderBase().length);
-        
     }
+    *** */
 }

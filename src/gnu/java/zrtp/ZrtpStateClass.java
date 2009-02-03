@@ -198,8 +198,6 @@ public class ZrtpStateClass {
 
         event = ev;
 
-        parent.synchEnter();
-
         if (event.type == EventDataType.ZrtpPacket) {
             pkt = event.packet;
 
@@ -235,7 +233,6 @@ public class ZrtpStateClass {
             cancelTimer();
         }
         dispatchEvent();
-        parent.synchLeave();
     }
 
     protected void stopZrtpStates() {

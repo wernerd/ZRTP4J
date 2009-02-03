@@ -21,6 +21,9 @@ package gnu.java.zrtp;
 
 import java.math.BigInteger;
 import javax.crypto.spec.DHParameterSpec;
+
+import org.bouncycastle.crypto.params.DHParameters;
+
 /**
  * @author Werner Dittmann <Werner.Dittmann@t-online.de>
  *
@@ -38,6 +41,9 @@ public class ZrtpConstants {
     public static final byte[] zrtpVersion = {
         (byte)0x31, (byte)0x2e, (byte)0x31, (byte)0x30};
 
+    // Humnan readable name of encryption algorithms
+    public static final String AES_128 = "AES-CM-128";
+    public static final String AES_256 = "AES-CM-256";
    /**
     * The message names as defined in ZRTP specification.
     */
@@ -361,9 +367,13 @@ public class ZrtpConstants {
     public static final BigInteger P4096MinusOne = P4096.subtract(BigInteger.ONE);
     
 
-    public static final DHParameterSpec specDh2k = new DHParameterSpec(ZrtpConstants.P2048, ZrtpConstants.two, 128);
-    public static final DHParameterSpec specDh3k = new DHParameterSpec(ZrtpConstants.P3072, ZrtpConstants.two, 256);
-    public static final DHParameterSpec specDh4k = new DHParameterSpec(ZrtpConstants.P4096, ZrtpConstants.two, 512);
+    public static final DHParameters specDh2k = new DHParameters(ZrtpConstants.P2048, ZrtpConstants.two, null, 128);
+    public static final DHParameters specDh3k = new DHParameters(ZrtpConstants.P3072, ZrtpConstants.two, null, 256);
+    public static final DHParameters specDh4k = new DHParameters(ZrtpConstants.P4096, ZrtpConstants.two, null, 512);
+    
+//    public static final DHParameterSpec specDh2k = new DHParameterSpec(ZrtpConstants.P2048, ZrtpConstants.two, 128);
+//    public static final DHParameterSpec specDh3k = new DHParameterSpec(ZrtpConstants.P3072, ZrtpConstants.two, 256);
+//    public static final DHParameterSpec specDh4k = new DHParameterSpec(ZrtpConstants.P4096, ZrtpConstants.two, 512);
 
 
     

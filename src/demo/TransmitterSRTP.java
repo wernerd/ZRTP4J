@@ -22,7 +22,6 @@ public class TransmitterSRTP {
     SessionAddress target = null;
 
     TransformConnector transConnector = null;
-    Provider cryptoProvider = null;
 
     public TransmitterSRTP() {
         InetAddress ia = null;
@@ -38,20 +37,6 @@ public class TransmitterSRTP {
 
         // create a send stream for the output data source
         dataOutput = createDataSource();
-        try {
-            Class<?> c = Class
-                    .forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-            cryptoProvider = (Provider) c.newInstance();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
     }
 
     public void run() {
@@ -74,7 +59,7 @@ public class TransmitterSRTP {
         try {
             // create a SRTP connector with own bind address
             transConnector = TransformManager.createSRTPConnector(sa,
-                    masterKey, masterSalt, srtpPolicy, srtpPolicy, cryptoProvider);
+                    masterKey, masterSalt, srtpPolicy, srtpPolicy);
 
             // initialize the RTPManager using the SRTP connector
             rtpManager.initialize(transConnector);

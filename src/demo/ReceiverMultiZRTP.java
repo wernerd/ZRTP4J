@@ -7,7 +7,6 @@ import gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine;
 import gnu.java.zrtp.jmf.transform.zrtp.ZrtpTransformConnector;
 
 import java.net.*;
-import java.security.Provider;
 import java.util.EnumSet;
 import java.util.Iterator;
 
@@ -17,16 +16,12 @@ import javax.media.protocol.*;
 import javax.media.rtp.*;
 import javax.media.rtp.event.*;
 
-import demo.TransmitterMultiZRTP.SenderMulti.MyCallbackMulti;
-
 
 
 /**
  */
 public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener,
         BufferTransferHandler {
-
-    Provider cryptoProvider = null;
     
     ZrtpTransformConnector transConnector = null;
     ZRTPTransformEngine zrtpEngine = null;
@@ -104,20 +99,6 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
      * Initializes a RTP/ZRTP/SRTP session
      */
     protected void initialize() {
-        try {
-            Class<?> c = Class
-                    .forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-            cryptoProvider = (Provider) c.newInstance();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
 
         InetAddress ia = null;
         try {
@@ -135,7 +116,6 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
                     .createZRTPConnector(sa);
             zrtpEngine = transConnector.getEngine();
             zrtpEngine.setUserCallback(new MyCallback());
-            zrtpEngine.setCryptoProvider(cryptoProvider);
             
             if (!zrtpEngine.initialize("test_t.zid"))
                 System.out.println("iniatlize failed");
@@ -176,7 +156,6 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             zrtpEngineMulti = transConnectorMulti.getEngine();
 
             // IMPORTANT: crypto provider must be set before initialization
-            zrtpEngineMulti.setCryptoProvider(cryptoProvider);
             if (!zrtpEngineMulti.initialize("test_t.zid"))
                 System.out.println("Multi iniatlize failed");
 
@@ -245,7 +224,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
     public synchronized void update(ReceiveStreamEvent evt) {
 
 //        System.err.println("RX: ReceiveStreamEvent received: " + evt);
-//        RTPManager mgr = (RTPManager) evt.getSource();
+        RTPManager mngr = (RTPManager) evt.getSource();
         Participant participant = evt.getParticipant(); // could be null.
         ReceiveStream stream = null;
 
@@ -283,11 +262,21 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             }
 
         } else if (evt instanceof StreamMappedEvent) {
-
-            System.err.println("RX: Mapped to participant: " + participant.getCNAME());
+            if (participant != null) {
+                System.err.println("RX: Mapped to participant: " + participant.getCNAME());
+            }
+            else {
+                System.err.println("RX: Mapped");
+            }
         } else if (evt instanceof ByeEvent) {
-
-            System.err.println("RX: BYE from: " + participant.getCNAME());
+            if (participant != null) {
+                System.err.println("RX: BYE from: " + participant.getCNAME());
+            }
+            else {
+                System.err.println("RX: BYE");
+            }
+            mngr.removeReceiveStreamListener(this);
+            mngr.dispose();
         } else {
             System.err.println("RX: Unknown Event: " + evt);
         }

@@ -57,14 +57,16 @@ public class ZrtpPacketErrorAck extends ZrtpPacketBase {
      * 
      * @param data received from the network.
      */
-    public ZrtpPacketErrorAck(byte[] data) {
+    public ZrtpPacketErrorAck(final byte[] data) {
         super(data);
     }
     
+    /* ***
     public static void main(String[] args) {
         ZrtpPacketErrorAck pkt = new ZrtpPacketErrorAck();
         System.err.println("errorAck length: " + pkt.getLength());
         System.err.println("packetBuffer length in bytes: " + pkt.getHeaderBase().length);
         ZrtpUtils.hexdump("errorAck packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
     }
+    *** */
 }

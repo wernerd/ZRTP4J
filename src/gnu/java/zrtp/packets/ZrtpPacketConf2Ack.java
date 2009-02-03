@@ -57,14 +57,16 @@ public class ZrtpPacketConf2Ack extends ZrtpPacketBase {
      * 
      * @param data received from the network.
      */
-    public ZrtpPacketConf2Ack(byte[] data) {
+    public ZrtpPacketConf2Ack(final byte[] data) {
         super(data);
     }
     
+    /* ***
     public static void main(String[] args) {
         ZrtpPacketConf2Ack pkt = new ZrtpPacketConf2Ack();
         System.err.println("conf2Ack length: " + pkt.getLength());
         System.err.println("packetBuffer length in bytes: " + pkt.getHeaderBase().length);
         ZrtpUtils.hexdump("conf2Ack packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
     }
+    *** */
 }

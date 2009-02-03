@@ -64,7 +64,6 @@ public class TransmitterZRTP implements SendStreamListener {
 
     ZrtpTransformConnector transConnector = null;
     ZRTPTransformEngine zrtpEngine = null;
-    Provider cryptoProvider = null;
 
     public TransmitterZRTP() {
         InetAddress ia = null;
@@ -80,21 +79,6 @@ public class TransmitterZRTP implements SendStreamListener {
 
         // create a send stream for the output data source
         dataOutput = createDataSource();
-        try {
-            Class<?> c = Class
-                    .forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-            cryptoProvider = (Provider) c.newInstance();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
     }
 
     public void run() {
@@ -107,7 +91,6 @@ public class TransmitterZRTP implements SendStreamListener {
             transConnector = (ZrtpTransformConnector)TransformManager.createZRTPConnector(sa);
             zrtpEngine = transConnector.getEngine();
             zrtpEngine.setUserCallback(new MyCallback());
-            zrtpEngine.setCryptoProvider(cryptoProvider);
             
             if (!zrtpEngine.initialize("test_r.zid"))
                 System.err.println("Initialize failed");
@@ -115,7 +98,6 @@ public class TransmitterZRTP implements SendStreamListener {
             System.err.println("Hello hash: " + zrtpEngine.getHelloHash());
             rtpManager.initialize(transConnector);
             rtpManager.addSendStreamListener(this);
-
 
             // open the connection, must be done in connector
             // System.err.println("transconnector-1: " + transConnector);

@@ -22,8 +22,6 @@ import gnu.java.zrtp.jmf.transform.srtp.SRTPTransformEngine;
 import gnu.java.zrtp.zidfile.ZidFile;
 
 import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.security.Provider;
 import java.util.EnumSet;
 
 
@@ -268,8 +266,6 @@ public class ZRTPTransformEngine
     private int ownSSRC = 0;
     
     private short senderZrtpSeqNo = 0;
-
-    private Provider cryptoProvider= null;
     
     private long sendPacketCount = 0;
     
@@ -312,9 +308,6 @@ public class ZRTPTransformEngine
 
     public synchronized boolean initialize(String zidFilename, boolean autoEnable) {
 
-        if (cryptoProvider == null) {
-            return false;
-        }
         if (timeoutProvider == null) {
             timeoutProvider = new TimeoutProvider("ZRTP");
             timeoutProvider.setDaemon(true);
@@ -336,13 +329,7 @@ public class ZRTPTransformEngine
             }
         }
         enableZrtp = autoEnable;
-        try {
-            zrtpEngine = new ZRtp(zf.getZid(), this, clientIdString, cryptoProvider);
-        } catch (GeneralSecurityException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            return false;
-        }
+        zrtpEngine = new ZRtp(zf.getZid(), this, clientIdString);
         return true;
     }
 
@@ -505,16 +492,16 @@ public class ZRTPTransformEngine
                         secrets.getSrtpAuthTagLen() / 8,// auth tag length
                         secrets.getInitSaltLen() / 8    // salt length
                 );
-                try {
+//                try {
                     SRTPTransformEngine engine = new SRTPTransformEngine(secrets
                             .getKeyInitiator(), secrets.getSaltInitiator(),
-                            srtpPolicy, srtpPolicy, cryptoProvider);
+                            srtpPolicy, srtpPolicy);
                     srtpOutTransformer = engine.getRTPTransformer();
-                } catch (GeneralSecurityException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                    return false;
-                }
+//                } catch (GeneralSecurityException e) {
+//                    // TODO Auto-generated catch block
+//                    e.printStackTrace();
+//                    return false;
+//                }
             } 
             else {
                 srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
@@ -525,16 +512,16 @@ public class ZRTPTransformEngine
                         secrets.getRespSaltLen() / 8    // salt length
                 );
 
-                try {
+//                try {
                     SRTPTransformEngine engine = new SRTPTransformEngine(secrets
                             .getKeyResponder(), secrets.getSaltResponder(),
-                            srtpPolicy, srtpPolicy, cryptoProvider);
+                            srtpPolicy, srtpPolicy);
                     srtpOutTransformer = engine.getRTPTransformer();
-                } catch (GeneralSecurityException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                    return false;
-                }
+//                } catch (GeneralSecurityException e) {
+//                    // TODO Auto-generated catch block
+//                    e.printStackTrace();
+//                    return false;
+//                }
             }
         }
         if (part == EnableSecurity.ForReceiver) {
@@ -550,16 +537,16 @@ public class ZRTPTransformEngine
                         secrets.getRespSaltLen() / 8    // salt length
                 );
 
-                try {
+//                try {
                     SRTPTransformEngine engine = new SRTPTransformEngine(secrets
                             .getKeyResponder(), secrets.getSaltResponder(),
-                            srtpPolicy, srtpPolicy, cryptoProvider);
+                            srtpPolicy, srtpPolicy);
                     srtpInTransformer = engine.getRTPTransformer();
-                } catch (GeneralSecurityException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                    return false;
-                }
+//                } catch (GeneralSecurityException e) {
+//                    // TODO Auto-generated catch block
+//                    e.printStackTrace();
+//                    return false;
+//                }
             } 
             else {
                 srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
@@ -570,16 +557,16 @@ public class ZRTPTransformEngine
                         secrets.getInitSaltLen() / 8    // salt length
                 );
                 
-                try {
+//                try {
                     SRTPTransformEngine engine = new SRTPTransformEngine(secrets
                             .getKeyInitiator(), secrets.getSaltInitiator(),
-                            srtpPolicy, srtpPolicy, cryptoProvider);
+                            srtpPolicy, srtpPolicy);
                     srtpInTransformer = engine.getRTPTransformer();
-                } catch (GeneralSecurityException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                    return false;
-                }
+//                } catch (GeneralSecurityException e) {
+//                    // TODO Auto-generated catch block
+//                    e.printStackTrace();
+//                    return false;
+//                }
             }
         }
         return true;
@@ -770,9 +757,9 @@ public class ZRTPTransformEngine
     /**
      * @param cryptoProvider the cryptoProvider to set
      */
-    public void setCryptoProvider(Provider cryptoProvider) {
-        this.cryptoProvider = cryptoProvider;
-    }
+//    public void setCryptoProvider(Provider cryptoProvider) {
+//        this.cryptoProvider = cryptoProvider;
+//    }
 
     public boolean isStarted() {
        return started;
