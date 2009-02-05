@@ -95,14 +95,22 @@ public class TransmitterSRTP {
 
     public static void main(String[] args) {
 
+        System.out.println("args len: " + args.length);
+
+        int loopCnt = 10;
+        if (args.length > 0) {
+            loopCnt = 70000;
+        }
         TransmitterSRTP trans = new TransmitterSRTP();
         trans.run();
         System.err.println("starting send loop");
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < loopCnt; i++) {
             trans.dataOutput.pushData();
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException ie) {
+            if (args.length == 0) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                }
             }
         }
         trans.stopIt();

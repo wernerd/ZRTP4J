@@ -17,6 +17,8 @@ import javax.media.rtp.event.*;
  */
 public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
         BufferTransferHandler {
+    
+    private static boolean printOut = true;
     TransformConnector transConnector = null;
 
     private RTPManager mgr = null;
@@ -190,26 +192,39 @@ public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
         } catch (java.io.IOException ex) {
             System.err.println("Buffer read exception: " + ex.getMessage());
         }
-        Format fmt = buf.getFormat();
-        Class<?> cls = fmt.getDataType();
-        System.err.println("buf length: " + buf.getLength() + ", timestamp: "
-                + buf.getTimeStamp());
-        // System.err.println("buffer: " + buf.getFormat().toString());
+        if (printOut) {
+            Format fmt = buf.getFormat();
+            Class<?> cls = fmt.getDataType();
+            System.err.println("buf length: " + buf.getLength()
+                    + ", timestamp: " + buf.getTimeStamp() + ", seqnum: " + buf.getSequenceNumber());
+            // System.err.println("buffer: " + buf.getFormat().toString());
 
-        if (cls == Format.byteArray) {
-            byte[] data = (byte[]) buf.getData();
-            System.err.println("Data: '"
-                    + new String(data, buf.getOffset(), buf.getLength()) + "'");
+            if (cls == Format.byteArray) {
+                byte[] data = (byte[]) buf.getData();
+                System.err.println("Data: '"
+                        + new String(data, buf.getOffset(), buf.getLength())
+                        + "'");
+            }
+        }
+        else {
+            long seq = buf.getSequenceNumber();
+            if ((seq % 1000) == 0) {
+                System.out.println("Sequence: " + seq);
+            }
         }
     }
 
     public static void main(String[] args) {
 
         ReceiverSRTP rcv = new ReceiverSRTP();
+        
+        if (args.length > 0) {
+            printOut = false;
+        }
         //	rcv.start();
         rcv.run();
         try {
-            Thread.sleep(60000);
+            Thread.sleep(600000);
         } catch (InterruptedException ie) {
         }
 
