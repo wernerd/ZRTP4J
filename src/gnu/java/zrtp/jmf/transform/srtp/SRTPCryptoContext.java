@@ -27,13 +27,13 @@
 package gnu.java.zrtp.jmf.transform.srtp;
 
 import gnu.java.zrtp.jmf.transform.RawPacket;
-import gnu.java.zrtp.utils.ZrtpUtils;
 
 import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 import org.bouncycastle.crypto.engines.AESFastEngine;
+
 
 /**
  * SRTPCryptoContext class is the core class of SRTP implementation.
@@ -57,7 +57,6 @@ import org.bouncycastle.crypto.engines.AESFastEngine;
  * automatically using some key management protocol, such as MIKEY (RFC3880) or
  * Phil Zimmermann's ZRTP protocol (draft-zimmermann-avt-zrtp-01).
  * 
- * @author Werner Dittmann (Werner.Dittmann@t-online.de)
  * @author Bing SU (nova.su@gmail.com)
  */
 public class SRTPCryptoContext
@@ -343,7 +342,7 @@ public class SRTPCryptoContext
 
         /* Authenticate the packet */
         if (this.policy.getAuthType() == SRTPPolicy.HMACSHA1_AUTHENTICATION) {
-            authenticatePacketHMCSHA1(pkt);
+            authenticatePacketHMCSHA1(pkt, this.roc);
             pkt.append(tagStore, policy.getAuthTagLength());
         }
 
@@ -373,28 +372,39 @@ public class SRTPCryptoContext
      *         false if the packet failed authentication or failed replay check 
      */
     public boolean reverseTransformPacket(RawPacket pkt) {
+        int seqNo = PacketManipulator.GetRTPSequenceNumber(pkt);
+
+        if (!seqNumSet) {
+            seqNumSet = true;
+            seqNum = seqNo;
+        }
+        // Guess the SRTP index (48 bit), see rFC 3711, 3.3.1
+        // Stores the guessed roc in this.guessedROC
+        long guessedIndex = guessIndex(seqNo);
+
+        /* Replay control */
+        if (!checkReplay(seqNo, guessedIndex)) {
+            return false;
+        }
         /* Authenticate the packet */
         if (this.policy.getAuthType() == SRTPPolicy.HMACSHA1_AUTHENTICATION) {
             int tagLength = this.policy.getAuthTagLength();
 
+            // get original authentication and store in tempStore
             pkt.readRegionToBuff(pkt.getLength() - tagLength,
                     tagLength, tempStore);
 
             pkt.shrink(tagLength);
 
-            authenticatePacketHMCSHA1(pkt);
+            // save computed authentication in tagStore
+            authenticatePacketHMCSHA1(pkt, guessedROC);
 
-            if (ZrtpUtils.byteArrayCompare(tempStore, tagStore,
-                    tagLength) != 0) {
-                return false;
+            for (int i = 0; i < tagLength; i++) {
+                if ((tempStore[i]&0xff) == (tagStore[i]&0xff))
+                    continue;
+                else 
+                    return false;
             }
-        }
-
-        int seqNum = PacketManipulator.GetRTPSequenceNumber(pkt);
-
-        /* Replay control */
-        if (!checkReplay(seqNum)) {
-            return false;
         }
 
         /* Decrypt the packet using Counter Mode encryption*/
@@ -407,7 +417,7 @@ public class SRTPCryptoContext
             processPacketAESF8(pkt);
         }
 
-        update(seqNum);
+        update(seqNo, guessedIndex);
 
         return true;
     }
@@ -478,14 +488,14 @@ public class SRTPCryptoContext
      * @param pkt the RTP packet to be authenticated
      * @return authentication tag of pkt
      */
-    private void authenticatePacketHMCSHA1(RawPacket pkt) {
+    private void authenticatePacketHMCSHA1(RawPacket pkt, int rocIn) {
 
         hmacSha1.update(pkt.getBuffer(), 0, pkt.getLength());
         // byte[] rb = new byte[4];
-        rbStore[0] = (byte) (this.roc >> 24);
-        rbStore[1] = (byte) (this.roc >> 16);
-        rbStore[2] = (byte) (this.roc >> 8);
-        rbStore[3] = (byte) this.roc;
+        rbStore[0] = (byte) (rocIn >> 24);
+        rbStore[1] = (byte) (rocIn >> 16);
+        rbStore[2] = (byte) (rocIn >> 8);
+        rbStore[3] = (byte) rocIn;
         hmacSha1.update(rbStore, 0, rbStore.length);
         hmacSha1.doFinal(tagStore, 0);
     }
@@ -503,20 +513,12 @@ public class SRTPCryptoContext
      * @return true if this sequence number indicates the packet is not a
      * replayed one, false if not
      */
-    boolean checkReplay(int seqNum) {
-        /*
-         * Initialize the sequences number on first call that uses the
-         * sequence number. Either guessIndex() or checkReplay().
-         */
-        if (!this.seqNumSet) {
-            this.seqNumSet = true;
-            this.seqNum = seqNum;
-        }
-
-        long guessedIndex = guessIndex(seqNum);
-        long localIndex = (((long) this.roc) << 16 & 0xFFFF) | this.seqNum;
-
+    boolean checkReplay(int seqNo, long guessedIndex) {
+        // compute the index of previously received packet and its
+        // delta to the new received packet
+        long localIndex = (((long) this.roc) << 16) | this.seqNum;
         long delta = guessedIndex - localIndex;
+        
         if (delta > 0) {
             /* Packet not yet received */
             return true;
@@ -610,27 +612,23 @@ public class SRTPCryptoContext
      *            sequence number of the received RTP packet
      * @return the new SRTP packet index
      */
-    private long guessIndex(int seqNum) {
-        if (!this.seqNumSet) {
-            this.seqNumSet = true;
-            this.seqNum = seqNum;
-        }
+    private long guessIndex(int seqNo) {
 
         if (this.seqNum < 32768) {
-            if (seqNum - this.seqNum > 32768) {
-                this.guessedROC = this.roc - 1;
+            if (seqNo - this.seqNum > 32768) {
+                guessedROC = roc - 1;
             } else {
-                this.guessedROC = this.roc;
+                guessedROC = roc;
             }
         } else {
-            if (this.seqNum - 32768 > seqNum) {
-                this.guessedROC = this.roc + 1;
+            if (seqNum - 32768 > seqNo) {
+                guessedROC = roc + 1;
             } else {
-                this.guessedROC = this.roc;
+                guessedROC = roc;
             }
         }
 
-        return ((long) this.guessedROC) << 16 | seqNum;
+        return ((long) guessedROC) << 16 | seqNo;
     }
 
     /**
@@ -641,15 +639,24 @@ public class SRTPCryptoContext
      * 
      * @param seqNum sequence number of the accepted packet
      */
-    private void update(int seqNum) {
-        guessIndex(seqNum);
+    private void update(int seqNo, long guessedIndex) {
+        long delta = guessedIndex - (((long) this.roc) << 16 | this.seqNum);
 
-        if (seqNum > this.seqNum) {
-            this.seqNum = seqNum;
+        /* update the replay bit mask */
+        if( delta > 0 ){
+          replayWindow = replayWindow << delta;
+          replayWindow |= 1;
         }
-        if (this.guessedROC > this.roc) {
-            this.roc = this.guessedROC;
-            this.seqNum = seqNum;
+        else {
+          replayWindow |= ( 1 << delta );
+        }
+
+        if (seqNo > seqNum) {
+            seqNum = seqNo & 0xffff;
+        }
+        if (guessedROC > this.roc) {
+            roc = guessedROC;
+            seqNum = seqNo & 0xffff;
         }
     }
 
