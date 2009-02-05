@@ -165,21 +165,21 @@ public class SRTPCryptoContext
      * 
      * @param ssrc SSRC of this SRTPCryptoContext
      */
-    public SRTPCryptoContext(long ssrc)
+    public SRTPCryptoContext(long ssrcIn)
     {
-        this.ssrc = ssrc;
-        this.mki = null;
-        this.roc = 0;
-        this.guessedROC = 0;
-        this.seqNum = 0;
-        this.keyDerivationRate = 0;
-        this.masterKey = null;
-        this.masterSalt = null;
-        this.encKey = null;
-        this.authKey = null;
-        this.saltKey = null;
-        this.seqNumSet = false;
-        this.policy = null;
+        ssrc = ssrcIn;
+        mki = null;
+        roc = 0;
+        guessedROC = 0;
+        seqNum = 0;
+        keyDerivationRate = 0;
+        masterKey = null;
+        masterSalt = null;
+        encKey = null;
+        authKey = null;
+        saltKey = null;
+        seqNumSet = false;
+        policy = null;
         tagStore = null;
     }
 
@@ -208,53 +208,53 @@ public class SRTPCryptoContext
      *            SRTP policy for this SRTP cryptographic context, defined the
      *            encryption algorithm, the authentication algorithm, etc
      */
-    public SRTPCryptoContext(long ssrc, int roc, long keyDerivationRate,
-            byte[] masterKey, byte[] masterSalt, SRTPPolicy policy) 
+    public SRTPCryptoContext(long ssrcIn, int rocIn, long kdr,
+            byte[] masterK, byte[] masterS, SRTPPolicy policyIn) 
     {
-        this.ssrc = ssrc;
-        this.mki = null;
-        this.roc = roc;
-        this.guessedROC = 0;
-        this.seqNum = 0;
-        this.keyDerivationRate = keyDerivationRate;
-        this.seqNumSet = false;
+        ssrc = ssrcIn;
+        mki = null;
+        roc = rocIn;
+        guessedROC = 0;
+        seqNum = 0;
+        keyDerivationRate = kdr;
+        seqNumSet = false;
 
-        this.policy = policy;
+        policy = policyIn;
 
-        this.masterKey = new byte[policy.getEncKeyLength()];
-        System.arraycopy(masterKey, 0, this.masterKey, 0, policy
+        masterKey = new byte[policy.getEncKeyLength()];
+        System.arraycopy(masterK, 0, masterKey, 0, policy
                 .getEncKeyLength());
 
-        this.masterSalt = new byte[policy.getSaltKeyLength()];
-        System.arraycopy(masterSalt, 0, this.masterSalt, 0, policy
+        masterSalt = new byte[policy.getSaltKeyLength()];
+        System.arraycopy(masterS, 0, masterSalt, 0, policy
                 .getSaltKeyLength());
 
-        hmacSha1 = new HMac(new SHA1Digest()); //Mac.getInstance("HMACSHA1", cryptoProvider);
-        AEScipher = new AESFastEngine();  //Cipher.getInstance("AES/ECB/NOPADDING", cryptoProvider);
+        hmacSha1 = new HMac(new SHA1Digest());
+        AEScipher = new AESFastEngine();
         
         switch (policy.getEncType()) {
         case SRTPPolicy.NULL_ENCRYPTION:
-            this.encKey = null;
-            this.saltKey = null;
+            encKey = null;
+            saltKey = null;
             break;
 
         case SRTPPolicy.AESF8_ENCRYPTION:
             AEScipherF8 = new AESFastEngine();  // Cipher.getInstance("AES/ECB/NOPADDING", cryptoProvider);
            
         case SRTPPolicy.AESCM_ENCRYPTION:
-            this.encKey = new byte[this.policy.getEncKeyLength()];
-            this.saltKey = new byte[this.policy.getSaltKeyLength()];
+            encKey = new byte[this.policy.getEncKeyLength()];
+            saltKey = new byte[this.policy.getSaltKeyLength()];
             break;
         }
 
         switch (policy.getAuthType()) {
         case SRTPPolicy.NULL_AUTHENTICATION:
-            this.authKey = null;
+            authKey = null;
             tagStore = null;
             break;
 
         case SRTPPolicy.HMACSHA1_AUTHENTICATION:
-            this.authKey = new byte[policy.getAuthKeyLength()];
+            authKey = new byte[policy.getAuthKeyLength()];
             tagStore = new byte[hmacSha1.getMacSize()];
             break;
             
@@ -291,7 +291,7 @@ public class SRTPCryptoContext
      * @return the SSRC of this SRTP cryptographic context
      */
     public long getSSRC() {
-        return this.ssrc;
+        return ssrc;
     }
 
     /**
@@ -300,7 +300,7 @@ public class SRTPCryptoContext
      * @return the Roll-Over-Counter of this SRTP cryptographic context
      */
     public int getROC() {
-        return this.roc;
+        return roc;
     }
 
     /**
@@ -308,8 +308,8 @@ public class SRTPCryptoContext
      *
      * @param roc the Roll-Over-Counter of this SRTP cryptographic context
      */
-    public void setROC(int roc) {
-        this.roc = roc;
+    public void setROC(int rocIn) {
+        roc = rocIn;
     }
 
     /**
@@ -331,25 +331,25 @@ public class SRTPCryptoContext
      */
     public void transformPacket(RawPacket pkt) {
         /* Encrypt the packet using Counter Mode encryption */
-        if (this.policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION) {
+        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION) {
             processPacketAESCM(pkt);
         }
 
         /* Encrypt the packet using F8 Mode encryption */
-        else if (this.policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION) {
+        else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION) {
             processPacketAESF8(pkt);
         }
 
         /* Authenticate the packet */
-        if (this.policy.getAuthType() == SRTPPolicy.HMACSHA1_AUTHENTICATION) {
-            authenticatePacketHMCSHA1(pkt, this.roc);
+        if (policy.getAuthType() == SRTPPolicy.HMACSHA1_AUTHENTICATION) {
+            authenticatePacketHMCSHA1(pkt, roc);
             pkt.append(tagStore, policy.getAuthTagLength());
         }
 
         /* Update the ROC if necessary */
-        int seqNum = PacketManipulator.GetRTPSequenceNumber(pkt);
-        if (seqNum == 0xFFFF) {
-            this.roc++;
+        int seqNo = PacketManipulator.GetRTPSequenceNumber(pkt);
+        if (seqNo == 0xFFFF) {
+            roc++;
         }
     }
 
@@ -387,8 +387,8 @@ public class SRTPCryptoContext
             return false;
         }
         /* Authenticate the packet */
-        if (this.policy.getAuthType() == SRTPPolicy.HMACSHA1_AUTHENTICATION) {
-            int tagLength = this.policy.getAuthTagLength();
+        if (policy.getAuthType() == SRTPPolicy.HMACSHA1_AUTHENTICATION) {
+            int tagLength = policy.getAuthTagLength();
 
             // get original authentication and store in tempStore
             pkt.readRegionToBuff(pkt.getLength() - tagLength,
@@ -408,12 +408,12 @@ public class SRTPCryptoContext
         }
 
         /* Decrypt the packet using Counter Mode encryption*/
-        if (this.policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION) {
+        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION) {
             processPacketAESCM(pkt);
         }
 
         /* Decrypt the packet using F8 Mode encryption*/
-        else if (this.policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION) {
+        else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION) {
             processPacketAESF8(pkt);
         }
 
@@ -549,22 +549,21 @@ public class SRTPCryptoContext
      * @param kdv key derivation rate of this SRTPCryptoContext
      * @param masterSalt master salt key
      */
-    private static void computeIv(byte[] iv, long label, long index, long kdv,
-            byte[] masterSalt) {
+    private void computeIv(long label, long index) {
         long key_id;
 
-        if (kdv == 0) {
+        if (keyDerivationRate == 0) {
             key_id = label << 48;
         } else {
-            key_id = ((label << 48) | (index / kdv));
+            key_id = ((label << 48) | (index / keyDerivationRate));
         }
         for (int i = 0; i < 7; i++) {
-            iv[i] = masterSalt[i];
+            ivStore[i] = masterSalt[i];
         }
         for (int i = 7; i < 14; i++) {
-            iv[i] = (byte) ((byte) (0xFF & (key_id >> (8 * (13 - i)))) ^ masterSalt[i]);
+            ivStore[i] = (byte) ((byte) (0xFF & (key_id >> (8 * (13 - i)))) ^ masterSalt[i]);
         }
-        iv[14] = iv[15] = 0;
+        ivStore[14] = ivStore[15] = 0;
     }
 
     /**
@@ -574,11 +573,9 @@ public class SRTPCryptoContext
      *            the 48 bit SRTP packet index
      */
     public void deriveSrtpKeys(long index) {
-        // byte[] iv = new byte[16];
-
         // compute the session encryption key
         long label = 0;
-        computeIv(ivStore, label, index, keyDerivationRate, masterSalt);
+        computeIv(label, index);
 
         KeyParameter encryptionKey = new KeyParameter(masterKey);
         AEScipher.init(true, encryptionKey);
@@ -587,7 +584,7 @@ public class SRTPCryptoContext
         // compute the session authentication key
         if (authKey != null) {
             label = 0x01;
-            computeIv(ivStore, label, index, keyDerivationRate, masterSalt);
+            computeIv(label, index);
             cipherCtr.getCipherStream(AEScipher, authKey, policy.getAuthKeyLength(), ivStore);
 
             KeyParameter key =  new KeyParameter(authKey);
@@ -596,7 +593,7 @@ public class SRTPCryptoContext
 
         // compute the session salt
         label = 0x02;
-        computeIv(ivStore, label, index, keyDerivationRate, masterSalt);
+        computeIv(label, index);
         cipherCtr.getCipherStream(AEScipher, saltKey, policy.getSaltKeyLength(), ivStore);
         
         // As last step: initialize AES cipher with derived encryption key.
@@ -654,7 +651,7 @@ public class SRTPCryptoContext
         if (seqNo > seqNum) {
             seqNum = seqNo & 0xffff;
         }
-        if (guessedROC > this.roc) {
+        if (this.guessedROC > this.roc) {
             roc = guessedROC;
             seqNum = seqNo & 0xffff;
         }
@@ -682,8 +679,8 @@ public class SRTPCryptoContext
      */
     public SRTPCryptoContext deriveContext(long ssrc, int roc, long deriveRate) {
         SRTPCryptoContext pcc = null;
-        pcc = new SRTPCryptoContext(ssrc, roc, deriveRate, this.masterKey,
-                this.masterSalt, this.policy);
+        pcc = new SRTPCryptoContext(ssrc, roc, deriveRate, masterKey,
+                masterSalt, policy);
         return pcc;
     }
 }
