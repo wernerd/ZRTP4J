@@ -35,7 +35,7 @@ public class ZrtpConstants {
 
     //                                               1
     //                                     0123456789012345
-    public static final String clientId = "GNU ZRTP4J 1.4.2"  ;
+    public static final String clientId = "GNU ZRTP4J 1.4.3"  ;
  
 //  "1.00"
     public static final byte[] zrtpVersion = {
