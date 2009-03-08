@@ -29,6 +29,8 @@ import gnu.java.zrtp.packets.ZrtpPacketError;
 import gnu.java.zrtp.packets.ZrtpPacketErrorAck;
 import gnu.java.zrtp.packets.ZrtpPacketHello;
 import gnu.java.zrtp.packets.ZrtpPacketHelloAck;
+import gnu.java.zrtp.packets.ZrtpPacketPing;
+import gnu.java.zrtp.packets.ZrtpPacketPingAck;
 
 import java.util.EnumSet;
 
@@ -223,6 +225,11 @@ public class ZrtpStateClass {
                 ZrtpPacketErrorAck eapkt = parent.prepareErrorAck(epkt);
                 parent.sendPacketZRTP(eapkt);
                 event.type = EventDataType.ErrorPkt;
+            } else if (first == 'p' && middle == ' ' && last == ' ') {
+                ZrtpPacketPing ppkt = new ZrtpPacketPing(pkt);
+                ZrtpPacketPingAck ppktAck = parent.preparePingAck(ppkt);
+                parent.sendPacketZRTP(ppktAck);
+                return;
             }
         }
         /*
@@ -250,7 +257,6 @@ public class ZrtpStateClass {
 
     protected void dispatchEvent() {
 
-//        System.err.println("in state: " + inState);
         switch (inState) {
         case Initial:
             evInitial();
@@ -1408,6 +1414,7 @@ public class ZrtpStateClass {
             }
             sentPacket = null;
             inState = ZrtpStates.Initial;
+            parent.srtpSecretsOff(ZrtpCallback.EnableSecurity.ForReceiver);
         }
     }
 

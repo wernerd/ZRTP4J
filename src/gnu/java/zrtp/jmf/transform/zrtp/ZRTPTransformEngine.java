@@ -370,18 +370,16 @@ public class ZRTPTransformEngine
      */
     public RawPacket transform(RawPacket pkt)
     {
-        ZrtpRawPacket zPkt = new ZrtpRawPacket(pkt);
-        /*
-         * Never transform outgoing ZRTP packets.
-         */
-        if (zPkt.isZrtpPacket()) {
+        byte[] buffer = pkt.getBuffer();
+        int offset = pkt.getOffset();
+        if ((buffer[offset] & 0x10) == 0x10)  {
             return pkt;
         }
         /*
          * ZRTP needs the SSRC of the sending stream.
          */
         if (enableZrtp && ownSSRC == 0) {
-            ownSSRC = zPkt.getSSRC();
+            ownSSRC = (int)(pkt.readUnsignedIntAsLong(8) & 0xffffffff);
         }
         /*
          * If SRTP is active then srtpTransformer is set, use it.
@@ -402,13 +400,13 @@ public class ZRTPTransformEngine
      * incoming packets.
      */
     public RawPacket reverseTransform(RawPacket pkt) {
-        ZrtpRawPacket zPkt = new ZrtpRawPacket(pkt);
-        
         /*
          * Check if incoming packt is a ZRTP packet, if no treat
          * it as normal RTP packet and handle it accordingly.
          */
-        if (!zPkt.isZrtpPacket()) {
+        byte[] buffer = pkt.getBuffer();
+        int offset = pkt.getOffset();
+        if ((buffer[offset] & 0x10) != 0x10) {
             if (!started && enableZrtp && sendPacketCount >= 1) {
                 startZrtp();
             }
@@ -430,6 +428,7 @@ public class ZRTPTransformEngine
          * because ZRTP packets must never reach the application.
          */
         if (enableZrtp) {
+            ZrtpRawPacket zPkt = new ZrtpRawPacket(pkt);
             if (!zPkt.checkCrc()) {
                 userCallback.showMessage(ZrtpCodes.MessageSeverity.Warning, 
                         EnumSet.of(ZrtpCodes.WarningCodes.WarningCRCmismatch));
@@ -440,7 +439,7 @@ public class ZRTPTransformEngine
                 return null;
             }
             byte[] extHeader = zPkt.getMessagePart();
-            zrtpEngine.processZrtpMessage(extHeader);
+            zrtpEngine.processZrtpMessage(extHeader, zPkt.getSSRC());
         }
         return null;
     }
@@ -486,42 +485,29 @@ public class ZRTPTransformEngine
             // the main crypto context for the sending part of the connection.
             if (secrets.getRole() == Role.Initiator) {
                 srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
-                        secrets.getInitKeyLen() / 8,    // key length
-                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 
-                        20,                             // auth key length
-                        secrets.getSrtpAuthTagLen() / 8,// auth tag length
-                        secrets.getInitSaltLen() / 8    // salt length
+                        secrets.getInitKeyLen() / 8,            // key length
+                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 20, // auth key
+                                                                // length
+                        secrets.getSrtpAuthTagLen() / 8,        // auth tag length
+                        secrets.getInitSaltLen() / 8            // salt length
                 );
-//                try {
-                    SRTPTransformEngine engine = new SRTPTransformEngine(secrets
-                            .getKeyInitiator(), secrets.getSaltInitiator(),
-                            srtpPolicy, srtpPolicy);
-                    srtpOutTransformer = engine.getRTPTransformer();
-//                } catch (GeneralSecurityException e) {
-//                    // TODO Auto-generated catch block
-//                    e.printStackTrace();
-//                    return false;
-//                }
-            } 
-            else {
+                SRTPTransformEngine engine = new SRTPTransformEngine(secrets
+                        .getKeyInitiator(), secrets.getSaltInitiator(),
+                        srtpPolicy, srtpPolicy);
+                srtpOutTransformer = engine.getRTPTransformer();
+            } else {
                 srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
-                        secrets.getRespKeyLen() / 8,    // key length
-                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 
-                        20,                             // auth key length
-                        secrets.getSrtpAuthTagLen() / 8,// auth taglength
-                        secrets.getRespSaltLen() / 8    // salt length
+                        secrets.getRespKeyLen() / 8,            // key length
+                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 20, // auth key
+                                                                // length
+                        secrets.getSrtpAuthTagLen() / 8,        // auth taglength
+                        secrets.getRespSaltLen() / 8            // salt length
                 );
 
-//                try {
-                    SRTPTransformEngine engine = new SRTPTransformEngine(secrets
-                            .getKeyResponder(), secrets.getSaltResponder(),
-                            srtpPolicy, srtpPolicy);
-                    srtpOutTransformer = engine.getRTPTransformer();
-//                } catch (GeneralSecurityException e) {
-//                    // TODO Auto-generated catch block
-//                    e.printStackTrace();
-//                    return false;
-//                }
+                SRTPTransformEngine engine = new SRTPTransformEngine(secrets
+                        .getKeyResponder(), secrets.getSaltResponder(),
+                        srtpPolicy, srtpPolicy);
+                srtpOutTransformer = engine.getRTPTransformer();
             }
         }
         if (part == EnableSecurity.ForReceiver) {
@@ -530,43 +516,30 @@ public class ZRTPTransformEngine
             // See comment above.
             if (secrets.getRole() == Role.Initiator) {
                 srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
-                        secrets.getRespKeyLen() / 8,    // key length
-                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 
-                        20,                             // auth key length
-                        secrets.getSrtpAuthTagLen() / 8,// auth tag length
-                        secrets.getRespSaltLen() / 8    // salt length
+                        secrets.getRespKeyLen() / 8,            // key length
+                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 20, // auth key
+                                                                // length
+                        secrets.getSrtpAuthTagLen() / 8,        // auth tag length
+                        secrets.getRespSaltLen() / 8            // salt length
                 );
 
-//                try {
-                    SRTPTransformEngine engine = new SRTPTransformEngine(secrets
-                            .getKeyResponder(), secrets.getSaltResponder(),
-                            srtpPolicy, srtpPolicy);
-                    srtpInTransformer = engine.getRTPTransformer();
-//                } catch (GeneralSecurityException e) {
-//                    // TODO Auto-generated catch block
-//                    e.printStackTrace();
-//                    return false;
-//                }
-            } 
-            else {
+                SRTPTransformEngine engine = new SRTPTransformEngine(secrets
+                        .getKeyResponder(), secrets.getSaltResponder(),
+                        srtpPolicy, srtpPolicy);
+                srtpInTransformer = engine.getRTPTransformer();
+            } else {
                 srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
-                        secrets.getInitKeyLen() / 8,    // key length
-                        SRTPPolicy.HMACSHA1_AUTHENTICATION,
-                        20,                             // auth key length
-                        secrets.getSrtpAuthTagLen() / 8,// auth tag length
-                        secrets.getInitSaltLen() / 8    // salt length
+                        secrets.getInitKeyLen() / 8,            // key length
+                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 20, // auth key
+                                                                // length
+                        secrets.getSrtpAuthTagLen() / 8,        // auth tag length
+                        secrets.getInitSaltLen() / 8            // salt length
                 );
-                
-//                try {
-                    SRTPTransformEngine engine = new SRTPTransformEngine(secrets
-                            .getKeyInitiator(), secrets.getSaltInitiator(),
-                            srtpPolicy, srtpPolicy);
-                    srtpInTransformer = engine.getRTPTransformer();
-//                } catch (GeneralSecurityException e) {
-//                    // TODO Auto-generated catch block
-//                    e.printStackTrace();
-//                    return false;
-//                }
+
+                SRTPTransformEngine engine = new SRTPTransformEngine(secrets
+                        .getKeyInitiator(), secrets.getSaltInitiator(),
+                        srtpPolicy, srtpPolicy);
+                srtpInTransformer = engine.getRTPTransformer();
             }
         }
         return true;

@@ -37,7 +37,7 @@ public class ZrtpConstants {
     //                                     0123456789012345
     public static final String clientId = "GNU ZRTP4J 1.4.3"  ;
  
-//  "1.00"
+//  "1.10"
     public static final byte[] zrtpVersion = {
         (byte)0x31, (byte)0x2e, (byte)0x31, (byte)0x30};
 
@@ -87,7 +87,15 @@ public class ZrtpConstants {
     public static final byte[] ErrorAckMsg = {
         (byte)0x45, (byte)0x72, (byte)0x72, (byte)0x6f, (byte)0x72, (byte)0x41, (byte)0x43, (byte)0x4b};
 
-//  "GoClear "
+//  "Ping    "
+    public static final byte[] PingMsg = {
+        (byte)0x50, (byte)0x69, (byte)0x6e, (byte)0x67, (byte)0x20, (byte)0x20, (byte)0x20, (byte)0x20};
+
+    //  "PingACK "
+    public static final byte[] PingAckMsg = {
+        (byte)0x50, (byte)0x69, (byte)0x6e, (byte)0x67, (byte)0x41, (byte)0x43, (byte)0x4b, (byte)0x20};
+
+    //  "GoClear "
     public static final byte[] GoClearMsg = {
         (byte)0x47, (byte)0x6f, (byte)0x43, (byte)0x6c, (byte)0x65, (byte)0x61, (byte)0x72, (byte)0x20};
 

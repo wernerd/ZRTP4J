@@ -28,6 +28,8 @@ import gnu.java.zrtp.packets.ZrtpPacketError;
 import gnu.java.zrtp.packets.ZrtpPacketErrorAck;
 import gnu.java.zrtp.packets.ZrtpPacketHello;
 import gnu.java.zrtp.packets.ZrtpPacketHelloAck;
+import gnu.java.zrtp.packets.ZrtpPacketPingAck;
+import gnu.java.zrtp.packets.ZrtpPacketPing;
 import gnu.java.zrtp.utils.Base32;
 import gnu.java.zrtp.utils.ZrtpUtils;
 import gnu.java.zrtp.zidfile.ZidFile;
@@ -289,6 +291,7 @@ public class ZRtp {
     private ZrtpPacketCommit   zrtpCommit = new ZrtpPacketCommit();
     private ZrtpPacketConfirm  zrtpConfirm1 = new ZrtpPacketConfirm();
     private ZrtpPacketConfirm  zrtpConfirm2 = new ZrtpPacketConfirm();
+    private ZrtpPacketPingAck  zrtpPingAck = new ZrtpPacketPingAck();
 
     /**
      * Random IV data to encrypt the confirm data, 128 bit for AES
@@ -301,10 +304,10 @@ public class ZRtp {
     /**
      * Variables to store signature data. Includes the signature type block
      */
-    private byte[] signatureData = null;       // will be allocated when needed
-    private int  signatureLength = 0;     // overall length in bytes
+    private byte[] signatureData = null;        // will be allocated when needed
+    private int  signatureLength = 0;           // overall length in bytes
 
-
+    private int peerSSRC = 0;                   // the partner's ssrc
     
     /**
      * Constructor intializes all relevant data but does not start the
@@ -402,7 +405,9 @@ public class ZRtp {
      *    A pointer to the first byte of the extension header. Refer to
      *    RFC3550.
      */
-    public void  processZrtpMessage(byte[] extHeader) {
+    public void  processZrtpMessage(byte[] extHeader, int ssrc) {
+        peerSSRC = ssrc;
+
         if (stateEngine != null) {
             ZrtpStateClass.Event ev = stateEngine.new Event(
                     ZrtpStateClass.EventDataType.ZrtpPacket, extHeader);
@@ -1773,6 +1778,22 @@ public class ZRtp {
         return zrtpError;
     }
 
+    /**
+     * Prepare the PingAck packet.
+     *
+     * This method prepares the PingAck packet.
+     */
+    protected ZrtpPacketPingAck preparePingAck(ZrtpPacketPing ppkt) {
+
+        // Because we do not support ZRTP proxy mode use the truncated ZID.
+        // If this code shall be used in ZRTP proxy implementation the computation
+        // of the endpoint hash must be enhanced (see chaps 5.15ff and 5.16)
+        zrtpPingAck.setLocalEpHash(zid);
+        zrtpPingAck.setRemoteEpHash(ppkt.getEpHash());
+        zrtpPingAck.setPeerSSRC(peerSSRC);
+        return zrtpPingAck;
+    }
+    
     /**
      * Prepare a ClearAck packet.
      *
