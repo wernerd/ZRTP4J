@@ -1,14 +1,16 @@
-/* java.math.BigInteger -- Arbitary precision integers
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007  Free Software Foundation, Inc.
+/* java.bigintcrypto.BigIntegerCrypto -- Arbitary precision integers for
+ * crypto applications, for example Diffie-Hellman key agreements.
+ * 
+Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2009  Free Software Foundation, Inc.
 
-This file is part of GNU Classpath.
+This file is part of GNU ZRTP4J
 
-GNU Classpath is free software; you can redistribute it and/or modify
+GNU ZRTP4J is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
  
-GNU Classpath is distributed in the hope that it will be useful, but
+GNU ZRTP4J is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License for more details.
@@ -37,8 +39,6 @@ exception statement from your version. */
 
 package gnu.java.bigintcrypto;
 
-// import gnu.classpath.Configuration;
-
 import java.lang.StringBuffer;
 import gnu.java.math.MPN;
 
@@ -48,15 +48,44 @@ import java.io.ObjectOutputStream;
 import java.util.Random;
 import java.util.Arrays;
 
-// import java.util.logging.Logger;
 
 /**
+ * Crypto-aware big integer implementation.
+ * 
+ * This implememtation re-uses the GNU classpath BigInteger implementation
+ * and modifies/enhances it to be more "crypto-aware.
+ * 
+ * Some crypto specific enhancements:
+ *<ul>
+ *<li> Don't use the GMP library if installed on the system. While this
+ *   may reduce performance it gives us full control of the data (no
+ *   copying between Java and C) </li>
+ *
+ *<li> Add a method to clear the contents / data of the big integer. The
+ *   application can use this function to clear data in case this big
+ *   integer was used as a private key. Some applications may stay in 
+ *   memory for a long time (for example communication applications) and
+ *   thus it is important to be able to clear secret data if it is not
+ *   longer used. Otherwise a malicious person could be able to do
+ *   memory analysis to find some key material. </li>
+ * 
+ *<li> Add a finalize method. If the garbage collector processes the big
+ *   integer then the finalize method clears the data.</li>
+ *
+ *<li> Clear temporary data produced during calculations. Some big integer
+ *   calculations produce and use temporary data. BigIntegerCrypto clears
+ *   these temporary data to avoid data leakage. The tag "crypto:" 
+ *   identifies these modifications.</li>
+ *</ul>
  * Written using on-line Java Platform 1.2 API Specification, as well as
  * "The Java Class Libraries", 2nd edition (Addison-Wesley, 1998) and
  * "Applied Cryptography, Second Edition" by Bruce Schneier (Wiley, 1996).
  * 
  * Based primarily on IntNum.java BitOps.java by Per Bothner (per@bothner.com)
  * (found in Kawa 1.6.62).
+ * 
+ * @author Werner Dittmann (werner.dittmann@t-online.de)
+ * @date March 21, 2009
  * 
  * @author Warren Levy (warrenl@cygnus.com)
  * @date December 20, 1999.
