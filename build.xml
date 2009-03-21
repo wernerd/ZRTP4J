@@ -9,7 +9,7 @@
 
 	    <property name='product.version.major' value='1'/>
     	<property name='product.version.minor' value='4'/>
-	    <property name='product.version.level' value='3'/>
+	    <property name='product.version.level' value='4'/>
     	<property name='product.Version' value='${product.version.major}.${product.version.minor}'/>
 	    <property name='product.version' value='${product.version.major}.${product.version.minor}.${product.version.level}'/>
     	<property name='product_version' value='${product.version.major}_${product.version.minor}_${product.version.level}'/>
@@ -62,19 +62,28 @@
 	</target>  <!-- end of target "init" -->
 
 	<target name="jar" depends="compile" 
-		description="Create the jar file for ZRTP4J" >
+		description="Create the jar files for ZRTP4J" >
 	     <jar destfile="${dir.dist}/${zrtp4j-full-jar.name}" >
-	     	<fileset dir="${common-build.classes}" includes="gnu/java/**" />
+	     	<fileset dir="${common-build.classes}" >
+	     		<include name="gnu/java/**" />
+	     		<include name="org/bouncycastle/**" />
+	     		<exclude name="gnu/java/bigintcrypto/test/**" />
+	     	</fileset>
 	     </jar>
 	     <jar destfile="${dir.dist}/${zrtp4j-jar.name}" >
-	     	<fileset dir="${common-build.classes}" includes="gnu/java/zrtp/**" excludes="gnu/java/zrtp/jmf/**" />
+	     	<fileset dir="${common-build.classes}" >
+	     		<include name="gnu/java/**" />
+	     		<include name="org/bouncycastle/**" />
+	     		<exclude name="gnu/java/bigintcrypto/test/**" />
+	     		<exclude name="gnu/java/zrtp/jmf/**" />
+	        </fileset>
 	     </jar>
 	</target>
 
 	<target name="bindist" depends="jar" description="Build zip file for ZRTP4J distribution">
 	     <zip destfile="${dir.dist}/${zrtp4j-zip.name}">
 	        <zipfileset prefix="zrtp4j" dir="."
-	          includes="LICENSE.txt, README.txt, doc/**, legal/**" />
+	          includes="README.txt, doc/**, legal/**" />
 	        <zipfileset fullpath="zrtp4j/${zrtp4j-full-jar.name}" dir="${dir.dist}" 
 	          includes="${zrtp4j-full-jar.name}"/>
 	        <zipfileset fullpath="zrtp4j/${zrtp4j-jar.name}" dir="${dir.dist}" 

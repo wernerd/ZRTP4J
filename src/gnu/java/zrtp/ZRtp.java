@@ -39,24 +39,24 @@ import java.util.EnumSet;
 import java.util.Random;
 import java.util.Arrays;
 
-import java.math.BigInteger;
+import gnu.java.bigintcrypto.BigIntegerCrypto;
 import java.security.SecureRandom;
 
-
-import org.bouncycastle.crypto.generators.DHBasicKeyPairGenerator;
-import org.bouncycastle.crypto.params.DHKeyGenerationParameters;
-import org.bouncycastle.crypto.params.ParametersWithIV;
-import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.BufferedBlockCipher;
-
-import org.bouncycastle.crypto.agreement.DHBasicAgreement;
-import org.bouncycastle.crypto.params.DHPublicKeyParameters;
-
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.engines.AESFastEngine;
 import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.crypto.params.ParametersWithIV;
+
+import org.bouncycastle.cryptozrtp.AsymmetricCipherKeyPair;
+import org.bouncycastle.cryptozrtp.agreement.DHBasicAgreement;
+import org.bouncycastle.cryptozrtp.generators.DHBasicKeyPairGenerator;
+import org.bouncycastle.cryptozrtp.params.DHKeyGenerationParameters;
+import org.bouncycastle.cryptozrtp.params.DHPrivateKeyParameters;
+import org.bouncycastle.cryptozrtp.params.DHPublicKeyParameters;
+
 
 /**
  * The main ZRTP class.
@@ -1174,7 +1174,7 @@ public class ZRtp {
 
         // get and check Responder's public value, see chap. 5.4.3 in the spec
         byte[] pvrBytes = dhPart1.getPv();
-        BigInteger pvrBigInt = new BigInteger(1, pvrBytes);
+        BigIntegerCrypto pvrBigInt = new BigIntegerCrypto(1, pvrBytes);
 
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
             if (!checkPubKey(pvrBigInt, ZrtpConstants.SupportedPubKeys.DH3K)) {
@@ -1187,15 +1187,16 @@ public class ZRtp {
         dhContext.init(myKeyPair.getPrivate());
         DHPublicKeyParameters pvr = new DHPublicKeyParameters(pvrBigInt, ZrtpConstants.specDh3k);
         DHss = dhContext.calculateAgreement(pvr).toByteArray();
-
+        ((DHPrivateKeyParameters)myKeyPair.getPrivate()).clear();
+        dhContext.clear();
+        dhContext = null;
+        
         // adjust byte arry if we have a leading zero
         if (DHss[0] == 0) {
             byte[] tmp = new byte[DHss.length - 1];
             System.arraycopy(DHss, 1, tmp, 0, tmp.length);
             DHss = tmp;
         }
-        
-        
         myRole = ZrtpCallback.Role.Initiator;
 
         // We are Inititaor: the Responder's Hello and the Initiator's (our)
@@ -1220,8 +1221,6 @@ public class ZRtp {
         generateKeysInitiator(dhPart1, zidRec);
         zidf.saveRecord(zidRec);
         
-        dhContext = null;
-
         // store DHPart1 data temporarily until we can check HMAC after
         // receiving Confirm1
         storeMsgTemp(dhPart1);
@@ -1261,7 +1260,7 @@ public class ZRtp {
         // Get and check the Initiator's public value, see chap. 5.4.2 of the spec
         // get and check Responder's public value, see chap. 5.4.3 in the spec
         byte[] pviBytes = dhPart2.getPv();
-        BigInteger pviBigInt = new BigInteger(1, pviBytes);
+        BigIntegerCrypto pviBigInt = new BigIntegerCrypto(1, pviBytes);
 
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
             if (!checkPubKey(pviBigInt, ZrtpConstants.SupportedPubKeys.DH3K)) {
@@ -1274,6 +1273,9 @@ public class ZRtp {
         dhContext.init(myKeyPair.getPrivate());
         DHPublicKeyParameters pvi = new DHPublicKeyParameters(pviBigInt, ZrtpConstants.specDh3k);
         DHss = dhContext.calculateAgreement(pvi).toByteArray();
+        ((DHPrivateKeyParameters)myKeyPair.getPrivate()).clear();
+        dhContext.clear();
+        dhContext = null;
 
         // adjust byte arry if we have a leading zero
         if (DHss[0] == 0) {
@@ -2475,9 +2477,9 @@ public class ZRtp {
         computeSRTPKeys();
     }
 
-    private boolean checkPubKey(BigInteger pvr,
+    private boolean checkPubKey(BigIntegerCrypto pvr,
             ZrtpConstants.SupportedPubKeys dhtype) {
-        if (pvr.equals(BigInteger.ONE)) {
+        if (pvr.equals(BigIntegerCrypto.ONE)) {
             return false;
         }
         if (dhtype == ZrtpConstants.SupportedPubKeys.DH3K) {
