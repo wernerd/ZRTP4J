@@ -19,9 +19,9 @@
 
 package gnu.java.zrtp;
 
-import java.math.BigInteger;
+import gnu.java.bigintcrypto.BigIntegerCrypto;
 
-import org.bouncycastle.crypto.params.DHParameters;
+import org.bouncycastle.cryptozrtp.params.DHParameters;
 
 /**
  * @author Werner Dittmann <Werner.Dittmann@t-online.de>
@@ -301,7 +301,7 @@ public class ZrtpConstants {
 
     // The Diffie-Helman constants as defined in the ZRTP specification
     // The DH prime for DH2k (2048 bit) as defined in RFC 3526
-    public static final BigInteger P2048 = new BigInteger(
+    public static final BigIntegerCrypto P2048 = new BigIntegerCrypto(
 //                        1                   2        
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3           24 bytes per line
     "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +        // 0
@@ -318,7 +318,7 @@ public class ZrtpConstants {
     
    
     // The DH prime for DH3k (3072 bit) as defined in RFC 3526
-    public static final BigInteger P3072 = new BigInteger(
+    public static final BigIntegerCrypto P3072 = new BigIntegerCrypto(
 //                        1                   2        
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3           24 bytes per line
     "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +        // 0
@@ -339,7 +339,7 @@ public class ZrtpConstants {
     "43DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF", 16);    // 15, total = 24 * 16 = 384
 
     // The DH prime for DH4k (4096 bit) as defined in RFC 3526
-    public static final BigInteger P4096 = new BigInteger(
+    public static final BigIntegerCrypto P4096 = new BigIntegerCrypto(
 //                        1                   2        
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3           24 bytes per line
     "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +        // 0
@@ -366,11 +366,11 @@ public class ZrtpConstants {
     "FFFFFFFFFFFFFFFF", 16);                                    // Total = 8 + 24 * 21 = 512 
 
     // DH generator 2
-    public static final BigInteger two = BigInteger.valueOf(2);
+    public static final BigIntegerCrypto two = BigIntegerCrypto.valueOf(2);
     
-    public static final BigInteger P2048MinusOne = P2048.subtract(BigInteger.ONE);
-    public static final BigInteger P3072MinusOne = P3072.subtract(BigInteger.ONE);
-    public static final BigInteger P4096MinusOne = P4096.subtract(BigInteger.ONE);
+    public static final BigIntegerCrypto P2048MinusOne = P2048.subtract(BigIntegerCrypto.ONE);
+    public static final BigIntegerCrypto P3072MinusOne = P3072.subtract(BigIntegerCrypto.ONE);
+    public static final BigIntegerCrypto P4096MinusOne = P4096.subtract(BigIntegerCrypto.ONE);
     
 
     public static final DHParameters specDh2k = new DHParameters(ZrtpConstants.P2048, ZrtpConstants.two, null, 128);

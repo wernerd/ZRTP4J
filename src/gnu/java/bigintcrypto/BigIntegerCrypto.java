@@ -329,20 +329,6 @@ public class BigIntegerCrypto extends Number implements
         this.ival = result.ival;
         this.words = result.words;
     }
-
-    /**
-     * Clear content before garbage collecting.
-     * 
-     * Crypto: enhancement.
-     */
-    protected void finalize() throws Throwable {
-        super.finalize();
-        if (words != null) {
-            Arrays.fill(words, 0);
-            words = null;
-        }
-        ival = 0;
-    }
     
     /**
      * Clear content and reset to a zero BigIntegerCrypto.
@@ -614,8 +600,6 @@ public class BigIntegerCrypto extends Number implements
      */
     private void set(int[] words, int length) {
         this.ival = length;
-        if (this.words != null)
-            Arrays.fill(this.words, 0);     // crypto: clear previous content
         this.words = words;
     }
 
@@ -1099,8 +1083,6 @@ public class BigIntegerCrypto extends Number implements
         // crypto: make(...) could return another biginteger if rwords is #
         // small. In that case clear rwords before leaving the method.
         BigIntegerCrypto ret = BigIntegerCrypto.make(rwords, rlen);
-        if (ret.words != rwords)
-            Arrays.fill(rwords, 0);
         return ret;
     }
 
@@ -1228,8 +1210,6 @@ public class BigIntegerCrypto extends Number implements
             // original modulus, y (which is now x if they were swapped).
             if (result.isNegative())
                 result = add(result, swapped ? x : y, 1);
-            rem.clear();                    // crypto: clear temporary content
-            quot.clear();                   // crypto: clear temporary content
         }
 
         return result;
@@ -1312,7 +1292,6 @@ public class BigIntegerCrypto extends Number implements
         getAbsolute(xwords);
         y.getAbsolute(ywords);
         len = MPN.gcd(xwords, ywords, len);
-        Arrays.fill(ywords, 0);             // crypto: clear temporary content
 
         BigIntegerCrypto result = new BigIntegerCrypto(0);
         result.ival = len;
@@ -1400,8 +1379,6 @@ public class BigIntegerCrypto extends Number implements
 
             for (i = 0; i < b;) {
                 if (z.isOne()) {
-                    pMinus1.clear();        // crypto: clear temporary content
-                    m.clear();              // crypto: clear temporary content
                     return false;
                 }
                 i++;
@@ -1412,13 +1389,9 @@ public class BigIntegerCrypto extends Number implements
             }
 
             if (i == b && !z.equals(pMinus1)) {
-                pMinus1.clear();        // crypto: clear temporary content
-                m.clear();              // crypto: clear temporary content
                 return false;
             }
         }
-        pMinus1.clear();        // crypto: clear temporary content
-        m.clear();              // crypto: clear temporary content
         return true;
     }
 

@@ -44,9 +44,6 @@ some crypto specific enhancements:
   thus it is important to be able to clear secret data if it is not
   longer used. Otherwise a malicious person could be able to do
   memory analysis to find some key material.
-  
-- Add a finalize method. If the garbage collector processes the big
-  integer then the finalize method clears the data.
 
 - Clear temporary data produced during calculations. Some big integer
   calculation produce and use temporary data. BigIntegerCrypto clears
