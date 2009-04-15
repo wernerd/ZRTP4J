@@ -7,12 +7,6 @@ import java.security.SecureRandom;
 /**
  * Class to test and check required crypto algorithms.
  * 
- * This class instantiates a security provider and all necessary crypto
- * classes and algorithms. Then it preforms a quick check if the algorithms
- * are available and work. If something is wrong an exception is thrown.
- * 
- *  Most often it is just a missing "unlimited strength" policy file. The
- *  standard policy file limits the key length of some alorithms.
  */
 public class BigIntCryptoDHTest {
 

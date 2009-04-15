@@ -274,6 +274,7 @@ public class ZRtp {
     /**
      * True if PBX enrollment is enabled.
      */
+    @SuppressWarnings("unused")
     private boolean PBXEnrollment = false;;
 
     /**
@@ -1187,7 +1188,7 @@ public class ZRtp {
         dhContext.init(myKeyPair.getPrivate());
         DHPublicKeyParameters pvr = new DHPublicKeyParameters(pvrBigInt, ZrtpConstants.specDh3k);
         DHss = dhContext.calculateAgreement(pvr).toByteArray();
-        ((DHPrivateKeyParameters)myKeyPair.getPrivate()).getX().clear();
+        ((DHPrivateKeyParameters)myKeyPair.getPrivate()).getX().zeroize();
         dhContext.clear();
         dhContext = null;
         
@@ -1273,7 +1274,7 @@ public class ZRtp {
         dhContext.init(myKeyPair.getPrivate());
         DHPublicKeyParameters pvi = new DHPublicKeyParameters(pviBigInt, ZrtpConstants.specDh3k);
         DHss = dhContext.calculateAgreement(pvi).toByteArray();
-        ((DHPrivateKeyParameters)myKeyPair.getPrivate()).getX().clear();
+        ((DHPrivateKeyParameters)myKeyPair.getPrivate()).getX().zeroize();
         dhContext.clear();
         dhContext = null;
 
@@ -2494,7 +2495,6 @@ public class ZRtp {
 //        try {
 //            zrtp = new ZRtp(data, null, "GNU ZRTP4J 1.0.0", null);
 //        } catch (GeneralSecurityException e) {
-//            // TODO Auto-generated catch block
 //            e.printStackTrace();
 //        }
 //        ZrtpUtils.hexdump("Hello packet", zrtp.zrtpHello.getHeaderBase(), zrtp.zrtpHello.getHeaderBase().length);

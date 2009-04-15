@@ -43,12 +43,12 @@ public class DHPrivateKeyParameters
      * Clear private key data.
      * 
      * Clears the private key data and overwrites it. To use the
-     * agreement againt the application must initialize it again.
+     * agreement again the application must initialize it again.
      */
     
     public void clear() {
         if (x != null)
-            x.clear();          // overwrites BigIntere data with zero
+            x.zeroize();          // overwrites BigIntere data with zero
         x = null;
     }
 

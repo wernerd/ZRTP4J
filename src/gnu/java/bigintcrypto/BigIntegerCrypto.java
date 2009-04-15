@@ -69,9 +69,6 @@ import java.util.Arrays;
  *   longer used. Otherwise a malicious person could be able to do
  *   memory analysis to find some key material. </li>
  * 
- *<li> Add a finalize method. If the garbage collector processes the big
- *   integer then the finalize method clears the data.</li>
- *
  *<li> Clear temporary data produced during calculations. Some big integer
  *   calculations produce and use temporary data. BigIntegerCrypto clears
  *   these temporary data to avoid data leakage. The tag "crypto:" 
@@ -333,12 +330,15 @@ public class BigIntegerCrypto extends Number implements
     /**
      * Clear content and reset to a zero BigIntegerCrypto.
      * 
+     * Clear all allocated data (overwrite with 0) and reset this 
+     * BigIntegerCrypto to zero.  
+     *  
      * This method clears the content of real big integers only and does
      * not clear predefined "small" big integers and small constants.
      * 
      * Crypto: enhancement.
      */
-    public void clear() {
+    public void zeroize() {
         if (words != null) {
             Arrays.fill(words, 0);
             words = null;
@@ -369,8 +369,8 @@ public class BigIntegerCrypto extends Number implements
     public static BigIntegerCrypto valueOf(long val) {
         if (val >= minFixNum && val <= maxFixNum)
             return smallFixNums[(int) val - minFixNum];
-        int i = (int) val;
-        if ((long) i == val)
+        int i = (int)val;
+        if (i == val)
             return new BigIntegerCrypto(i);
         BigIntegerCrypto result = alloc(2);
         result.ival = 2;
@@ -436,8 +436,10 @@ public class BigIntegerCrypto extends Number implements
     private void realloc(int nwords) {
         if (nwords == 0) {
             if (words != null) {
-                if (ival > 0)
+                if (ival > 0) {
                     ival = words[0];
+                    words[0] = 0;           // crypto: clear old content
+                }
                 words = null;
             }
         } else if (words == null || words.length < nwords
@@ -450,6 +452,7 @@ public class BigIntegerCrypto extends Number implements
                 if (nwords < ival)
                     ival = nwords;
                 System.arraycopy(words, 0, new_words, 0, ival);
+                Arrays.fill(words, 0);      // crypto: clear old content
             }
             words = new_words;
         }
@@ -530,6 +533,7 @@ public class BigIntegerCrypto extends Number implements
                 && (ival = BigIntegerCrypto.wordsNeeded(words, ival)) <= 1) {
             if (ival == 1)
                 ival = words[0];
+            Arrays.fill(words, 0);          // crypto: clear old contents
             words = null;
         }
         if (words == null && ival >= minFixNum && ival <= maxFixNum)
@@ -563,7 +567,7 @@ public class BigIntegerCrypto extends Number implements
         realloc(len + 1);
         long carry = y;
         for (int i = 0; i < len; i++) {
-            carry += ((long) x.words[i] & 0xffffffffL);
+            carry += (x.words[i] & 0xffffffffL);
             words[i] = (int) carry;
             carry >>= 32;
         }
@@ -581,7 +585,7 @@ public class BigIntegerCrypto extends Number implements
     /** Destructively set the value of this to a long. */
     private void set(long y) {
         int i = (int) y;
-        if ((long) i == y) {
+        if (i == y) {
             ival = i;
             if (words != null)
                 Arrays.fill(words, 0);
@@ -600,6 +604,9 @@ public class BigIntegerCrypto extends Number implements
      */
     private void set(int[] words, int length) {
         this.ival = length;
+        if (this.words != null) {
+            Arrays.fill(this.words, 0);         // crypto: clear old contents
+        }
         this.words = words;
     }
 
@@ -608,7 +615,7 @@ public class BigIntegerCrypto extends Number implements
         if (y.words == null)
             set(y.ival);
         else if (this != y) {
-            realloc(y.ival);
+            realloc(y.ival);                // TODO: allocate int[y.ival] directly
             System.arraycopy(y.words, 0, words, 0, y.ival);
             ival = y.ival;
         }
@@ -618,7 +625,7 @@ public class BigIntegerCrypto extends Number implements
     private static BigIntegerCrypto add(BigIntegerCrypto x, BigIntegerCrypto y,
             int k) {
         if (x.words == null && y.words == null)
-            return valueOf((long) k * (long) y.ival + (long) x.ival);
+            return valueOf((long) k * (long) y.ival + x.ival);
         if (k != 1) {
             if (k == -1)
                 y = BigIntegerCrypto.neg(y);
@@ -640,7 +647,7 @@ public class BigIntegerCrypto extends Number implements
         long carry = MPN.add_n(result.words, x.words, y.words, i);
         long y_ext = y.words[i - 1] < 0 ? 0xffffffffL : 0;
         for (; i < x.ival; i++) {
-            carry += ((long) x.words[i] & 0xffffffffL) + y_ext;
+            carry += (x.words[i] & 0xffffffffL) + y_ext;
             result.words[i] = (int) carry;
             carry >>>= 32;
         }
@@ -723,6 +730,14 @@ public class BigIntegerCrypto extends Number implements
         BigIntegerCrypto result = BigIntegerCrypto.alloc(xlen + ylen);
         MPN.mul(result.words, xwords, xlen, ywords, ylen);
 
+        if (!(xwords == x.words || ywords == x.words)) {    // crypto: delete temp content
+            Arrays.fill(xwords, 0);
+            xwords = null;
+        }
+        if (!(ywords == y.words || xwords == y.words)) {    // crypto: delete temp content
+            Arrays.fill(ywords, 0);
+            ywords = null;
+        }
         result.ival = xlen + ylen;
         if (negative)
             result.setNegative();
@@ -978,6 +993,9 @@ public class BigIntegerCrypto extends Number implements
                     remainder.setNegative(tmp);
                 else
                     remainder.set(tmp);
+                if (tmp != remainder) {
+                    tmp.zeroize();                  // crypto: clear temp data
+                }
             } else {
                 // If !add_one, then: abs(Q*Y) <= abs(X).
                 // So sign(remainder) = sign(X).
@@ -1577,7 +1595,7 @@ public class BigIntegerCrypto extends Number implements
             return ival;
         if (ival == 1)
             return words[0];
-        return ((long) words[1] << 32) + ((long) words[0] & 0xffffffffL);
+        return ((long) words[1] << 32) + (words[0] & 0xffffffffL);
     }
 
     public int hashCode() {
@@ -1622,9 +1640,9 @@ public class BigIntegerCrypto extends Number implements
 
     public double doubleValue() {
         if (words == null)
-            return (double) ival;
+            return ival;
         if (ival <= 2)
-            return (double) longValue();
+            return longValue();
         if (isNegative())
             return neg(this).roundToDouble(0, true, false);
         return roundToDouble(0, false, false);
@@ -1762,7 +1780,7 @@ public class BigIntegerCrypto extends Number implements
         long carry = 1;
         boolean negative = src[len - 1] < 0;
         for (int i = 0; i < len; i++) {
-            carry += ((long) (~src[i]) & 0xffffffffL);
+            carry += ((~src[i]) & 0xffffffffL);
             dest[i] = (int) carry;
             carry >>= 32;
         }
@@ -2243,8 +2261,7 @@ public class BigIntegerCrypto extends Number implements
         }
     }
 
-    private void writeObject(ObjectOutputStream s) throws IOException,
-            ClassNotFoundException {
+    private void writeObject(ObjectOutputStream s) throws IOException {
         signum = signum();
         magnitude = signum == 0 ? new byte[0] : toByteArray();
         s.defaultWriteObject();
