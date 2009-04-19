@@ -180,6 +180,10 @@ public class ZrtpStateClass {
             }
             return time;
         }
+        
+        void setMaxResend(int newResend) {
+            maxResend = newResend;
+        }
     }
 
     protected ZrtpStateClass(ZRtp p) {
@@ -397,9 +401,10 @@ public class ZrtpStateClass {
             last = (char) pkt[MESSAGE_OFFSET + 7];
             last = Character.toLowerCase(last);
             /*
-             * HelloAck: - our peer acknowledged our Hello packet - cancel timer
-             * T1 to stop resending Hello - switch to state AckDetected, wait
-             * for peer's Hello (F3)
+             * HelloAck: 
+             * - our peer acknowledged our Hello packet 
+             * - cancel timer T1 to stop resending Hello 
+             * - switch to state AckDetected, wait for peer's Hello (F3)
              */
             if (first == 'h' && last == 'k') {
                 cancelTimer();
@@ -408,13 +413,16 @@ public class ZrtpStateClass {
                 return;
             }
             /*
-             * Hello: - send HelloAck packet to acknowledge the received Hello
-             * packet - use received Hello packet to prepare own Commit packet.
-             * We need to do it at this point because we need the hash value
-             * computed from peer's Hello packet. Follwing states my use the
-             * prepared Commit. - switch to new state AckSent which sends own
-             * Hello packet until peer acknowledges this - Don't clear
-             * sentPacket, points to Hello
+             * Hello: 
+             * - send HelloAck packet to acknowledge the received Hello
+             *   packet 
+             * - use received Hello packet to prepare own Commit packet.
+             *   We need to do it at this point because we need the hash value
+             *   computed from peer's Hello packet. Follwing states my use the
+             *   prepared Commit. 
+             * - switch to new state AckSent which sends own Hello packet (F3)
+             *   until peer acknowledges this 
+             * - Don't clear sentPacket, points to Hello
              */
             if (first == 'h' && last == ' ') {
                 cancelTimer();
@@ -440,6 +448,7 @@ public class ZrtpStateClass {
                     // returns to state Initial
                     timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer); // Initial
                 }
+                t1.setMaxResend(60);        // this give >12 seconds, see chapter 6
             }
             break;
             
@@ -452,8 +461,7 @@ public class ZrtpStateClass {
             if (nextTimer(t1) <= 0) {
                 commitPkt = null;
                 parent.zrtpNotSuppOther();
-                inState = ZrtpStates.Detect; // TODO: DetectPassive -
-                // pre-shared / multi-stream??
+                inState = ZrtpStates.Detect;
             }
             break;
         
@@ -491,14 +499,17 @@ public class ZrtpStateClass {
      * state AckSent). This protocol sequence gurantees that both peers got at
      * least one Hello.
      * 
-     * When entering this transition function - instance variable sentPacket is
-     * NULL, Hello timer stopped
+     * When entering this transition function 
+     * - instance variable sentPacket is NULL, Hello timer stopped
      * 
-     * Possible events in this state are: Hello: we have to choices 1) we can
-     * acknowledge the peer's Hello with a HelloAck 2) we can acknowledge the
-     * peer's Hello with a Commit Both choices are implemented and may be
-     * enabled by setting a compile time #if (see code below). Currently we use
-     * choice 2) here.
+     * Possible events in this state are: 
+     * Hello: 
+     * we have to choices:
+     *  1) we can acknowledge the peer's Hello with a HelloAck 
+     *  2) we can acknowledge the peer's Hello with a Commit 
+     * 
+     * Both choices are implemented and may be enabled by un-commenting the 
+     * code. Currently we use choice 1) here.
      */
 
     protected void evAckDetected() {
@@ -754,7 +765,7 @@ public class ZrtpStateClass {
                 commitPkt = null;
                 // Stay in state Detect to be prepared get an hello from
                 // other peer any time later
-                inState = ZrtpStates.Detect;   // TODO: DetectPassive?
+                inState = ZrtpStates.Detect;   // TODO: Stay in state according to chap. 6?
             }
             break;
 
@@ -1457,7 +1468,7 @@ public class ZrtpStateClass {
                 return;
             }
             /*
-             * GoClear received, handle it. TODO fix go clear handling
+             * GoClear received, handle it.
              *
             if (first == 'g' && last == 'r') {
                 ZrtpPacketGoClear gpkt(pkt);
@@ -1466,7 +1477,6 @@ public class ZrtpStateClass {
                 if (!parent->sendPacketZRTP(static_cast<ZrtpPacketBase *>(clearAck))) {
                     return(Done);
                 }
-            // TODO Timeout to resend clear ack until user user confirmation
             }
             */
             break;
