@@ -441,7 +441,7 @@ public class ZrtpStateClass {
 
                 inState = ZrtpStates.AckSent;
                 if (commitPkt == null) {
-                    sendErrorPacket(EnumSet.of(errorCode[0])); // switches to Error state
+                    sendErrorPacket(errorCode[0]); // switches to Error state
                     return;
                 }
                 if (startTimer(t1) <= 0) { // restart own Hello timer/counter
@@ -542,7 +542,7 @@ public class ZrtpStateClass {
                 // Something went wrong during processing of the Hello packet, for
                 // example wrong version, duplicate ZID.
                 if (commit == null) {
-                    sendErrorPacket(EnumSet.of(errorCode[0]));
+                    sendErrorPacket(errorCode[0]);
                     return;
                 }
                 ZrtpPacketHelloAck helloAck = parent.prepareHelloAck();
@@ -719,7 +719,7 @@ public class ZrtpStateClass {
                     // packet
                     if (dhPart1 == null) {
                         if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                            sendErrorPacket(EnumSet.of(errorCode[0]));
+                            sendErrorPacket(errorCode[0]);
                         }
                         return;
                     }
@@ -734,7 +734,7 @@ public class ZrtpStateClass {
                     // Something went wrong during processing of the Commit packet
                     if (confirm == null) {
                         if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                            sendErrorPacket(EnumSet.of(errorCode[0]));
+                            sendErrorPacket(errorCode[0]);
                         }
                         return;
                     }
@@ -843,7 +843,7 @@ public class ZrtpStateClass {
                     // packet
                     if (dhPart1 == null) {
                         if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                            sendErrorPacket(EnumSet.of(errorCode[0]));
+                            sendErrorPacket(errorCode[0]);
                         }
                         return;
                     }
@@ -855,7 +855,7 @@ public class ZrtpStateClass {
                     // Something went wrong during processing of the Commit packet
                     if (confirm == null) {
                         if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                            sendErrorPacket(EnumSet.of(errorCode[0]));
+                            sendErrorPacket(errorCode[0]);
                         }
                         return;
                     }
@@ -964,7 +964,7 @@ public class ZrtpStateClass {
                         // packet
                         if (dhPart1 == null) {
                             if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                                sendErrorPacket(EnumSet.of(errorCode[0]));
+                                sendErrorPacket(errorCode[0]);
                             }
                             return;
                         }
@@ -976,7 +976,7 @@ public class ZrtpStateClass {
                         // Something went wrong during processing of the Commit packet
                         if (confirm == null) {
                             if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                                sendErrorPacket(EnumSet.of(errorCode[0]));
+                                sendErrorPacket(errorCode[0]);
                             }
                             return;
                         }
@@ -1012,7 +1012,7 @@ public class ZrtpStateClass {
                 // Something went wrong during processing of the DHPart1 packet
                 if (dhPart2 == null) {
                     if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                        sendErrorPacket(EnumSet.of(errorCode[0]));
+                        sendErrorPacket(errorCode[0]);
                     }
                     return;
                 }
@@ -1038,7 +1038,7 @@ public class ZrtpStateClass {
 
                 // Something went wrong during processing of the Confirm1 packet
                 if (confirm == null) {
-                    sendErrorPacket(EnumSet.of(errorCode[0]));
+                    sendErrorPacket(errorCode[0]);
                     return;
                 }
                 inState = ZrtpStates.WaitConfAck;
@@ -1054,8 +1054,7 @@ public class ZrtpStateClass {
                 if (!parent.srtpSecretsReady(ZrtpCallback.EnableSecurity.ForReceiver)) {
                     parent.sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                             .of(ZrtpCodes.SevereCodes.SevereSecurityException));
-                    sendErrorPacket(EnumSet
-                            .of(ZrtpCodes.ZrtpErrorCodes.CriticalSWError));
+                    sendErrorPacket(ZrtpCodes.ZrtpErrorCodes.CriticalSWError);
                     return;
                 }
             }
@@ -1139,7 +1138,7 @@ public class ZrtpStateClass {
 
                 if (confirm == null) {
                     if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
-                        sendErrorPacket(EnumSet.of(errorCode[0]));
+                        sendErrorPacket(errorCode[0]);
                     }
                     return;
                 }
@@ -1212,7 +1211,7 @@ public class ZrtpStateClass {
 
                 // Something went wrong during processing of the Confirm1 packet
                 if (confirm == null) {
-                    sendErrorPacket(EnumSet.of(errorCode[0]));
+                    sendErrorPacket(errorCode[0]);
                     return;
                 }
                 inState = ZrtpStates.WaitConfAck;
@@ -1228,8 +1227,7 @@ public class ZrtpStateClass {
                 if (!parent.srtpSecretsReady(ZrtpCallback.EnableSecurity.ForReceiver)) {
                     parent.sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                             .of(ZrtpCodes.SevereCodes.SevereSecurityException));
-                    sendErrorPacket(EnumSet
-                            .of(ZrtpCodes.ZrtpErrorCodes.CriticalSWError));
+                    sendErrorPacket(ZrtpCodes.ZrtpErrorCodes.CriticalSWError);
                     return;
                 }
             }
@@ -1316,7 +1314,7 @@ public class ZrtpStateClass {
 
                 // Something went wrong during processing of the confirm2 packet
                 if (confack == null) {
-                    sendErrorPacket(EnumSet.of(errorCode[0]));
+                    sendErrorPacket(errorCode[0]);
                     return;
                 }
                 sentPacket = confack;
@@ -1331,8 +1329,7 @@ public class ZrtpStateClass {
                                 .srtpSecretsReady(ZrtpCallback.EnableSecurity.ForReceiver)) {
                     parent.sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                             .of(ZrtpCodes.SevereCodes.SevereSecurityException));
-                    sendErrorPacket(EnumSet
-                            .of(ZrtpCodes.ZrtpErrorCodes.CriticalSWError));
+                    sendErrorPacket(ZrtpCodes.ZrtpErrorCodes.CriticalSWError);
                     return;
                 }
                 inState = ZrtpStates.SecureState;
@@ -1398,8 +1395,7 @@ public class ZrtpStateClass {
                         .srtpSecretsReady(ZrtpCallback.EnableSecurity.ForSender)) {
                     parent.sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
                             .of(ZrtpCodes.SevereCodes.SevereSecurityException));
-                    sendErrorPacket(EnumSet
-                            .of(ZrtpCodes.ZrtpErrorCodes.CriticalSWError));
+                    sendErrorPacket(ZrtpCodes.ZrtpErrorCodes.CriticalSWError);
                     return;
                 }
                 inState = ZrtpStates.SecureState;
@@ -1621,13 +1617,16 @@ public class ZrtpStateClass {
      * This functions clears data and set state to Initial after a timer error
      * occured. Either no timer available or resend counter exceedeed.
      * 
+     * @param subCode defines the reason why the timer failed, either no
+     *        timer available (resource) or retry count failed.
+     * 
      * @return Fail code
      */
     private void timerFailed(ZrtpCodes.SevereCodes subCode) {
         sentPacket = null;
         inState = ZrtpStates.Initial;
         parent.zrtpNegotiationFailed(ZrtpCodes.MessageSeverity.Severe,
-                EnumSet.of(ZrtpCodes.SevereCodes.SevereNoTimer));
+                EnumSet.of(subCode));
     }
 
     /**
@@ -1639,16 +1638,13 @@ public class ZrtpStateClass {
      * 
      * @param errorCode Is the sub error code of ZrtpError. The method sends
      *   the value of this sub code to the peer.
-     * 
      */
-    private void sendErrorPacket(EnumSet<?> errorCode) {
+    private void sendErrorPacket(ZrtpCodes.ZrtpErrorCodes errorCode) {
         cancelTimer();
 
-        ZrtpCodes.ZrtpErrorCodes code = (ZrtpCodes.ZrtpErrorCodes) errorCode
-                .iterator().next();
-        ZrtpPacketError err = parent.prepareError(code);
+        ZrtpPacketError err = parent.prepareError(errorCode);
         parent.zrtpNegotiationFailed(ZrtpCodes.MessageSeverity.ZrtpError,
-                errorCode);
+                EnumSet.of(errorCode));
 
         sentPacket = err;
         inState = ZrtpStates.WaitErrorAck;
