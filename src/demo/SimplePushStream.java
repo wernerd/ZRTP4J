@@ -8,6 +8,7 @@ public class SimplePushStream implements PushSourceStream, PushBufferStream {
 
     protected ContentDescriptor cd;
 
+    @SuppressWarnings("unused")
     private SourceTransferHandler sth = null;
 
     private BufferTransferHandler bth = null;

@@ -73,7 +73,7 @@ public class SRTPTransformer
     public RawPacket transform(RawPacket pkt) {
         long ssrc = PacketManipulator.GetRTPSSRC(pkt);
 
-        SRTPCryptoContext context = (SRTPCryptoContext) this.contexts
+        SRTPCryptoContext context = this.contexts
                 .get(new Long(ssrc));
 
         if (context == null) {
@@ -99,8 +99,7 @@ public class SRTPTransformer
     public RawPacket reverseTransform(RawPacket pkt) {
         long ssrc = PacketManipulator.GetRTPSSRC(pkt);
         int seqNum = PacketManipulator.GetRTPSequenceNumber(pkt);
-        SRTPCryptoContext context = (SRTPCryptoContext) this.contexts
-                .get(new Long(ssrc));
+        SRTPCryptoContext context = this.contexts.get(new Long(ssrc));
 
         if (context == null) {
             context = this.engine.getDefaultContext().deriveContext(ssrc, 0, 0);

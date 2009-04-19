@@ -107,7 +107,7 @@ public class Receiver implements ReceiveStreamListener, SessionListener,
 
         System.err.println("ReceiveStreamEvent received: " + evt);
         // RTPManager mgr = (RTPManager) evt.getSource();
-        Participant participant = evt.getParticipant(); // could be null.
+        // Participant participant = evt.getParticipant(); // could be null.
         ReceiveStream stream = evt.getReceiveStream(); // could be null.
 
         if (evt instanceof RemotePayloadChangeEvent) {

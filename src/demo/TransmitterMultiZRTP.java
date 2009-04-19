@@ -188,7 +188,7 @@ public class TransmitterMultiZRTP {
         public void update(SendStreamEvent evt) {
             // System.err.println("TX: SendStreamEvent received: " + evt);
             if (evt instanceof NewSendStreamEvent) {
-                SendStream ss = evt.getSendStream();
+                // SendStream ss = evt.getSendStream();
                 // System.err.println("My SSRC is: " + ss.getSSRC());
                 zrtpEngine.startZrtp();
             }

@@ -56,10 +56,10 @@ public class MPN
    * This is basically the same as gmp's mpn_add_1. */
   public static int add_1 (int[] dest, int[] x, int size, int y)
   {
-    long carry = (long) y & 0xffffffffL;
+    long carry = y & 0xffffffffL;
     for (int i = 0;  i < size;  i++)
       {
-	carry += ((long) x[i] & 0xffffffffL);
+	carry += (x[i] & 0xffffffffL);
 	dest[i] = (int) carry;
 	carry >>= 32;
       }
@@ -77,8 +77,8 @@ public class MPN
     long carry = 0;
     for (int i = 0; i < len;  i++)
       {
-	carry += ((long) x[i] & 0xffffffffL)
-	  + ((long) y[i] & 0xffffffffL);
+	carry += (x[i] & 0xffffffffL)
+	  + (y[i] & 0xffffffffL);
 	dest[i] = (int) carry;
 	carry >>>= 32;
       }
@@ -120,11 +120,11 @@ public class MPN
 
   public static int mul_1 (int[] dest, int[] x, int len, int y)
   {
-    long yword = (long) y & 0xffffffffL;
+    long yword = y & 0xffffffffL;
     long carry = 0;
     for (int j = 0;  j < len; j++)
       {
-        carry += ((long) x[j] & 0xffffffffL) * yword;
+        carry += (x[j] & 0xffffffffL) * yword;
         dest[j] = (int) carry;
         carry >>>= 32;
       }
@@ -149,12 +149,12 @@ public class MPN
 
     for (int i = 1;  i < ylen; i++)
       {
-	long yword = (long) y[i] & 0xffffffffL;
+	long yword = y[i] & 0xffffffffL;
 	long carry = 0;
 	for (int j = 0;  j < xlen; j++)
 	  {
-	    carry += ((long) x[j] & 0xffffffffL) * yword
-	      + ((long) dest[i+j] & 0xffffffffL);
+	    carry += (x[j] & 0xffffffffL) * yword
+	      + (dest[i+j] & 0xffffffffL);
 	    dest[i+j] = (int) carry;
 	    carry >>>= 32;
 	  }
@@ -217,7 +217,7 @@ public class MPN
 	      {
 		if (r >= q) {
 		        r = r - q;
-		} else if (q - r <= ((long) D & 0xffffffffL)) {
+		} else if (q - r <= (D & 0xffffffffL)) {
                        r = r - q + D;
         		q -= 1;
 		} else {
@@ -228,7 +228,7 @@ public class MPN
 	  }
 	else				/* Implies c1 = b1 */
 	  {				/* Hence a1 = d - 1 = 2*b1 - 1 */
-	    if (a0 >= ((long)(-D) & 0xffffffffL))
+	    if (a0 >= ((-D) & 0xffffffffL))
 	      {
 		q = -1;
 	        r = a0 + D;
@@ -255,7 +255,7 @@ public class MPN
   {
     int i = len - 1;
     long r = dividend[i];
-    if ((r & 0xffffffffL) >= ((long)divisor & 0xffffffffL))
+    if ((r & 0xffffffffL) >= (divisor & 0xffffffffL))
       r = 0;
     else
       {
@@ -280,12 +280,12 @@ public class MPN
    */
   public static int submul_1 (int[] dest, int offset, int[] x, int len, int y)
   {
-    long yl = (long) y & 0xffffffffL;
+    long yl = y & 0xffffffffL;
     int carry = 0;
     int j = 0;
     do
       {
-	long prod = ((long) x[j] & 0xffffffffL) * yl;
+	long prod = (x[j] & 0xffffffffL) * yl;
 	int prod_low = (int) prod;
 	int prod_high = (int) (prod >> 32);
 	prod_low += carry;
@@ -335,22 +335,22 @@ public class MPN
 	  qhat = -1;  // 0xffffffff
 	else
 	  {
-	    long w = (((long)(zds[j])) << 32) + ((long)zds[j-1] & 0xffffffffL);
+	    long w = (((long)(zds[j])) << 32) + (zds[j-1] & 0xffffffffL);
 	    qhat = (int) udiv_qrnnd (w, y[ny-1]);
 	  }
 	if (qhat != 0)
 	  {
 	    int borrow = submul_1 (zds, j - ny, y, ny, qhat);
 	    int save = zds[j];
-	    long num = ((long)save&0xffffffffL) - ((long)borrow&0xffffffffL);
+	    long num = (save&0xffffffffL) - (borrow&0xffffffffL);
             while (num != 0)
 	      {
 		qhat--;
 		long carry = 0;
 		for (int i = 0;  i < ny; i++)
 		  {
-		    carry += ((long) zds[j-ny+i] & 0xffffffffL)
-		      + ((long) y[i] & 0xffffffffL);
+		    carry += (zds[j-ny+i] & 0xffffffffL)
+		      + (y[i] & 0xffffffffL);
 		    zds[j-ny+i] = (int) carry;
 		    carry >>>= 32;
 		  }
@@ -576,7 +576,7 @@ public class MPN
 	w0 = (w0 >>> count) | (w1 << (32-count));
 	w1 = (w1 >>> count) | (w2 << (32-count));
       }
-    return ((long)w1 << 32) | ((long)w0 & 0xffffffffL);
+    return ((long)w1 << 32) | (w0 & 0xffffffffL);
   }
 
   /* Shift x[0:len-1] left by count bits, and store the len least

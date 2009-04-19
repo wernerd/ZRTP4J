@@ -6,8 +6,6 @@ import gnu.java.zrtp.jmf.transform.TransformManager;
 import gnu.java.zrtp.jmf.transform.srtp.SRTPPolicy;
 
 import java.net.*;
-import java.security.Provider;
-
 import javax.media.rtp.*;
 
 
@@ -47,9 +45,6 @@ public class TransmitterSRTP {
         SRTPPolicy srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION, 16,
                 SRTPPolicy.HMACSHA1_AUTHENTICATION, 20, 10, 14);
 
-        // TODO currently master key and master salt are hardcoded,
-        // when we have a key management protocol later, then
-        // we will use the negotiated result
         byte[] masterKey = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
                 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f };
 

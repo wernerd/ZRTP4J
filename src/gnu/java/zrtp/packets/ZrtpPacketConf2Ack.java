@@ -20,7 +20,6 @@
 package gnu.java.zrtp.packets;
 
 import gnu.java.zrtp.ZrtpConstants;
-import gnu.java.zrtp.utils.ZrtpUtils;
 
 
 /**

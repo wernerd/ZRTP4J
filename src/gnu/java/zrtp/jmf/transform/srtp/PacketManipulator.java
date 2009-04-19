@@ -34,7 +34,7 @@ public class PacketManipulator
         }
         else
         {
-            return (int)pkt.readByte(pkt.getLength() - 1);
+            return pkt.readByte(pkt.getLength() - 1);
         }
     }
 

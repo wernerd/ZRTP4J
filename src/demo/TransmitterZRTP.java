@@ -11,8 +11,6 @@ import java.net.*;
 import java.util.EnumSet;
 import java.util.Iterator;
 
-import java.security.Provider;
-
 import javax.media.rtp.*;
 import javax.media.rtp.event.NewSendStreamEvent;
 import javax.media.rtp.event.SendStreamEvent;
@@ -34,13 +32,13 @@ public class TransmitterZRTP implements SendStreamListener {
         }
 
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
-            Iterator ii = subCode.iterator();
+            Iterator<?> ii = subCode.iterator();
             System.err.println("Tx show message sub code: " + ii.next());
         }
 
         public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity,
                     EnumSet<?> subCode) {
-            Iterator ii = subCode.iterator();
+            Iterator<?> ii = subCode.iterator();
             System.err.println("Tx negotiation failed sub code: " + ii.next());
         }
         

@@ -19,9 +19,7 @@
 
 package gnu.java.zrtp;
 
-
 import java.util.EnumSet;
-import java.util.Iterator;
 
 /**
  * Application callback methods.
@@ -224,16 +222,16 @@ public class ZrtpUserCallback {
         return true;
     }
     
-    public static void main(String argv[]) {
-        EnumSet<?> s = EnumSet.of(ZrtpCodes.SevereCodes.SevereCommitHMACFailed);
-        System.err.println("Enum set: " + s);
-        Iterator<ZrtpCodes.SevereCodes> ii = (Iterator<ZrtpCodes.SevereCodes>)s.iterator();
-        ZrtpCodes.SevereCodes scc = ((Iterator<ZrtpCodes.SevereCodes>)s.iterator()).next();
-        System.err.println("Via generic iterator: " + ii.next() + ", " + scc);
-
+//    public static void main(String argv[]) {
+//        EnumSet<?> s = EnumSet.of(ZrtpCodes.SevereCodes.SevereCommitHMACFailed);
+//        System.err.println("Enum set: " + s);
+//        Iterator<ZrtpCodes.SevereCodes> ii = (Iterator<ZrtpCodes.SevereCodes>)s.iterator();
+//        ZrtpCodes.SevereCodes scc = ((Iterator<ZrtpCodes.SevereCodes>)s.iterator()).next();
+//        System.err.println("Via generic iterator: " + ii.next() + ", " + scc);
+//
 //        Iterator<ZrtpCodes.SevereCodes> i = s.iterator();
 //        ZrtpCodes.SevereCodes sc = i.next();
 //        System.err.println("SeverCodes: " + sc);
-    }
+//    }
 
 }

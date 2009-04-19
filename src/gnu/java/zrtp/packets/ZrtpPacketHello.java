@@ -176,8 +176,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         try {
             data = text.getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            data = ZrtpConstants.clientId.getBytes();
         }
         int length = (data.length > 4*ZRTP_WORD_SIZE)? (4*ZRTP_WORD_SIZE) : data.length;
         System.arraycopy(data, 0, packetBuffer, CLIENT_ID_OFFSET, length);

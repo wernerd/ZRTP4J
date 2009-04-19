@@ -123,8 +123,8 @@ import java.util.EnumSet;
  *   transConnector = (ZrtpTransformConnector)TransformManager.createZRTPConnector(sa);
  *   zrtpEngine = transConnector.getEngine();
  *   zrtpEngine.setUserCallback(new MyCallback());
- *   if (!zrtpEngine.initialize(&quot;test_t.zid&quot;))
- *       System.out.println(&quot;iniatlize failed&quot;);
+ *   if (!zrtpEngine.initialize("test_t.zid"))
+ *       System.out.println("iniatlize failed");
  * 
  *   // initialize the RTPManager using the ZRTP connector
  * 
@@ -146,7 +146,7 @@ import java.util.EnumSet;
  * This ZRTPTransformEngine documentation shows the ZRTP specific extensions and
  * describes overloaded methods and a possible different behaviour.
  * 
- * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de>
+ * @author Werner Dittmann <Werner.Dittmann@t-online.de>
  * 
  */
 public class ZRTPTransformEngine
@@ -227,7 +227,7 @@ public class ZRTPTransformEngine
                 }
                 if (newTask && !stop) {
                     newTask = false;
-                    executor.handleTimeout("ZRTP");
+                    executor.handleTimeout();
                 }
             }
 
@@ -467,10 +467,8 @@ public class ZRTPTransformEngine
             zrtpConnector.getDataOutputStream().write(packet.getBuffer(),
                     packet.getOffset(), packet.getLength());
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            return false;
         }
-
         return true;
     }
     
@@ -581,7 +579,7 @@ public class ZRTPTransformEngine
         return 1;
     }
 
-    public void handleTimeout(String c) {
+    public void handleTimeout() {
         if (zrtpEngine != null) {
             zrtpEngine.processTimeout();
         }
@@ -727,13 +725,6 @@ public class ZRTPTransformEngine
         userCallback = ub;
     }
     
-    /**
-     * @param cryptoProvider the cryptoProvider to set
-     */
-//    public void setCryptoProvider(Provider cryptoProvider) {
-//        this.cryptoProvider = cryptoProvider;
-//    }
-
     public boolean isStarted() {
        return started;
     }

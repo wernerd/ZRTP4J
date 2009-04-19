@@ -32,6 +32,7 @@ public class ZrtpConstants {
     // Number of bytes of a SHA256 hash
     public static final int SHA256_DIGEST_LENGTH = 32;
 
+    // The following string must contain ASCII characters only
     //                                               1
     //                                     0123456789012345
     public static final String clientId = "GNU ZRTP4J 1.4.3"  ;
