@@ -12,6 +12,7 @@ import org.bouncycastle.cryptozrtp.generators.DHBasicKeyPairGenerator;
 import org.bouncycastle.cryptozrtp.params.DHKeyGenerationParameters;
 import org.bouncycastle.cryptozrtp.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.DataLengthException;
+import org.bouncycastle.crypto.InvalidCipherTextException;
 //import org.bouncycastle.cryptozrtp.InvalidCipherTextException;
 import org.bouncycastle.cryptozrtp.agreement.DHBasicAgreement;
 import org.bouncycastle.cryptozrtp.params.DHPublicKeyParameters;
@@ -152,6 +153,9 @@ public class CryptoTestPureLW {
         } catch (IllegalStateException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        } catch (InvalidCipherTextException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
         
         AESFastEngine aesDec = new AESFastEngine();
@@ -167,6 +171,9 @@ public class CryptoTestPureLW {
             // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (IllegalStateException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (InvalidCipherTextException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
