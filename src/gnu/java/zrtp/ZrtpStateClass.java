@@ -513,7 +513,7 @@ public class ZrtpStateClass {
      */
 
     protected void evAckDetected() {
-        char first;
+        char first, last;
         byte[] pkt;
         ZrtpCodes.ZrtpErrorCodes[] errorCode = new ZrtpCodes.ZrtpErrorCodes[1];
 
@@ -523,6 +523,8 @@ public class ZrtpStateClass {
 
             first = (char) pkt[MESSAGE_OFFSET];
             first = Character.toLowerCase(first);
+            last = (char) pkt[MESSAGE_OFFSET + 7];
+            last = Character.toLowerCase(last);
  
             /*
              * Implementation for choice 1)
@@ -532,7 +534,7 @@ public class ZrtpStateClass {
              * - we are going to be in the Responder role
              */
 
-            if (first == 'h') {
+            if (first == 'h' && last == ' ') {
                 // Parse Hello packet and build an own Commit packet even if the
                 // Commit is not send to the peer. We need to do this to check the
                 // Hello packet and prepare the shared secret stuff.
@@ -565,7 +567,7 @@ public class ZrtpStateClass {
              * - Initiator role, thus start timer T2 to monitor timeout for Commit
              *
 
-            if (first == 'h') {
+            if (first == 'h' && last == ' ') {
                 // Parse peer's packet data into a Hello packet
                 ZrtpPacketHello hpkt = new ZrtpPacketHello(pkt);
                 ZrtpPacketCommit commit = parent.prepareCommit(hpkt, errorCode);
