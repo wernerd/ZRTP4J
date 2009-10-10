@@ -129,7 +129,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             mgr.addReceiveStreamListener(this);
 
             transConnector.addTarget(target);
-            zrtpEngine.startZrtp();
+//            zrtpEngine.startZrtp();
         } catch (Exception e) {
             System.err.println("Cannot create the RTP Session: "
                     + e.getMessage());
@@ -176,7 +176,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             mgrMulti.addReceiveStreamListener(this);
 
             transConnectorMulti.addTarget(target);
-            zrtpEngineMulti.startZrtp();
+//            zrtpEngineMulti.startZrtp();
         } catch (Exception e) {
             System.err.println("Cannot create the Multi RTP Session: "
                     + e.getMessage());

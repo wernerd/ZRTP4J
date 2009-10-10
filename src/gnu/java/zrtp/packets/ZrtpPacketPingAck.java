@@ -40,10 +40,9 @@ public class ZrtpPacketPingAck extends ZrtpPacketBase {
      * words.
      */
     private static final int VERSION_OFFSET = ZRTP_HEADER_LENGTH * ZRTP_WORD_SIZE;   // [ZRTP_WORD_SIZE]
-    private static final int REMOTE_EP_OFFSET = VERSION_OFFSET + ZRTP_WORD_SIZE;     // [2*ZRTP_WORD_SIZE]
-    private static final int LOCAL_EP_OFFSET = REMOTE_EP_OFFSET + 2*ZRTP_WORD_SIZE;  // [2*ZRTP_WORD_SIZE]
-    private static final int PEER_SSRC_OFFSET = LOCAL_EP_OFFSET + 2*ZRTP_WORD_SIZE;  // [ZRTP_WORD_SIZE]
-
+    private static final int LOCAL_EP_OFFSET = VERSION_OFFSET + ZRTP_WORD_SIZE;      // [2*ZRTP_WORD_SIZE]
+    private static final int REMOTE_EP_OFFSET = LOCAL_EP_OFFSET + 2*ZRTP_WORD_SIZE;  // [2*ZRTP_WORD_SIZE]
+    private static final int PEER_SSRC_OFFSET = REMOTE_EP_OFFSET + 2*ZRTP_WORD_SIZE;  // [ZRTP_WORD_SIZE]
     /*
      * Hello ack does not have any additional fields, just the header.
      */
@@ -62,7 +61,7 @@ public class ZrtpPacketPingAck extends ZrtpPacketBase {
         // The length field of a ZRTP packet does not include the CRC field.
         // the length is given in number of ZRTP words.
         setLength(ZRTP_HEADER_LENGTH + ZRTP_PING_ACK_LENGTH);
-        setMessageType(ZrtpConstants.PingMsg);
+        setMessageType(ZrtpConstants.PingAckMsg);
     }
 
     /**

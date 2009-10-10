@@ -908,7 +908,7 @@ public class ZRtp {
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
                 return null;
             }
-        }
+        } // TODO: check for shorter pubkey lneght, prepend with zeros here
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
                 .of(ZrtpCodes.InfoCodes.InfoCommitDHGenerated));
 
@@ -982,8 +982,8 @@ public class ZRtp {
 
     protected ZrtpPacketCommit prepareCommitMultiStream(ZrtpPacketHello hello) {
         
-        byte[] nonce = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
-        secRand.nextBytes(nonce);
+        hvi = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH];
+        secRand.nextBytes(hvi);
 
         zrtpCommit.setZid(zid);
         zrtpCommit.setHashType(hash.name);
@@ -991,7 +991,7 @@ public class ZRtp {
         zrtpCommit.setAuthLen(authLength.name);
         zrtpCommit.setPubKeyType(ZrtpConstants.SupportedPubKeys.MULT.name);
         zrtpCommit.setSasType(sasType.name);
-        zrtpCommit.setNonce(nonce);
+        zrtpCommit.setNonce(hvi);
         zrtpCommit.setH2(H2);
 
         int len = zrtpCommit.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
@@ -1836,11 +1836,10 @@ public class ZRtp {
      *         important" 0 shouldn't happen because we compare crypto hashes
      */
     protected int compareCommit(ZrtpPacketCommit commit) {
-        // TODO: enhance to compare according to rules defined in chapter 5.2
-        // This would imply that we have to reset multi-stream mode if the other
-        // peer sends a Commit with DH mode - ist this possible?
-        int len = !multiStream ? ZrtpConstants.SHA256_DIGEST_LENGTH : (4 * ZrtpPacketBase.ZRTP_WORD_SIZE);
-        return (ZrtpUtils.byteArrayCompare(hvi, commit.getHvi(), len));
+        if (multiStream) {
+            return (ZrtpUtils.byteArrayCompare(hvi, commit.getNonce(), ZrtpConstants.SHA256_DIGEST_LENGTH));
+        }
+        return (ZrtpUtils.byteArrayCompare(hvi, commit.getHvi(), (4 * ZrtpPacketBase.ZRTP_WORD_SIZE)));
     }
 
     /**

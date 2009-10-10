@@ -407,7 +407,8 @@ public class ZRTPTransformEngine
         byte[] buffer = pkt.getBuffer();
         int offset = pkt.getOffset();
         if ((buffer[offset] & 0x10) != 0x10) {
-            if (!started && enableZrtp && sendPacketCount >= 1) {
+            if (!started && enableZrtp) {
+                System.out.println("start zrtp");
                 startZrtp();
             }
             if (srtpInTransformer == null) {
@@ -438,6 +439,11 @@ public class ZRTPTransformEngine
             if (!zPkt.hasMagic() || zrtpEngine == null) {
                 return null;
             }
+            // cover the case if the other party sends _only_ ZRTP packets at the
+            // beginning of a session. Start ZRTP in this case as well.
+            if (!started) {
+                startZrtp();
+             }
             byte[] extHeader = zPkt.getMessagePart();
             zrtpEngine.processZrtpMessage(extHeader, zPkt.getSSRC());
         }
