@@ -284,22 +284,28 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return ZrtpConstants.SupportedHashes.S256;
     }
 
-    public final ZrtpConstants.SupportedSymCiphers findBestCipher() {
-        if (nCipher == 0)
+    public final ZrtpConstants.SupportedSymCiphers findBestCipher(ZrtpConstants.SupportedPubKeys pk) {
+        if (nCipher == 0 || pk == ZrtpConstants.SupportedPubKeys.DH2K)
             return ZrtpConstants.SupportedSymCiphers.AES1;
         
+        boolean[] matchingCiphers = new boolean[ZrtpConstants.SupportedSymCiphers.END.value];
         for (ZrtpConstants.SupportedSymCiphers sh: ZrtpConstants.SupportedSymCiphers.values()) {
             if (sh == ZrtpConstants.SupportedSymCiphers.END) {
                 break;
             }
-           byte[] s = sh.name;
+            byte[] s = sh.name;
             for (int ii = 0; ii < nCipher; ii++) {
                 int o = oCipher + (ii*ZRTP_WORD_SIZE);
                 if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o+1] &&
                         s[2] == packetBuffer[o+2] && s[3] == packetBuffer[o+3]) {
-                    return sh;
+                    matchingCiphers[sh.value] = true;
+                    break;
                 }
+                matchingCiphers[sh.value] = false;
             }
+        }
+        if (matchingCiphers[ZrtpConstants.SupportedSymCiphers.AES3.value]) {
+            return ZrtpConstants.SupportedSymCiphers.AES3;
         }
         return ZrtpConstants.SupportedSymCiphers.AES1;
     }

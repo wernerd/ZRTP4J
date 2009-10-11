@@ -81,7 +81,10 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         super(data);
 
         short len = getLength();
-        if (len == 117) {
+        if (len == 85) {
+            dhLength = 256;
+        }
+        else if (len == 117) {
             dhLength = 384;
         }
         else {
@@ -92,8 +95,12 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
     }
 
     public void setPubKeyType(final ZrtpConstants.SupportedPubKeys pkt) {
-        dhLength = (pkt == ZrtpConstants.SupportedPubKeys.DH3K) ? 384 : 512;
-        
+        if (pkt == ZrtpConstants.SupportedPubKeys.DH2K) {
+            dhLength = 256;
+        }
+        else if (pkt == ZrtpConstants.SupportedPubKeys.DH3K) {
+            dhLength = 384;
+        }
         // compute total length of ZRTP message including space for CRC
         int length = DHPART_FIXED_LENGTH + dhLength + (2 * ZRTP_WORD_SIZE);  // HMAC field is 2*ZRTP_WORD_SIZE
         

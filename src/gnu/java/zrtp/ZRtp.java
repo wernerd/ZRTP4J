@@ -869,8 +869,8 @@ public class ZRtp {
 
         if (!multiStream) {
             authLength = hello.findBestAuthLen();
-            cipher = hello.findBestCipher();
             pubKey = hello.findBestPubkey();            
+            cipher = hello.findBestCipher(pubKey);
         }
         else {
             if (hello.checkMultiStream()) {
@@ -885,10 +885,13 @@ public class ZRtp {
         }
 
         // Generate the DH data and keys according to the selected DH algorithm
-        int maxPubKeySize;
-        if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
+        int pubKeySize;
+        if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K) {
+            dhKeyPairGen.init(new DHKeyGenerationParameters(secRand, ZrtpConstants.specDh2k));
+            pubKeySize = 256;
+        } else if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
             dhKeyPairGen.init(new DHKeyGenerationParameters(secRand, ZrtpConstants.specDh3k));
-            maxPubKeySize = 384;
+            pubKeySize = 384;
         } else {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
@@ -897,18 +900,29 @@ public class ZRtp {
         myKeyPair = dhKeyPairGen.generateKeyPair();
         pubKeyBytes = ((DHPublicKeyParameters)myKeyPair.getPublic()).getY().toByteArray();
 
-        // check for leading zero byte if public key resulted in negtive
-        // value. BigInteger adds a leading zero to hide the negative sign bit
-        if (pubKeyBytes.length > maxPubKeySize) {
+        /*
+         * If generated public key is shorter than requested prepend it with
+         * zero bytes otherwise check if public key is longer than requested.
+         * In this case check for leading zero byte if public key resulted in 
+         * negtive value. BigInteger adds a leading zero to hide the negative 
+         * sign bit.
+         */
+        if (pubKeyBytes.length < pubKeySize) {
+            int prepend = pubKeySize - pubKeyBytes.length;
+            byte[] tmp = new byte[pubKeySize];
+            Arrays.fill(tmp, (byte) 0);
+            System.arraycopy(pubKeyBytes, 0, tmp, prepend, pubKeySize-prepend);
+        }
+        else if (pubKeyBytes.length > pubKeySize) {
             if (pubKeyBytes[0] == 0) {
-                byte[] tmp = new byte[maxPubKeySize];
-                System.arraycopy(pubKeyBytes, 1, tmp, 0, maxPubKeySize);
+                byte[] tmp = new byte[pubKeySize];
+                System.arraycopy(pubKeyBytes, 1, tmp, 0, pubKeySize);
                 pubKeyBytes = tmp;
             } else {
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
                 return null;
             }
-        } // TODO: check for shorter pubkey lneght, prepend with zeros here
+        }
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
                 .of(ZrtpCodes.InfoCodes.InfoCommitDHGenerated));
 
@@ -1091,6 +1105,51 @@ public class ZRtp {
             return null;
         }
 
+        /*
+         * Saftey check if we can resuse the DH key pair. According to the public
+         * key algo check this is usually not necessary.
+         */
+        int pubKeySize = 0;
+        if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K && pubKeyBytes.length != 256) {
+            dhKeyPairGen.init(new DHKeyGenerationParameters(secRand, ZrtpConstants.specDh2k));
+            pubKeySize = 256;
+            myKeyPair = null;
+        } else if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K && pubKeyBytes.length != 384) {
+            dhKeyPairGen.init(new DHKeyGenerationParameters(secRand, ZrtpConstants.specDh3k));
+            pubKeySize = 384;
+            myKeyPair = null;
+        } 
+        if (myKeyPair == null) {
+            myKeyPair = dhKeyPairGen.generateKeyPair();
+            pubKeyBytes = ((DHPublicKeyParameters) myKeyPair.getPublic())
+                    .getY().toByteArray();
+
+            /*
+             * If generated public key is shorter than requested prepend it with
+             * zero bytes otherwise check if public key is longer than
+             * requested. In this case check for leading zero byte if public key
+             * resulted in negtive value. BigInteger adds a leading zero to hide
+             * the negative sign bit.
+             */
+            if (pubKeyBytes.length < pubKeySize) {
+                int prepend = pubKeySize - pubKeyBytes.length;
+                byte[] tmp = new byte[pubKeySize];
+                Arrays.fill(tmp, (byte) 0);
+                System.arraycopy(pubKeyBytes, 0, tmp, prepend, pubKeySize
+                        - prepend);
+            }
+            else if (pubKeyBytes.length > pubKeySize) {
+                if (pubKeyBytes[0] == 0) {
+                    byte[] tmp = new byte[pubKeySize];
+                    System.arraycopy(pubKeyBytes, 1, tmp, 0, pubKeySize);
+                    pubKeyBytes = tmp;
+                }
+                else {
+                    errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+                    return null;
+                }
+            }
+        }
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet
                 .of(ZrtpCodes.InfoCodes.InfoDH1DHGenerated));
 
@@ -1177,16 +1236,24 @@ public class ZRtp {
         byte[] pvrBytes = dhPart1.getPv();
         BigIntegerCrypto pvrBigInt = new BigIntegerCrypto(1, pvrBytes);
 
-        if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
+        // generate the resonpder's public key from the pvr data and the key
+        // specs, then compute the shared secret.
+        DHPublicKeyParameters pvr = null;
+        dhContext.init(myKeyPair.getPrivate());
+        if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K) {
+            if (!checkPubKey(pvrBigInt, ZrtpConstants.SupportedPubKeys.DH2K)) {
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongPV;
+                return null;
+            }
+            pvr = new DHPublicKeyParameters(pvrBigInt, ZrtpConstants.specDh2k);
+        }
+        else if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
             if (!checkPubKey(pvrBigInt, ZrtpConstants.SupportedPubKeys.DH3K)) {
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongPV;
                 return null;
             }
+            pvr = new DHPublicKeyParameters(pvrBigInt, ZrtpConstants.specDh3k);
         }
-        // generate the resonpder's public key from the pvr data and the key
-        // specs, then compute the shared secret.
-        dhContext.init(myKeyPair.getPrivate());
-        DHPublicKeyParameters pvr = new DHPublicKeyParameters(pvrBigInt, ZrtpConstants.specDh3k);
         DHss = dhContext.calculateAgreement(pvr).toByteArray();
         ((DHPrivateKeyParameters)myKeyPair.getPrivate()).getX().zeroize();
         dhContext.clear();
@@ -1263,16 +1330,24 @@ public class ZRtp {
         byte[] pviBytes = dhPart2.getPv();
         BigIntegerCrypto pviBigInt = new BigIntegerCrypto(1, pviBytes);
 
-        if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
+        // generate the resonpder's public key from the pvi data and the key
+        // specs, then compute the shared secret.
+        DHPublicKeyParameters pvi = null;
+        dhContext.init(myKeyPair.getPrivate());
+        if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K) {
+            if (!checkPubKey(pviBigInt, ZrtpConstants.SupportedPubKeys.DH2K)) {
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongPV;
+                return null;
+            }
+            pvi = new DHPublicKeyParameters(pviBigInt, ZrtpConstants.specDh2k);
+        }
+        else if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
             if (!checkPubKey(pviBigInt, ZrtpConstants.SupportedPubKeys.DH3K)) {
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongPV;
                 return null;
             }
+            pvi = new DHPublicKeyParameters(pviBigInt, ZrtpConstants.specDh3k);
         }
-        // generate the resonpder's public key from the pvr data and the key
-        // specs, then compute the shared secret.
-        dhContext.init(myKeyPair.getPrivate());
-        DHPublicKeyParameters pvi = new DHPublicKeyParameters(pviBigInt, ZrtpConstants.specDh3k);
         DHss = dhContext.calculateAgreement(pvi).toByteArray();
         ((DHPrivateKeyParameters)myKeyPair.getPrivate()).getX().zeroize();
         dhContext.clear();
@@ -2481,6 +2556,9 @@ public class ZRtp {
             ZrtpConstants.SupportedPubKeys dhtype) {
         if (pvr.equals(BigIntegerCrypto.ONE)) {
             return false;
+        }
+        if (dhtype == ZrtpConstants.SupportedPubKeys.DH2K) {
+            return !pvr.equals(ZrtpConstants.P2048MinusOne);
         }
         if (dhtype == ZrtpConstants.SupportedPubKeys.DH3K) {
             return !pvr.equals(ZrtpConstants.P3072MinusOne);

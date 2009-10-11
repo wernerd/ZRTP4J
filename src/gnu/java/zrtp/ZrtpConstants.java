@@ -226,7 +226,7 @@ public class ZrtpConstants {
     // following enum, starting with zero.
    public static enum  SupportedHashes {
         S256(0, s256),
-        END(0, null);
+        END(1, null);
         // NumSupportedHashes(1, null);
         
         public int value;
@@ -241,7 +241,7 @@ public class ZrtpConstants {
     public static enum SupportedSymCiphers {
         AES3(0, aes3),
         AES1(1, aes1),
-        END(0, null);
+        END(2, null);
         // NumSupportedSymCiphers(2, null);
         
         public int value;
@@ -255,11 +255,10 @@ public class ZrtpConstants {
     // Keep the PubKey identifers in supportedPubKey in the same order than the
     // following enum, starting with zero.
     public static enum SupportedPubKeys {
-        DH3K(0, dh3k),
-        MULT(1, mult),
-        // DH2K(2, dh2k)
-        END(0, null);
-        // NumSupportedPubKeys(1);
+        DH2K(0, dh2k),
+        DH3K(1, dh3k),
+        MULT(2, mult),
+        END(3, null);
         
         public int value;
         public byte[] name;
@@ -273,7 +272,7 @@ public class ZrtpConstants {
     // following enum, starting with zero.
     public static enum SupportedSASTypes {
         B32(0, b32),
-        END(0, null);
+        END(1, null);
         // NumSupportedSASTypes(1);
         
         public int value;
@@ -289,7 +288,7 @@ public class ZrtpConstants {
     public static enum SupportedAuthLengths {
         HS32(0, hs32),
         HS80(1, hs80),
-        END(0, null);
+        END(2, null);
         // NumSupportedAuthLengths(2);
         
         public int value;
