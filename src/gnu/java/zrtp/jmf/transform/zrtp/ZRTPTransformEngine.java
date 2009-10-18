@@ -360,6 +360,17 @@ public class ZRTPTransformEngine
         timeoutProvider.stopRun();
         timeoutProvider = null;
     }
+    
+    /**
+     * Set the SSRC of the RTP transmitter stream.
+     * 
+     * ZRTP fills the SSRC in the ZRTP messages.
+     * 
+     * @param ssrc
+     */
+    public void setOwnSSRC(long ssrc) {
+        ownSSRC = (int)(ssrc & 0xffffffff);
+    }
     /* (non-Javadoc)
      * @see net.java.sip.communicator.impl.media.transform.PacketTransformer#
      * transform(net.java.sip.communicator.impl.media.transform.RawPacket)
@@ -400,6 +411,12 @@ public class ZRTPTransformEngine
      * incoming packets.
      */
     public RawPacket reverseTransform(RawPacket pkt) {
+        
+        // Check if we need to start ZRTP
+        if (!started && enableZrtp && ownSSRC != 0)
+        {
+            startZrtp();
+        }
         /*
          * Check if incoming packt is a ZRTP packet, if no treat
          * it as normal RTP packet and handle it accordingly.
@@ -407,10 +424,6 @@ public class ZRTPTransformEngine
         byte[] buffer = pkt.getBuffer();
         int offset = pkt.getOffset();
         if ((buffer[offset] & 0x10) != 0x10) {
-            if (!started && enableZrtp) {
-                System.out.println("start zrtp");
-                startZrtp();
-            }
             if (srtpInTransformer == null) {
                 return pkt;
             }
@@ -418,7 +431,8 @@ public class ZRTPTransformEngine
             // if packet was valid (i.e. not null) and ZRTP engine started and
             // not yet in secure state - emulate a Conf2Ack packet. See ZRTP spec
             // chap. 5.6
-            if (pkt != null && zrtpEngine != null && !zrtpEngine.inState(ZrtpStateClass.ZrtpStates.SecureState)) {
+            if (pkt != null && started && 
+                    !zrtpEngine.inState(ZrtpStateClass.ZrtpStates.WaitConfAck)) {
                 zrtpEngine.conf2AckSecure();
             }
             return pkt;
@@ -436,14 +450,9 @@ public class ZRTPTransformEngine
                 return null;
             }
             // Check if it is really a ZRTP packet, if not don't process it
-            if (!zPkt.hasMagic() || zrtpEngine == null) {
+            if (!zPkt.hasMagic() || !started) {
                 return null;
             }
-            // cover the case if the other party sends _only_ ZRTP packets at the
-            // beginning of a session. Start ZRTP in this case as well.
-            if (!started) {
-                startZrtp();
-             }
             byte[] extHeader = zPkt.getMessagePart();
             zrtpEngine.processZrtpMessage(extHeader, zPkt.getSSRC());
         }

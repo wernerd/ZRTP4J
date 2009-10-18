@@ -123,12 +123,12 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             // initialize the RTPManager using the ZRTP connector
 
             mgr = RTPManager.newInstance();
-            mgr.initialize(transConnector);
 
             mgr.addSessionListener(this);
             mgr.addReceiveStreamListener(this);
 
             transConnector.addTarget(target);
+            mgr.initialize(transConnector);
 //            zrtpEngine.startZrtp();
         } catch (Exception e) {
             System.err.println("Cannot create the RTP Session: "

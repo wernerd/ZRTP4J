@@ -154,7 +154,6 @@ public class ZrtpStateClass {
     private class ZrtpTimer {
         int time,
         start,
-        increment,
         capping,
         counter,
         maxResend;
@@ -229,6 +228,7 @@ public class ZrtpStateClass {
                 ZrtpPacketErrorAck eapkt = parent.prepareErrorAck(epkt);
                 parent.sendPacketZRTP(eapkt);
                 event.type = EventDataType.ErrorPkt;
+            // Check for Ping packet
             } else if (first == 'p' && middle == ' ' && last == ' ') {
                 ZrtpPacketPing ppkt = new ZrtpPacketPing(pkt);
                 ZrtpPacketPingAck ppktAck = parent.preparePingAck(ppkt);
@@ -765,9 +765,9 @@ public class ZrtpStateClass {
             if (nextTimer(t1) <= 0) {
                 parent.zrtpNotSuppOther();
                 commitPkt = null;
-                // Stay in state Detect to be prepared get an hello from
+                // Switch to state Detect to be prepared to get a hello from
                 // other peer any time later
-                inState = ZrtpStates.Detect;   // TODO: Stay in state according to chap. 6?
+                inState = ZrtpStates.Detect;
             }
             break;
 

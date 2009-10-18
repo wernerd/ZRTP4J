@@ -150,14 +150,14 @@ public class TransmitterMultiZRTP {
                     zrtpEngine.setUserCallback(new MyCallback());
                 }
                 // initialize the RTPManager using the SRTP connector
-                rtpManager.initialize(transConnector);
                 rtpManager.addSendStreamListener(this);
-
-                // open the connection, must be done in connector
+                // Add a transmit target, must be done in connector
                 transConnector.addTarget(target);
+                rtpManager.initialize(transConnector);
 
                 SendStream sendStream = rtpManager.createSendStream(dataOutput,
                         0);
+                zrtpEngine.setOwnSSRC(sendStream.getSSRC());
                 sendStream.start();
             } catch (java.io.IOException ex) {
                 System.err.println("Cannot start sendStream: "
