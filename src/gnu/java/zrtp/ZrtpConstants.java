@@ -35,7 +35,7 @@ public class ZrtpConstants {
     // The following string must contain ASCII characters only
     //                                               1
     //                                     0123456789012345
-    public static final String clientId = "GNU ZRTP4J 1.4.5"  ;
+    public static final String clientId = "GNU ZRTP4J 1.4.6"  ;
  
 //  "1.10"
     public static final byte[] zrtpVersion = {
