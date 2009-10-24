@@ -714,10 +714,10 @@ public class ZrtpStateClass {
             if (first == 'c') {
                 cancelTimer();
                 ZrtpPacketCommit cpkt = new ZrtpPacketCommit(pkt);
-                ZrtpPacketDHPart dhPart1 = parent.prepareDHPart1(cpkt, errorCode);
 
                 if (!multiStream) {
-                    // Error detected during processing of received commit
+                    ZrtpPacketDHPart dhPart1 = parent.prepareDHPart1(cpkt, errorCode);
+                   // Error detected during processing of received commit
                     // packet
                     if (dhPart1 == null) {
                         if (errorCode[0] != ZrtpCodes.ZrtpErrorCodes.IgnorePacket) {
