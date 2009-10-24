@@ -35,7 +35,7 @@ public class ZrtpConstants {
     // The following string must contain ASCII characters only
     //                                               1
     //                                     0123456789012345
-    public static final String clientId = "GNU ZRTP4J 1.4.6"  ;
+    public static final String clientId = "GNU ZRTP4J 1.5.0"  ;
  
 //  "1.10"
     public static final byte[] zrtpVersion = {
@@ -225,29 +225,21 @@ public class ZrtpConstants {
     // Keep the Hash identifers in supportedHashes in the same order than the
     // following enum, starting with zero.
    public static enum  SupportedHashes {
-        S256(0, s256),
-        END(1, null);
-        // NumSupportedHashes(1, null);
+        S256(s256);
         
-        public int value;
         public byte[] name;
-        private SupportedHashes(int val, byte[] nm) {
-            value = val;
+        private SupportedHashes(byte[] nm) {
             name = nm;
         }
     }
     // Keep the Cipher identifers in supportedCipher in the same order than the
     // following enum, starting with zero.
     public static enum SupportedSymCiphers {
-        AES3(0, aes3),
-        AES1(1, aes1),
-        END(2, null);
-        // NumSupportedSymCiphers(2, null);
+        AES3(aes3),
+        AES1(aes1);
         
-        public int value;
         public byte[] name;
-        private SupportedSymCiphers(int val, byte[] nm) {
-            value = val;
+        private SupportedSymCiphers(byte[] nm) {
             name = nm;
         }
     }
@@ -255,15 +247,12 @@ public class ZrtpConstants {
     // Keep the PubKey identifers in supportedPubKey in the same order than the
     // following enum, starting with zero.
     public static enum SupportedPubKeys {
-        DH2K(0, dh2k),
-        DH3K(1, dh3k),
-        MULT(2, mult),
-        END(3, null);
+        DH2K(dh2k),
+        DH3K(dh3k),
+        MULT(mult);
         
-        public int value;
         public byte[] name;
-        private SupportedPubKeys(int val, byte[] nm) {
-            value = val;
+        private SupportedPubKeys(byte[] nm) {
             name = nm;
         }
     }
@@ -271,14 +260,10 @@ public class ZrtpConstants {
     // Keep the SAS identifers in supportedSASType in the same order than the
     // following enum, starting with zero.
     public static enum SupportedSASTypes {
-        B32(0, b32),
-        END(1, null);
-        // NumSupportedSASTypes(1);
+        B32(b32);
         
-        public int value;
         public byte[] name;
-        private SupportedSASTypes(int val, byte[] nm) {
-            value = val;
+        private SupportedSASTypes(byte[] nm) {
             name = nm;
         }
     }
@@ -286,15 +271,11 @@ public class ZrtpConstants {
     // Keep the auth len identifers in supportedAuthLen in the same order than the
     // following enum, starting with zero.
     public static enum SupportedAuthLengths {
-        HS32(0, hs32),
-        HS80(1, hs80),
-        END(2, null);
-        // NumSupportedAuthLengths(2);
+        HS32(hs32),
+        HS80(hs80);
         
-        public int value;
         public byte[] name;
-        private SupportedAuthLengths(int val, byte[] nm) {
-            value = val;
+        private SupportedAuthLengths(byte[] nm) {
             name = nm;
         }
     }

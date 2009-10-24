@@ -20,6 +20,7 @@
 package gnu.java.zrtp.packets;
 
 import gnu.java.zrtp.ZrtpConstants;
+import gnu.java.zrtp.ZrtpConfigure;
 import gnu.java.zrtp.utils.ZrtpUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -42,10 +43,10 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     
     // private boolean passive;
     // number of the algorithms
-    private final int nHash, nCipher, nPubkey, nSas, nAuth;
+    private int nHash, nCipher, nPubkey, nSas, nAuth;
     
     // offsets in bytes into hello packet where algo names are stored
-    private final int oHash, oCipher, oPubkey, oSas, oAuth, oHmac;
+    private int oHash, oCipher, oPubkey, oSas, oAuth, oHmac;
 
     /*
      * The length of the Hello specific ZRTP packet part in words
@@ -72,12 +73,15 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
 
     public ZrtpPacketHello() {
         super(null);                        // will set packet buffer explicitly
-
-        nHash = ZrtpConstants.SupportedHashes.values().length - 1;
-        nCipher = ZrtpConstants.SupportedSymCiphers.values().length - 1;
-        nPubkey = ZrtpConstants.SupportedPubKeys.values().length - 1;
-        nSas = ZrtpConstants.SupportedSASTypes.values().length - 1;
-        nAuth = ZrtpConstants.SupportedAuthLengths.values().length - 1;
+    }
+    
+    public void configureHello(ZrtpConfigure config) {
+        
+        nHash = config.getNumConfiguredHashes();
+        nCipher = config.getNumConfiguredSymCiphers();
+        nPubkey = config.getNumConfiguredPubKeys();
+        nSas = config.getNumConfiguredSasTypes();
+        nAuth = config.getNumConfiguredAuthLengths();
 
         // length is fixed length plus HMAC size (2*ZRTP_WORD_SIZE)
         helloLength += (2 * ZRTP_WORD_SIZE);
@@ -108,43 +112,33 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         packetBuffer[FLAG_LENGTH_OFFSET] = (byte)0;  // Passive flag if required
         
         packetBuffer[FLAG_LENGTH_OFFSET+1] = (byte)(nHash);
-        for (ZrtpConstants.SupportedHashes sh: ZrtpConstants.SupportedHashes.values()) {
-            if (sh == ZrtpConstants.SupportedHashes.END) {
-                break;
-            }
-            setHashType(sh.value, sh.name);
+        int index = 0;
+        for (ZrtpConstants.SupportedHashes sh: config.hashes()) {
+            setHashType(index++, sh.name);
         }
 
         packetBuffer[FLAG_LENGTH_OFFSET+2] = (byte)(nCipher << 4);
-        for (ZrtpConstants.SupportedSymCiphers sh: ZrtpConstants.SupportedSymCiphers.values()) {
-            if (sh == ZrtpConstants.SupportedSymCiphers.END) {
-                break;
-            }
-            setCipherType(sh.value, sh.name);
+        index = 0;
+        for (ZrtpConstants.SupportedSymCiphers sh: config.symCiphers()) {
+            setCipherType(index++, sh.name);
         }
 
         packetBuffer[FLAG_LENGTH_OFFSET+2] |= (byte)(nAuth);
-        for (ZrtpConstants.SupportedAuthLengths sh: ZrtpConstants.SupportedAuthLengths.values()) {
-            if (sh == ZrtpConstants.SupportedAuthLengths.END) {
-                break;
-            }
-            setAuthLen(sh.value, sh.name);
+        index = 0;
+        for (ZrtpConstants.SupportedAuthLengths sh: config.authLengths()) {
+            setAuthLen(index++, sh.name);
         }
 
         packetBuffer[FLAG_LENGTH_OFFSET+3] = (byte)(nPubkey << 4);
-        for (ZrtpConstants.SupportedPubKeys sh: ZrtpConstants.SupportedPubKeys.values()) {
-            if (sh == ZrtpConstants.SupportedPubKeys.END) {
-                break;
-            }
-            setPubKeyType(sh.value, sh.name);
+        index = 0;
+        for (ZrtpConstants.SupportedPubKeys sh: config.publicKeyAlgos()) {
+            setPubKeyType(index++, sh.name);
         }
 
         packetBuffer[FLAG_LENGTH_OFFSET+3] |= (byte)(nSas);
-        for (ZrtpConstants.SupportedSASTypes sh: ZrtpConstants.SupportedSASTypes.values()) {
-            if (sh == ZrtpConstants.SupportedSASTypes.END) {
-                break;
-            }
-            setSasType(sh.value, sh.name);
+        index = 0;
+        for (ZrtpConstants.SupportedSASTypes sh: config.sasTypes()) {
+            setSasType(index++, sh.name);
         }
     }
 
@@ -269,9 +263,6 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
             return ZrtpConstants.SupportedHashes.S256;
         
         for (ZrtpConstants.SupportedHashes sh: ZrtpConstants.SupportedHashes.values()) {
-            if (sh == ZrtpConstants.SupportedHashes.END) {
-                break;
-            }
             byte[] s = sh.name;
             for (int ii = 0; ii < nHash; ii++) {
                 int o = oHash + (ii*ZRTP_WORD_SIZE);
@@ -288,23 +279,20 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         if (nCipher == 0 || pk == ZrtpConstants.SupportedPubKeys.DH2K)
             return ZrtpConstants.SupportedSymCiphers.AES1;
         
-        boolean[] matchingCiphers = new boolean[ZrtpConstants.SupportedSymCiphers.END.value];
+        boolean[] matchingCiphers = new boolean[ZrtpConstants.SupportedSymCiphers.values().length];
         for (ZrtpConstants.SupportedSymCiphers sh: ZrtpConstants.SupportedSymCiphers.values()) {
-            if (sh == ZrtpConstants.SupportedSymCiphers.END) {
-                break;
-            }
             byte[] s = sh.name;
             for (int ii = 0; ii < nCipher; ii++) {
                 int o = oCipher + (ii*ZRTP_WORD_SIZE);
                 if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o+1] &&
                         s[2] == packetBuffer[o+2] && s[3] == packetBuffer[o+3]) {
-                    matchingCiphers[sh.value] = true;
+                    matchingCiphers[sh.ordinal()] = true;
                     break;
                 }
-                matchingCiphers[sh.value] = false;
+                matchingCiphers[sh.ordinal()] = false;
             }
         }
-        if (matchingCiphers[ZrtpConstants.SupportedSymCiphers.AES3.value]) {
+        if (matchingCiphers[ZrtpConstants.SupportedSymCiphers.AES3.ordinal()]) {
             return ZrtpConstants.SupportedSymCiphers.AES3;
         }
         return ZrtpConstants.SupportedSymCiphers.AES1;
@@ -315,9 +303,6 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
             return ZrtpConstants.SupportedPubKeys.DH3K;
         
         for (ZrtpConstants.SupportedPubKeys sh: ZrtpConstants.SupportedPubKeys.values()) {
-            if (sh == ZrtpConstants.SupportedPubKeys.END) {
-                break;
-            }
             byte[] s = sh.name;
             for (int ii = 0; ii < nPubkey; ii++) {
                 int o = oPubkey + (ii*ZRTP_WORD_SIZE);
@@ -335,9 +320,6 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
             return ZrtpConstants.SupportedSASTypes.B32;
         
         for (ZrtpConstants.SupportedSASTypes sh: ZrtpConstants.SupportedSASTypes.values()) {
-            if (sh == ZrtpConstants.SupportedSASTypes.END) {
-                break;
-            }
             byte[] s = sh.name;
             for (int ii = 0; ii < nSas; ii++) {
                 int o = oSas + (ii*ZRTP_WORD_SIZE);
@@ -355,9 +337,6 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
             return ZrtpConstants.SupportedAuthLengths.HS32;
         
         for (ZrtpConstants.SupportedAuthLengths sh: ZrtpConstants.SupportedAuthLengths.values()) {
-            if (sh == ZrtpConstants.SupportedAuthLengths.END) {
-                break;
-            }
             byte[] s = sh.name;
             for (int ii = 0; ii < nAuth; ii++) {
                 int o = oAuth + (ii*ZRTP_WORD_SIZE);
@@ -409,9 +388,14 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return nSas;
     }
 
-    /* ***
+/* ***
     public static void main(String[] args) {
         ZrtpPacketHello pkt = new ZrtpPacketHello();
+        ZrtpConfigure config = new ZrtpConfigure();
+//        config.setMandatoryOnly();
+        
+        pkt.configureHello(config);
+        
         System.err.println("Hello length: " + pkt.getLength());
         
         System.err.println("packetBuffer length in bytes: " + pkt.getHeaderBase().length);
@@ -421,6 +405,8 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
 
         ZrtpUtils.hexdump("Hello packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
         System.err.println("best pubkey: " + pkt.findBestPubkey());
+        System.err.println("best cipher: " + pkt.findBestCipher(ZrtpConstants.SupportedPubKeys.DH3K));
+        System.err.println("best cipher: " + pkt.findBestCipher(pkt.findBestPubkey()));
     }
-    **** */
+*** */
 }

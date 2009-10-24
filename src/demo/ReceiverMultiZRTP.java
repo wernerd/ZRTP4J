@@ -120,6 +120,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             if (!zrtpEngine.initialize("test_t.zid"))
                 System.out.println("iniatlize failed");
 
+            zrtpEngine.setOwnSSRC(1);
             // initialize the RTPManager using the ZRTP connector
 
             mgr = RTPManager.newInstance();
@@ -166,6 +167,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             
             byte[] multiParams = zrtpEngine.getMultiStrParams();
             zrtpEngineMulti.setMultiStrParams(multiParams);
+            zrtpEngineMulti.setOwnSSRC(2);
 
             // initialize the RTPManager using the ZRTP connector
 

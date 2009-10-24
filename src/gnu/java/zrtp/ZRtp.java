@@ -314,7 +314,7 @@ public class ZRtp {
      * Constructor intializes all relevant data but does not start the
      * engine.
      */
-    public ZRtp(byte[] myZid, ZrtpCallback cb, String id)  {
+    public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config)  {
 
          System.arraycopy(myZid, 0, zid, 0, ZidRecord.IDENTIFIER_LENGTH);
          callback = cb;
@@ -348,6 +348,7 @@ public class ZRtp {
         sha256.update(H2, 0, H2.length);   // H3
         sha256.doFinal(H3, 0);
         
+        zrtpHello.configureHello(config);
         zrtpHello.setH3(H3);            // set H3 in Hello, included in helloHash
 
         ran.nextBytes(randomIV);        // IV used in ZRTP packet encryption
@@ -566,9 +567,9 @@ public class ZRtp {
             tmp = new byte[ZrtpConstants.SHA256_DIGEST_LENGTH + 1 + 1 + 1];
             // construct array that holds zrtpSession, cipher type, auth-length, and has
             System.arraycopy(zrtpSession, 0, tmp, 0, ZrtpConstants.SHA256_DIGEST_LENGTH);
-            tmp[ZrtpConstants.SHA256_DIGEST_LENGTH] = (byte)cipher.value;          //cipher is enumeration (int)
-            tmp[ZrtpConstants.SHA256_DIGEST_LENGTH + 1] = (byte)authLength.value;  //authLength is enumeration (int)
-            tmp[ZrtpConstants.SHA256_DIGEST_LENGTH + 2] = (byte)hash.value;        //hash is enumeration (int)
+            tmp[ZrtpConstants.SHA256_DIGEST_LENGTH] = (byte)cipher.ordinal();          //cipher is enumeration (int)
+            tmp[ZrtpConstants.SHA256_DIGEST_LENGTH + 1] = (byte)authLength.ordinal();  //authLength is enumeration (int)
+            tmp[ZrtpConstants.SHA256_DIGEST_LENGTH + 2] = (byte)hash.ordinal();        //hash is enumeration (int)
         }
         return tmp;
     }
@@ -594,21 +595,21 @@ public class ZRtp {
                 ZrtpConstants.SHA256_DIGEST_LENGTH);
         for (ZrtpConstants.SupportedSymCiphers c : ZrtpConstants.SupportedSymCiphers
                 .values()) {
-            if (c.value == (parameters[ZrtpConstants.SHA256_DIGEST_LENGTH] & 0xff)) {
+            if (c.ordinal() == (parameters[ZrtpConstants.SHA256_DIGEST_LENGTH] & 0xff)) {
                 cipher = c;
                 break;
             }
         }
         for (ZrtpConstants.SupportedAuthLengths a : ZrtpConstants.SupportedAuthLengths
                 .values()) {
-            if (a.value == (parameters[ZrtpConstants.SHA256_DIGEST_LENGTH + 1] & 0xff)) {
+            if (a.ordinal() == (parameters[ZrtpConstants.SHA256_DIGEST_LENGTH + 1] & 0xff)) {
                 authLength = a;
                 break;
             }
         }
         for (ZrtpConstants.SupportedHashes a : ZrtpConstants.SupportedHashes
                 .values()) {
-            if (a.value == (parameters[ZrtpConstants.SHA256_DIGEST_LENGTH + 2] & 0xff)) {
+            if (a.ordinal() == (parameters[ZrtpConstants.SHA256_DIGEST_LENGTH + 2] & 0xff)) {
                 hash = a;
                 break;
             }
@@ -1071,20 +1072,20 @@ public class ZRtp {
 
         // check if we support the commited Cipher type
         cipher = commit.getCipher();
-        if (cipher == ZrtpConstants.SupportedSymCiphers.END) {
+        if (cipher == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppCiphertype;
             return null;
         }
 
         // check if we support the commited Authentication length
         authLength = commit.getAuthlen();
-        if (authLength == ZrtpConstants.SupportedAuthLengths.END) {
+        if (authLength == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppSRTPAuthTag;
             return null;
         }
 
         hash = commit.getHash();
-        if (hash == ZrtpConstants.SupportedHashes.END) {
+        if (hash == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppHashType;
             return null;
         }
@@ -1093,14 +1094,14 @@ public class ZRtp {
         // pubkey - maybe we need to create a new own public key here if the peers
         // commit differs with respect to our preparation do in prepareCommit(...)
         pubKey = commit.getPubKey();
-        if (pubKey == ZrtpConstants.SupportedPubKeys.END) {
+        if (pubKey == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppPKExchange;
             return null;
         }
 
         // check if we support the commited SAS type
         sasType = commit.getSas();
-        if (sasType == ZrtpConstants.SupportedSASTypes.END) {
+        if (sasType == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppSASScheme;
             return null;
         }
@@ -1463,20 +1464,20 @@ public class ZRtp {
         }
 
         cipher = commit.getCipher();
-        if (cipher == ZrtpConstants.SupportedSymCiphers.END) {
+        if (cipher == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppCiphertype;
             return null;
         }
 
         // check if we support the commited Authentication length
         authLength = commit.getAuthlen();
-        if (authLength == ZrtpConstants.SupportedAuthLengths.END) {
+        if (authLength == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppSRTPAuthTag;
             return null;
         }
 
         hash = commit.getHash();
-        if (hash == ZrtpConstants.SupportedHashes.END) {
+        if (hash == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppHashType;
             return null;
         }

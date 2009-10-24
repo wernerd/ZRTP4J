@@ -153,11 +153,11 @@ public class TransmitterMultiZRTP {
                 rtpManager.addSendStreamListener(this);
                 // Add a transmit target, must be done in connector
                 transConnector.addTarget(target);
+                
                 rtpManager.initialize(transConnector);
-
+                
                 SendStream sendStream = rtpManager.createSendStream(dataOutput,
                         0);
-                zrtpEngine.setOwnSSRC(sendStream.getSSRC());
                 sendStream.start();
             } catch (java.io.IOException ex) {
                 System.err.println("Cannot start sendStream: "
@@ -188,8 +188,9 @@ public class TransmitterMultiZRTP {
         public void update(SendStreamEvent evt) {
             // System.err.println("TX: SendStreamEvent received: " + evt);
             if (evt instanceof NewSendStreamEvent) {
-                // SendStream ss = evt.getSendStream();
+                SendStream ss = evt.getSendStream();
                 // System.err.println("My SSRC is: " + ss.getSSRC());
+                zrtpEngine.setOwnSSRC(ss.getSSRC());
                 zrtpEngine.startZrtp();
             }
         }

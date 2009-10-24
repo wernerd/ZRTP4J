@@ -88,15 +88,13 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
                 return sh;
             }
         }
-        return ZrtpConstants.SupportedHashes.END;
+        return null;
     }
 
     public final ZrtpConstants.SupportedSymCiphers getCipher() {
 
         for (ZrtpConstants.SupportedSymCiphers sh : ZrtpConstants.SupportedSymCiphers
                 .values()) {
-            if (sh == ZrtpConstants.SupportedSymCiphers.END)
-                break;
             byte[] s = sh.name;
             int o = CIPHER_OFFSET;
             if (s[0] == packetBuffer[o] 
@@ -106,7 +104,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
                 return sh;
             }
         }
-        return ZrtpConstants.SupportedSymCiphers.END;
+        return null;
     }
         
     public final ZrtpConstants.SupportedAuthLengths getAuthlen() {
@@ -121,7 +119,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
                 return sh;
             }
         }
-        return ZrtpConstants.SupportedAuthLengths.END;
+        return null;
     }
 
     public final ZrtpConstants.SupportedPubKeys getPubKey() {
@@ -136,7 +134,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
                 return sh;
             }
         }
-        return ZrtpConstants.SupportedPubKeys.END;
+        return null;
     }
                 
     public ZrtpConstants.SupportedSASTypes getSas() {
@@ -151,7 +149,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
                 return sh;
             }
         }
-        return ZrtpConstants.SupportedSASTypes.END;
+        return null;
     }
 
     public final byte[] getZid() {

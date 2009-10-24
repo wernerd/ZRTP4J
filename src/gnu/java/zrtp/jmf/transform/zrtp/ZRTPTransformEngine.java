@@ -13,6 +13,7 @@ import gnu.java.zrtp.ZrtpSrtpSecrets;
 import gnu.java.zrtp.ZrtpStateClass;
 import gnu.java.zrtp.ZrtpUserCallback;
 import gnu.java.zrtp.ZrtpConstants;
+import gnu.java.zrtp.ZrtpConfigure;
 import gnu.java.zrtp.jmf.transform.PacketTransformer;
 import gnu.java.zrtp.jmf.transform.RawPacket;
 import gnu.java.zrtp.jmf.transform.TransformConnector;
@@ -302,11 +303,23 @@ public class ZRTPTransformEngine
         return this;
     }
 
-    public synchronized boolean initialize(String zidFilename) {
-        return initialize(zidFilename, true);
+    public boolean initialize(String zidFilename, ZrtpConfigure config) {
+        return initialize(zidFilename, true, config);
     }
 
-    public synchronized boolean initialize(String zidFilename, boolean autoEnable) {
+    public boolean initialize(String zidFilename, boolean autoEnable) {
+        return initialize(zidFilename, autoEnable, null);
+    }
+
+    public boolean initialize(String zidFilename) {
+        return initialize(zidFilename, true, null);
+    }
+
+    public synchronized boolean initialize(String zidFilename, boolean autoEnable, ZrtpConfigure config) {
+        
+        if (config == null) {
+            config = new ZrtpConfigure();
+        }
 
         if (timeoutProvider == null) {
             timeoutProvider = new TimeoutProvider("ZRTP");
@@ -329,7 +342,7 @@ public class ZRTPTransformEngine
             }
         }
         enableZrtp = autoEnable;
-        zrtpEngine = new ZRtp(zf.getZid(), this, clientIdString);
+        zrtpEngine = new ZRtp(zf.getZid(), this, clientIdString, config);
         return true;
     }
 
@@ -442,7 +455,7 @@ public class ZRTPTransformEngine
          * If ZRTP is enabled process packet. In any case return null 
          * because ZRTP packets must never reach the application.
          */
-        if (enableZrtp) {
+        if (enableZrtp && started) {
             ZrtpRawPacket zPkt = new ZrtpRawPacket(pkt);
             if (!zPkt.checkCrc()) {
                 userCallback.showMessage(ZrtpCodes.MessageSeverity.Warning, 
@@ -713,7 +726,7 @@ public class ZRTPTransformEngine
         if (zrtpEngine != null)
             return zrtpEngine.getSignatureData();
         else
-            return new byte[0];
+            return null;
     }
 
     public int getSignatureLength() {
