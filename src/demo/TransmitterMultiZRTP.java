@@ -2,7 +2,9 @@
 package demo;
 
 import gnu.java.zrtp.ZrtpCodes;
+import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.ZrtpUserCallback;
+import gnu.java.zrtp.ZrtpConfigure;
 import gnu.java.zrtp.jmf.transform.TransformManager;
 import gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine;
 import gnu.java.zrtp.jmf.transform.zrtp.ZrtpTransformConnector;
@@ -130,13 +132,16 @@ public class TransmitterMultiZRTP {
             rtpManager = RTPManager.newInstance();
 
             try {
-                // create a SRTP connector with own bind address
+                // create a ZRTP connector with own bind address
                 transConnector = (ZrtpTransformConnector) TransformManager
                         .createZRTPConnector(sa);
                 zrtpEngine = transConnector.getEngine();
                 
+                ZrtpConfigure config = new ZrtpConfigure();
+                config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
+//                config.setMandatoryOnly();
                 // IMPORTANT: crypto provider must be set before initialization
-                if (!zrtpEngine.initialize("test_r.zid"))
+                if (!zrtpEngine.initialize("test_r.zid", config))
                     System.err.println("TX: Initialize failed, multi: "
                             + multiStream);
 

@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2006-2009 Werner Dittmann
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Werner Dittmann <Werner.Dittmann@t-online.de>
+ */
+
 package gnu.java.zrtp;
 
 import java.util.ArrayList;
@@ -7,7 +26,6 @@ import java.util.Iterator;
 public class ZrtpConfigure {
 
     public ZrtpConfigure() {
-        // setStandardConfig();
     }
 
     private class Data<T> implements Iterable<T> {
@@ -70,7 +88,7 @@ public class ZrtpConfigure {
      * <ul>
      * <li> Hash: SHA256 </li>
      * <li> Symmetric Cipher: AES 128, AES 256 </li>
-     * <li> Public Key Algorithm: DH2048, DH3027 </li>
+     * <li> Public Key Algorithm: DH2048, DH3027. Mult </li>
      * <li> SAS type: libase 32 </li>
      * <li> SRTP Authentication lengths: 32, 80 </li>
      *</ul>
@@ -80,12 +98,12 @@ public class ZrtpConfigure {
         hashes.addAlgo(ZrtpConstants.SupportedHashes.S256);
 
         symCiphers.clear();
-        symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.AES1);
         symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.AES3);
+        symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.AES1);
 
         publicKeyAlgos.clear();
-        publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.DH2K);
         publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.DH3K);
+        publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.DH2K);
         publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.MULT);
 
         sasTypes.clear();
@@ -103,7 +121,7 @@ public class ZrtpConfigure {
      * <ul>
      * <li> Hash: SHA256 </li>
      * <li> Symmetric Cipher: AES 128 </li>
-     * <li> Public Key Algorithm: DH3027 </li>
+     * <li> Public Key Algorithm: DH3027, Mult </li>
      * <li> SAS type: libase 32 </li>
      * <li> SRTP Authentication lengths: 32, 80 </li>
      *</ul>
@@ -521,7 +539,7 @@ public class ZrtpConfigure {
     /*
      * Some tests here
      */
-    
+/* ***
     public static void main(String argv[]) {
         ZrtpConfigure config = new ZrtpConfigure();
 
@@ -537,4 +555,5 @@ public class ZrtpConfigure {
         System.out.println("configured hash: " + config.getHashAlgoAt(0));
         System.out.println("configured hash: " + config.getHashAlgoAt(1));
     }
+*** */
 }

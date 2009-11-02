@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2006-2008 Werner Dittmann
+ * Copyright (C) 2006-2009 Werner Dittmann
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@ public class ZrtpConstants {
     
     // Number of bytes of a SHA256 hash
     public static final int SHA256_DIGEST_LENGTH = 32;
+    public static final int SHA384_DIGEST_LENGTH = 48;
+    public static final int MAX_DIGEST_LENGTH = 64;
 
     // The following string must contain ASCII characters only
     //                                               1
@@ -41,7 +43,7 @@ public class ZrtpConstants {
     public static final byte[] zrtpVersion = {
         (byte)0x31, (byte)0x2e, (byte)0x31, (byte)0x30};
 
-    // Humnan readable name of encryption algorithms
+    // Human readable names of encryption algorithms
     public static final String AES_128 = "AES-CM-128";
     public static final String AES_256 = "AES-CM-256";
    /**
@@ -203,6 +205,8 @@ public class ZrtpConstants {
 
     public static final byte[] s256 = {
         (byte)0x53, (byte)0x32, (byte)0x35, (byte)0x36};        // "S256"
+    public static final byte[] s384 = {
+        (byte)0x53, (byte)0x33, (byte)0x38, (byte)0x34};        // "S§($"
     public static final byte[] aes3 = {
         (byte)0x41, (byte)0x45, (byte)0x53, (byte)0x33};        // "AES3"
     public static final byte[] aes1 = {
@@ -225,7 +229,8 @@ public class ZrtpConstants {
     // Keep the Hash identifers in supportedHashes in the same order than the
     // following enum, starting with zero.
    public static enum  SupportedHashes {
-        S256(s256);
+        S256(s256),
+        S384(s384);
         
         public byte[] name;
         private SupportedHashes(byte[] nm) {
@@ -319,6 +324,7 @@ public class ZrtpConstants {
     "BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31" +        // 14
     "43DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF", 16);    // 15, total = 24 * 16 = 384
 
+    /* **** Not used anymore in ZRTP
     // The DH prime for DH4k (4096 bit) as defined in RFC 3526
     public static final BigIntegerCrypto P4096 = new BigIntegerCrypto(
 //                        1                   2        
@@ -345,22 +351,16 @@ public class ZrtpConstants {
     "1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA9" +        // 19
     "93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199" +        // 20
     "FFFFFFFFFFFFFFFF", 16);                                    // Total = 8 + 24 * 21 = 512 
-
+*** */
     // DH generator 2
     public static final BigIntegerCrypto two = BigIntegerCrypto.valueOf(2);
     
     public static final BigIntegerCrypto P2048MinusOne = P2048.subtract(BigIntegerCrypto.ONE);
     public static final BigIntegerCrypto P3072MinusOne = P3072.subtract(BigIntegerCrypto.ONE);
-    public static final BigIntegerCrypto P4096MinusOne = P4096.subtract(BigIntegerCrypto.ONE);
+//    public static final BigIntegerCrypto P4096MinusOne = P4096.subtract(BigIntegerCrypto.ONE);
     
 
     public static final DHParameters specDh2k = new DHParameters(ZrtpConstants.P2048, ZrtpConstants.two, null, 256);
     public static final DHParameters specDh3k = new DHParameters(ZrtpConstants.P3072, ZrtpConstants.two, null, 256);
-    public static final DHParameters specDh4k = new DHParameters(ZrtpConstants.P4096, ZrtpConstants.two, null, 512);
-    
-    
-//    public static void main(String argv[]) {
-//        System.err.println("SHA enum: " + SupportedHashes.valueOf("S256"));
-//        System.err.println("SHA enum: " + SupportedHashes.valueOf("S256").value);
-//    }
+//    public static final DHParameters specDh4k = new DHParameters(ZrtpConstants.P4096, ZrtpConstants.two, null, 512);
 }

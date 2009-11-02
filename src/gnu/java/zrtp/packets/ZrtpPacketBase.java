@@ -41,6 +41,11 @@ public class ZrtpPacketBase {
      * A word in ZRTP is 4 bytes long.
      */
     public static final int ZRTP_WORD_SIZE = 4;
+    public static final int ZID_SIZE = 3*ZRTP_WORD_SIZE;
+    public static final int CLIENT_ID_SIZE = 4*ZRTP_WORD_SIZE;
+    public static final int HASH_IMAGE_SIZE = 8*ZRTP_WORD_SIZE;
+    public static final int HVI_SIZE = 8*ZRTP_WORD_SIZE;
+    public static final int HMAC_SIZE = 2*ZRTP_WORD_SIZE;
     
     /**
      * The size of the ZRTP specific CRC field.

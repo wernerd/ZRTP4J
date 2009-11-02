@@ -1,6 +1,8 @@
 package demo;
 
 import gnu.java.zrtp.ZrtpCodes;
+import gnu.java.zrtp.ZrtpConfigure;
+import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.ZrtpUserCallback;
 import gnu.java.zrtp.jmf.transform.TransformManager;
 import gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine;
@@ -116,8 +118,10 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
                     .createZRTPConnector(sa);
             zrtpEngine = transConnector.getEngine();
             zrtpEngine.setUserCallback(new MyCallback());
-            
-            if (!zrtpEngine.initialize("test_t.zid"))
+            ZrtpConfigure config = new ZrtpConfigure();
+            config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
+           
+            if (!zrtpEngine.initialize("test_t.zid", config))
                 System.out.println("iniatlize failed");
 
             zrtpEngine.setOwnSSRC(1);

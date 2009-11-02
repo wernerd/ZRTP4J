@@ -37,7 +37,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
      * words.
      */
     private static final int HASH_H1_OFFSET = ZRTP_HEADER_LENGTH * ZRTP_WORD_SIZE;       // [8*ZRTP_WORD_SIZE];
-    private static final int RS1ID_OFFSET = HASH_H1_OFFSET + 8*ZRTP_WORD_SIZE;           // [2*ZRTP_WORD_SIZE];
+    private static final int RS1ID_OFFSET = HASH_H1_OFFSET + HASH_IMAGE_SIZE;           // [2*ZRTP_WORD_SIZE];
     private static final int RS2ID_OFFSET = RS1ID_OFFSET + 2*ZRTP_WORD_SIZE;             // [2*ZRTP_WORD_SIZE];
 //    private static final int SIGS_ID_OFFSET = RS2ID_OFFSET + 2*ZRTP_WORD_SIZE;           // [2*ZRTP_WORD_SIZE];
     private static final int S3_ID_OFFSET = RS2ID_OFFSET + 2*ZRTP_WORD_SIZE;          // [2*ZRTP_WORD_SIZE];
@@ -133,7 +133,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
     }
         
     public final byte[] getH1() { 
-        return ZrtpUtils.readRegion(packetBuffer, HASH_H1_OFFSET, 8*ZRTP_WORD_SIZE);
+        return ZrtpUtils.readRegion(packetBuffer, HASH_H1_OFFSET, HASH_IMAGE_SIZE);
     }
 
     public final byte[] getHMAC() {
@@ -166,7 +166,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
     }
         
     public final void setH1(final byte[] data) { 
-        System.arraycopy(data, 0, packetBuffer, HASH_H1_OFFSET, 8*ZRTP_WORD_SIZE);
+        System.arraycopy(data, 0, packetBuffer, HASH_H1_OFFSET, HASH_IMAGE_SIZE);
     }
 
     public final void setHMAC(final byte[] data) {

@@ -46,7 +46,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
      * words.
      */
     private static final int HASH_H2_OFFSET = ZRTP_HEADER_LENGTH * ZRTP_WORD_SIZE; // [8*ZRTP_WORD_SIZE];
-    private static final int ZID_OFFSET = HASH_H2_OFFSET + 8*ZRTP_WORD_SIZE;       // [3*ZRTP_WORD_SIZE];
+    private static final int ZID_OFFSET = HASH_H2_OFFSET + HASH_IMAGE_SIZE;       // [3*ZRTP_WORD_SIZE];
     private static final int HASH_OFFSET = ZID_OFFSET + 3*ZRTP_WORD_SIZE;          // [ZRTP_WORD_SIZE];
     private static final int CIPHER_OFFSET = HASH_OFFSET + ZRTP_WORD_SIZE;         // [ZRTP_WORD_SIZE];
     private static final int AUTHLENGTHS_OFFSET = CIPHER_OFFSET + ZRTP_WORD_SIZE;  // [ZRTP_WORD_SIZE];
@@ -81,10 +81,10 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         for (ZrtpConstants.SupportedHashes sh : ZrtpConstants.SupportedHashes
                 .values()) {
             byte[] s = sh.name;
-            int o = HASH_OFFSET;
-            if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o + 1]
-                    && s[2] == packetBuffer[o + 2]
-                    && s[3] == packetBuffer[o + 3]) {
+            if (s[0] == packetBuffer[HASH_OFFSET] && 
+                    s[1] == packetBuffer[HASH_OFFSET + 1]
+                    && s[2] == packetBuffer[HASH_OFFSET + 2]
+                    && s[3] == packetBuffer[HASH_OFFSET + 3]) {
                 return sh;
             }
         }
@@ -96,11 +96,10 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         for (ZrtpConstants.SupportedSymCiphers sh : ZrtpConstants.SupportedSymCiphers
                 .values()) {
             byte[] s = sh.name;
-            int o = CIPHER_OFFSET;
-            if (s[0] == packetBuffer[o] 
-                    && s[1] == packetBuffer[o + 1]
-                    && s[2] == packetBuffer[o + 2]
-                    && s[3] == packetBuffer[o + 3]) {
+            if (s[0] == packetBuffer[CIPHER_OFFSET] 
+                    && s[1] == packetBuffer[CIPHER_OFFSET + 1]
+                    && s[2] == packetBuffer[CIPHER_OFFSET + 2]
+                    && s[3] == packetBuffer[CIPHER_OFFSET + 3]) {
                 return sh;
             }
         }
@@ -112,10 +111,10 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         for (ZrtpConstants.SupportedAuthLengths sh : ZrtpConstants.SupportedAuthLengths
                 .values()) {
             byte[] s = sh.name;
-            int o = AUTHLENGTHS_OFFSET;
-            if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o + 1]
-                    && s[2] == packetBuffer[o + 2]
-                    && s[3] == packetBuffer[o + 3]) {
+            if (s[0] == packetBuffer[AUTHLENGTHS_OFFSET] && 
+                    s[1] == packetBuffer[AUTHLENGTHS_OFFSET + 1] &&
+                    s[2] == packetBuffer[AUTHLENGTHS_OFFSET + 2] &&
+                    s[3] == packetBuffer[AUTHLENGTHS_OFFSET + 3]) {
                 return sh;
             }
         }
@@ -127,10 +126,9 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         for (ZrtpConstants.SupportedPubKeys sh : ZrtpConstants.SupportedPubKeys
                 .values()) {
             byte[] s = sh.name;
-            int o = PUBKEY_OFFSET;
-            if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o + 1]
-                    && s[2] == packetBuffer[o + 2]
-                    && s[3] == packetBuffer[o + 3]) {
+            if (s[0] == packetBuffer[PUBKEY_OFFSET] && s[1] == packetBuffer[PUBKEY_OFFSET + 1]
+                    && s[2] == packetBuffer[PUBKEY_OFFSET + 2]
+                    && s[3] == packetBuffer[PUBKEY_OFFSET + 3]) {
                 return sh;
             }
         }
@@ -142,10 +140,9 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         for (ZrtpConstants.SupportedSASTypes sh : ZrtpConstants.SupportedSASTypes
                 .values()) {
             byte[] s = sh.name;
-            int o = SAS_OFFSET;
-            if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o + 1]
-                    && s[2] == packetBuffer[o + 2]
-                    && s[3] == packetBuffer[o + 3]) {
+            if (s[0] == packetBuffer[SAS_OFFSET] && s[1] == packetBuffer[SAS_OFFSET + 1]
+                    && s[2] == packetBuffer[SAS_OFFSET + 2]
+                    && s[3] == packetBuffer[SAS_OFFSET + 3]) {
                 return sh;
             }
         }
@@ -157,19 +154,19 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
     }
        
     public final byte[] getHvi() {
-        return ZrtpUtils.readRegion(packetBuffer, HVI_OFFSET, 8*ZRTP_WORD_SIZE);
+        return ZrtpUtils.readRegion(packetBuffer, HVI_OFFSET, HVI_SIZE);
     }
         
     public final byte[] getH2() {
-        return ZrtpUtils.readRegion(packetBuffer, HASH_H2_OFFSET, 8*ZRTP_WORD_SIZE);
+        return ZrtpUtils.readRegion(packetBuffer, HASH_H2_OFFSET, HASH_IMAGE_SIZE);
     }
        
     public final byte[] getHMAC() {
-        return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
+        return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET, HMAC_SIZE);
     }
 
     public final byte[] getHMACMulti() {
-        return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, 2*ZRTP_WORD_SIZE);
+        return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, HMAC_SIZE);
     }
 
     public final byte[] getNonce() {
@@ -205,15 +202,15 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
     }
     
     public final void setH2(final byte[] data) { 
-        System.arraycopy(data, 0, packetBuffer, HASH_H2_OFFSET, 8*ZRTP_WORD_SIZE);
+        System.arraycopy(data, 0, packetBuffer, HASH_H2_OFFSET, HASH_IMAGE_SIZE);
     }
     
     public final void setHMAC(final byte[] data) { 
-        System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
+        System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET, HMAC_SIZE);
     }
     
     public final void setHMACMulti(final byte[] data) { 
-        System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, 2*ZRTP_WORD_SIZE);
+        System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, HMAC_SIZE);
     }
     /*
      * Prepare a Commit packet for use in Multi-Stream mode

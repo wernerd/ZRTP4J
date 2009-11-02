@@ -463,7 +463,7 @@ public class ZRTPTransformEngine
                 return null;
             }
             // Check if it is really a ZRTP packet, if not don't process it
-            if (!zPkt.hasMagic() || !started) {
+            if (!zPkt.hasMagic()) {
                 return null;
             }
             byte[] extHeader = zPkt.getMessagePart();
@@ -675,14 +675,14 @@ public class ZRTPTransformEngine
 
     public void requestGoClear()  { }
 
-    public void setSrtpsSecret(byte[] data) {
+    public void setAuxSecret(byte[] data) {
         if (zrtpEngine != null)
-            zrtpEngine.setSrtpsSecret(data);
+            zrtpEngine.setAuxSecret(data);
     }
 
-    public void setOtherSecret(byte[] data) {
+    public void setPbxSecret(byte[] data) {
         if (zrtpEngine != null)
-            zrtpEngine.setOtherSecret(data);
+            zrtpEngine.setPbxSecret(data);
     }
 
     public void setClientId(String id) {
