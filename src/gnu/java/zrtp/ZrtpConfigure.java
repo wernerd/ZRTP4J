@@ -28,7 +28,7 @@ public class ZrtpConfigure {
     public ZrtpConfigure() {
     }
 
-    private class Data<T> implements Iterable<T> {
+    private class Data<T extends Enum<T>> implements Iterable<T> {
         private final static int maxNoOfAlgos = 7;
 
         final private ArrayList<T> algos = new ArrayList<T>(maxNoOfAlgos);
@@ -48,6 +48,20 @@ public class ZrtpConfigure {
             return maxNoOfAlgos - algos.size();
         }
 
+        int addAlgoAt(int index, T algo) {
+            if (algos.size() >= maxNoOfAlgos) {
+                return 0;
+            }
+            if (index >= maxNoOfAlgos) {
+                return 0;
+            }
+            if (algos.contains(algo)) {
+                return maxNoOfAlgos - algos.size();
+            }
+            algos.add(index, algo);
+            return maxNoOfAlgos - algos.size();
+        }
+
         int removeAlgo(T algo) {
             algos.remove(algo);
             return maxNoOfAlgos - algos.size();
@@ -63,6 +77,10 @@ public class ZrtpConfigure {
         
         void clear() {
             algos.clear();
+        }
+        
+        boolean containsAlgo(T algo) {
+            return algos.contains(algo);
         }
     }
 
@@ -80,6 +98,7 @@ public class ZrtpConfigure {
     
     private Data<ZrtpConstants.SupportedAuthLengths> authLengths =
         new Data<ZrtpConstants.SupportedAuthLengths>();
+    
     
     /**
      * Convenience function that sets a pre-defined standard configuration.
@@ -180,6 +199,21 @@ public class ZrtpConfigure {
     }
 
     /**
+     * Add a hash algorithm to configuration data at defined poisition.
+     * 
+     * Adds the specified hash algorithm to the configuration data. 
+     * 
+     * @param algo
+     *            The identifier of the hash algorithm to add.
+     * @param index
+     *            The index into the configuration data
+     * @return Number of free hash configuration data slots.
+     */
+    public int addHashAlgoAt(int index, ZrtpConstants.SupportedHashes algo) {
+        return hashes.addAlgoAt(index, algo);
+    }
+    
+    /**
      * Remove a hash algorithm from configuration data.
      * 
      * Removes the specified algorithm from hash configuration data. If the
@@ -235,6 +269,15 @@ public class ZrtpConfigure {
         return hashes;
     }
 
+    /**
+     * Check if ZrtpConfigure contains a hash algorithm.
+     * 
+     * @return True if ZrtpConfigure contains the algorithm.
+     */
+    public boolean containsHashAlgo(ZrtpConstants.SupportedHashes hash) {
+            return hashes.containsAlgo(hash);
+    }
+    
     /*
      * SymCipher configuration functions
      */
@@ -253,6 +296,21 @@ public class ZrtpConfigure {
         return symCiphers.addAlgo(algo);
     }
 
+    /**
+     * Add a symmetric cipher algorithm to configuration data.
+     * 
+     * Adds the specified cipher algorithm to the configuration data. 
+     * 
+     * @param algo
+     *            The identifier of the cipher algorithm to add.
+     * @param index
+     *            The index into the configuration data
+     * @return Number of free cipher configuration data slots.
+     */
+    public int addSymCipherAlgoAt(int index, ZrtpConstants.SupportedSymCiphers algo) {
+        return symCiphers.addAlgoAt(index, algo);
+    }
+    
     /**
      * Remove a symmetric cipher algorithm from configuration data.
      * 
@@ -310,6 +368,15 @@ public class ZrtpConfigure {
         return symCiphers;
     }
 
+    /**
+     * Check if ZrtpConfigure contains a cipher algorithm.
+     * 
+     * @return True if ZrtpConfigure contains the algorithm.
+     */
+    public boolean containsCipherAlgo(ZrtpConstants.SupportedSymCiphers cipher) {
+            return symCiphers.containsAlgo(cipher);
+    }
+    
     /*
      * Public key configuration functions
      */
@@ -320,16 +387,27 @@ public class ZrtpConfigure {
      * free configuration data slot is available the function does not add the
      * algorithm and return zero.
      * 
-     * If an application removes all algorithms then ZRTP does not include any
-     * algorithm into the hello message and falls back to a predefined mandatory
-     * algorithm. In this case DH 3072.
-     * 
      * @param algo
      *            The identifier of the public key algorithm to add.
      * @return Number of free public key configuration data slots.
      */
     public int addPubKeyAlgo(ZrtpConstants.SupportedPubKeys algo) {
         return publicKeyAlgos.addAlgo(algo);
+    }
+
+    /**
+     * Add a public key algorithm to configuration data.
+     * 
+     * Adds the specified public key algorithm to the configuration data. 
+     * 
+     * @param algo
+     *            The identifier of the public key algorithm to add.
+     * @param index
+     *            The index into the configuration data
+     * @return Number of free public key configuration data slots.
+     */
+    public int addPubKeyAlgoAt(int index, ZrtpConstants.SupportedPubKeys algo) {
+        return publicKeyAlgos.addAlgoAt(index, algo);
     }
 
     /**
@@ -384,7 +462,15 @@ public class ZrtpConfigure {
         return publicKeyAlgos;
     }
 
-
+    /**
+     * Check if ZrtpConfigure contains a Public key algorithm.
+     * 
+     * @return True if ZrtpConfigure contains the algorithm.
+     */
+    public boolean containsPubKeyAlgo(ZrtpConstants.SupportedPubKeys pubkey) {
+            return publicKeyAlgos.containsAlgo(pubkey);
+    }
+    
     /*
      * SAS type configuration functions
      */
@@ -401,6 +487,21 @@ public class ZrtpConfigure {
      */
     public int addSasTypeAlgo(ZrtpConstants.SupportedSASTypes algo) {
         return sasTypes.addAlgo(algo);
+    }
+
+    /**
+     * Add a SAS type algorithm to configuration data.
+     * 
+     * Adds the specified SAS type algorithm to the configuration data. 
+     * 
+     * @param algo
+     *            The identifier of the SAS type algorithm to add.
+     * @param index
+     *            The index into the configuration data
+      * @return Number of free SAS type configuration data slots.
+     */
+    public int addSasTypeAlgoAt(int index, ZrtpConstants.SupportedSASTypes algo) {
+        return sasTypes.addAlgoAt(index, algo);
     }
 
     /**
@@ -459,6 +560,15 @@ public class ZrtpConfigure {
         return sasTypes;
     }
 
+    /**
+     * Check if ZrtpConfigure contains a SAS algorithm.
+     * 
+     * @return True if ZrtpConfigure contains the algorithm.
+     */
+    public boolean containsSasTypeAlgo(ZrtpConstants.SupportedSASTypes sas) {
+            return sasTypes.containsAlgo(sas);
+    }
+    
     /*
      * Authentication length configuration functions
      */
@@ -476,6 +586,24 @@ public class ZrtpConfigure {
      */
     public int addAuthLength(ZrtpConstants.SupportedAuthLengths algo) {
         return authLengths.addAlgo(algo);
+    }
+
+    /**
+     * Add a SRTP authentication length to configuration data.
+     * 
+     * Adds the specified SRTP authentication length to the configuration data.
+     * If no free configuration data slot is available the function does not add
+     * the algorithm and return zero.
+     * 
+     * @param algo
+     *            The identifier of the SRTP authentication length to add.
+     * @param index
+     *            The index into the configuration data
+     * @return Number of free SRTP authentication length configuration data
+     *         slots.
+     */
+    public int addAuthLengthAt(int index, ZrtpConstants.SupportedAuthLengths algo) {
+        return authLengths.addAlgoAt(index, algo);
     }
 
     /**
@@ -535,10 +663,276 @@ public class ZrtpConfigure {
         return authLengths;
     }
 
+    /**
+     * Check if ZrtpConfigure contains a Auth lengths.
+     * 
+     * @return True if ZrtpConfigure contains the algorithm.
+     */
+    public boolean containsAuthLength(ZrtpConstants.SupportedAuthLengths length) {
+            return authLengths.containsAlgo(length);
+    }
+       
+    /*
+     * Generic configuration functions
+     */
+    /**
+     * Add an algorithm to configuration data.
+     * 
+     * Adds an length to the configuration data. The function determines which
+     * table to access based on the declaring class of the parameter.
+     * 
+     * If no free configuration data slot is available the function does not add
+     * the algorithm and return zero.
+     * 
+     * @param algo
+     *            The identifier of the algorithm to add.
+     * @return Number of free SRTP authentication length configuration data
+     *         slots.
+     */
+    public <T extends Enum<T>>int addAlgo(T algo) {
+        Class<T> clazz = algo.getDeclaringClass();
+        if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
+            return hashes.addAlgo((ZrtpConstants.SupportedHashes)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
+            return symCiphers.addAlgo((ZrtpConstants.SupportedSymCiphers)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
+            return publicKeyAlgos.addAlgo((ZrtpConstants.SupportedPubKeys)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
+            return sasTypes.addAlgo((ZrtpConstants.SupportedSASTypes)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
+            return authLengths.addAlgo((ZrtpConstants.SupportedAuthLengths)algo);
+        }
+        return -1;
+    }
+
+    /**
+     * Add an algorithm to configuration data.
+     * 
+     * Adds an length to the configuration data. The function determines which
+     * table to access based on the declaring class of the parameter.
+     * 
+     * If no free configuration data slot is available the function does not add
+     * the algorithm and return zero.
+     * 
+     * @param algo
+     *            The identifier of the algorithm to add.
+     * @param index
+     *            The index into the configuration data
+     * @return Number of free algorithm configuration data
+     *         slots.
+     */
+    public <T extends Enum<T>>int addAlgoAt(int index, T algo) {
+        Class<T> clazz = algo.getDeclaringClass();
+        if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
+            return hashes.addAlgoAt(index, (ZrtpConstants.SupportedHashes)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
+            return symCiphers.addAlgoAt(index, (ZrtpConstants.SupportedSymCiphers)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
+            return publicKeyAlgos.addAlgoAt(index, (ZrtpConstants.SupportedPubKeys)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
+            return sasTypes.addAlgoAt(index, (ZrtpConstants.SupportedSASTypes)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
+            return authLengths.addAlgoAt(index, (ZrtpConstants.SupportedAuthLengths)algo);
+        }
+        return -1;
+    }
+
+    /**
+     * Remove an algorithm from configuration data.
+     * 
+     * Removes an length to the configuration data. The function determines which
+     * table to access based on the declaring class of the parameter.
+     * 
+     * If the algorithm was not configured previously the
+     * function does not modify the configuration data and returns the number of
+     * free configuration data slots.
+     * 
+     * If an application removes all algorithms then ZRTP does not include any
+     * algorithm into the hello message and falls back to a predefined mandatory
+     * algorithm. In this case length 32.
+     * 
+     * @param algo
+     *            The identifier of the algorithm to remove.
+     * @return Number of free algorithm configuration slots.
+     */
+    public <T extends Enum<T>>int removeAlgo(T algo) {
+        Class<T> clazz = algo.getDeclaringClass();
+        if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
+            return hashes.removeAlgo((ZrtpConstants.SupportedHashes)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
+            return symCiphers.removeAlgo((ZrtpConstants.SupportedSymCiphers)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
+            return publicKeyAlgos.removeAlgo((ZrtpConstants.SupportedPubKeys)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
+            return sasTypes.removeAlgo((ZrtpConstants.SupportedSASTypes)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
+            return authLengths.removeAlgo((ZrtpConstants.SupportedAuthLengths)algo);
+        }
+        return -1;
+    }
+
+    /**
+     * Returns the number of configured algoritms.
+     * 
+     * The function determines which table to access based on the declaring class
+     * of the parameter.
+     * 
+     * @param algo
+     *            The identifier of the algorithm. Used only to identify 
+     *            configure data.
+     */
+    public <T extends Enum<T>> int getNumConfiguredAlgos(T algo) {
+        Class<T> clazz = algo.getDeclaringClass();
+        if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
+            return hashes.getNumConfiguredAlgos();
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
+            return symCiphers.getNumConfiguredAlgos();
+        }
+        if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
+            return publicKeyAlgos.getNumConfiguredAlgos();
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
+            return sasTypes.getNumConfiguredAlgos();
+        }
+        if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
+            return authLengths.getNumConfiguredAlgos();
+        }
+        return -1;
+    }
+
+    /**
+     * Returns the identifier an algorithm at the given index.
+     * 
+     * The function determines which table to access based on the declaring class
+     * of the parameter.
+     * 
+     * @param index
+     *            The index into the configuration data.
+     * @param algo
+     *            The identifier of the algorithm to get. Used only to identify 
+     *            configure data.
+     * @return 
+     *        If the index does not point to a configured slot then the function
+     *        returns null, otherwise the algorithm at that index.
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends Enum<T>> T getAlgoAt(int index, T algo) {
+        Class<T> clazz = algo.getDeclaringClass();
+        if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
+            try {
+                return (T)hashes.getAlgoAt(index);
+            } catch (IndexOutOfBoundsException e) {
+                return null;
+            }
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
+            try {
+                return (T)symCiphers.getAlgoAt(index);
+            } catch (IndexOutOfBoundsException e) {
+                return null;
+            }
+        }
+        if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
+            try {
+                return (T)publicKeyAlgos.getAlgoAt(index);
+            } catch (IndexOutOfBoundsException e) {
+                return null;
+            }
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
+            try {
+                return (T)sasTypes.getAlgoAt(index);
+            } catch (IndexOutOfBoundsException e) {
+                return null;
+            }
+        }
+        if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
+            try {
+                return (T)authLengths.getAlgoAt(index);
+            } catch (IndexOutOfBoundsException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns Iterable for SRTP authentication lengths.
+     * 
+     * Use this in for-each loop such as
+     * <code>for (ZrtpConstants.SupportedHashes sh: config.authLengths()) {</code>
+     * 
+     * @param algo
+     *            The identifier of the algorithm to get.
+     * @return The authLengths Iterable.
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends Enum<T>>Iterable<T> algos(T algo) {
+        Class<T> clazz = algo.getDeclaringClass();
+        if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
+            return (Iterable<T>)hashes;
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
+            return (Iterable<T>)symCiphers;
+        }
+        if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
+            return (Iterable<T>)publicKeyAlgos;
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
+            return (Iterable<T>)sasTypes;
+        }
+        if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
+            return (Iterable<T>)authLengths;
+        }
+        return null;
+    }
+
+    /**
+     * Check if ZrtpConfigure contains an algorithm.
+     * 
+     * @return True if ZrtpConfigure contains the algorithm.
+     */
+    public <T extends Enum<T>>boolean containsAuthLength(T algo) {
+        Class<T> clazz = algo.getDeclaringClass();
+        if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
+            return hashes.containsAlgo((ZrtpConstants.SupportedHashes)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
+            return symCiphers.containsAlgo((ZrtpConstants.SupportedSymCiphers)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
+            return publicKeyAlgos.containsAlgo((ZrtpConstants.SupportedPubKeys)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
+            return sasTypes.containsAlgo((ZrtpConstants.SupportedSASTypes)algo);
+        }
+        if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
+            return authLengths.containsAlgo((ZrtpConstants.SupportedAuthLengths)algo);
+        }
+        return false;
+    }
+       
+    /*
+     * Some tests here
+     */
     
     /*
      * Some tests here
      */
+    
 /* ***
     public static void main(String argv[]) {
         ZrtpConfigure config = new ZrtpConfigure();
