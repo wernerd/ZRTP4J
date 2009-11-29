@@ -113,22 +113,18 @@ public class ZrtpConfigure {
      *</ul>
      */
     public void setStandardConfig() {
-        hashes.clear();
+        clear();
         hashes.addAlgo(ZrtpConstants.SupportedHashes.S256);
 
-        symCiphers.clear();
         symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.AES3);
         symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.AES1);
 
-        publicKeyAlgos.clear();
         publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.DH3K);
         publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.DH2K);
         publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.MULT);
 
-        sasTypes.clear();
         sasTypes.addAlgo(ZrtpConstants.SupportedSASTypes.B32);
 
-        authLengths.clear();
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.HS32);
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.HS80);
     }
@@ -146,20 +142,16 @@ public class ZrtpConfigure {
      *</ul>
      */
     public void setMandatoryOnly() {
-        hashes.clear();
+        clear();
         hashes.addAlgo(ZrtpConstants.SupportedHashes.S256);
 
-        symCiphers.clear();
         symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.AES1);
 
-        publicKeyAlgos.clear();
         publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.DH3K);
         publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.MULT);
 
-        sasTypes.clear();
         sasTypes.addAlgo(ZrtpConstants.SupportedSASTypes.B32);
 
-        authLengths.clear();
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.HS32);
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.HS80);
     }
