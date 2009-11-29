@@ -139,7 +139,7 @@ public class ZrtpConfigureTableModel<T extends Enum<T>> extends AbstractTableMod
 
             return move(row - 1, false, upSave) - 1;
         }
-        ZrtpConstants.SupportedPubKeys swap;
+        T swap;
         if (row >= (getRowCount() - 1))
             throw new IllegalArgumentException("rowIndex");
 
@@ -160,12 +160,12 @@ public class ZrtpConfigureTableModel<T extends Enum<T>> extends AbstractTableMod
 //            row++;                           // take active rows into account
 //        }
 //        else {
-            if (active.getNumConfiguredPubKeys() <= 1) {
+            if (active.getNumConfiguredAlgos(algorithm) <= 1) {
                 return row;
             }
-            swap = active.getPubKeyAlgoAt(row);
-            active.removePubKeyAlgo(swap);
-            active.addPubKeyAlgoAt(row + 1, swap);
+            swap = active.getAlgoAt(row, algorithm);
+            active.removeAlgo(swap);
+            active.addAlgoAt(row + 1, swap);
 //        }
 
         fireTableRowsUpdated(0, getRowCount());
@@ -193,9 +193,9 @@ public class ZrtpConfigureTableModel<T extends Enum<T>> extends AbstractTableMod
     }
     
     /**
-     * Sets the ZrtpConfigure data for this algorithms to a predefined set.
+     * Sets the ZrtpConfigure data for this algorithm to a predefined set.
      * 
-     * The caller prepared active ZrtpConfigureto contain the standard set of
+     * The caller prepared active ZrtpConfigureto contain a standard set of
      * algorithms. Get the names and construct a string, then call initialize
      * to setup the inActive ZrtpConfigure data.
      */
