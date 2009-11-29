@@ -2392,7 +2392,7 @@ public class ZRtp {
 
         if (!multiStream) {
             // Compute the new Retained Secret
-            newRs1 = KDF(s0, ZrtpConstants.retainedSec, KDFcontext, hashLength*8);
+            newRs1 = KDF(s0, ZrtpConstants.retainedSec, KDFcontext, ZrtpConstants.SHA256_DIGEST_LENGTH*8);
             
             // Compute the ZRTP Session Key
             zrtpSession = KDF(s0, ZrtpConstants.zrtpSessionKey, KDFcontext, hashLength*8);
@@ -2400,7 +2400,7 @@ public class ZRtp {
             // perform SAS generation according to chapter 5.5 and 8.
             // we don't need a speciai sasValue filed. sasValue are the first
             // (leftmost) 32 bits (4 bytes) of sasHash
-            sasHash = KDF(s0, ZrtpConstants.sasString, KDFcontext, hashLength*8);
+            sasHash = KDF(s0, ZrtpConstants.sasString, KDFcontext, ZrtpConstants.SHA256_DIGEST_LENGTH*8);
 
             // according to chapter 8 only the leftmost 20 bits of sasValue (aka
             // sasHash) are used to create the character SAS string of type SAS
