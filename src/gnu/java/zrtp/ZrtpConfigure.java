@@ -99,6 +99,8 @@ public class ZrtpConfigure {
     private Data<ZrtpConstants.SupportedAuthLengths> authLengths =
         new Data<ZrtpConstants.SupportedAuthLengths>();
     
+    private boolean enableTrustedMitM = false;
+    private boolean enableSasSignature = false;
     
     /**
      * Convenience function that sets a pre-defined standard configuration.
@@ -171,7 +173,53 @@ public class ZrtpConfigure {
         sasTypes.clear();
         authLengths.clear();        
     }
+
+    /**
+     * Enables or disables trusted MitM processing.
+     *
+     * For further details of trusted MitM processing refer to ZRTP
+     * specification, chapter 7.3
+     * 
+     * @param yesNo
+     *    If set to true then trusted MitM processing is enabled.
+     */
+    public void setTrustedMitM(boolean yesNo) {
+        enableTrustedMitM = yesNo;
+    }
     
+    /**
+     * Check status of trusted MitM processing.
+     * 
+     * @return
+     *    Returns true if trusted MitM processing is enabled.
+     */
+    public boolean isTrustedMitM() {
+        return enableTrustedMitM;
+    }
+    
+    /**
+     * Enables or disables SAS signature processing.
+     * 
+     * For further details of trusted MitM processing refer to ZRTP
+     * specification, chapter 7.2
+     *
+     * @param yesNo
+     *    If set to true then certificate processing is enabled.
+     */
+    public void setSasSignature(boolean yesNo) {
+        enableSasSignature = yesNo;
+    }
+    
+    /**
+     * Check status of SAS signature processing.
+     * 
+     * @return
+     *    Returns true if certificate processing is enabled.
+     */
+    public boolean isSasSignature() {
+        return enableSasSignature;
+    }
+
     /*
      * Hash configuration functions
      */
