@@ -548,7 +548,7 @@ public class ZRtp {
      */
     public String getHelloHash() {
         String pv = new String(ZrtpConstants.zrtpVersion);
-        String hs = new String(ZrtpUtils.bytesToHexString(helloHash, hashLength));
+        String hs = new String(ZrtpUtils.bytesToHexString(helloHash, hashLengthImpl));
         return pv + " " + hs;
     }
 
