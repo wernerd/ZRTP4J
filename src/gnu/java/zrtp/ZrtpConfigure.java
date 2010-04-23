@@ -714,6 +714,12 @@ public class ZrtpConfigure {
        
     /*
      * Generic configuration functions
+     * 
+     * TODO: Code workarounds because of javac bug
+     * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6548436
+     * Normally a simple cast is OK (Eclipse compiler handles it correctly) but
+     * because of the javac bug we need to do the more complex way according to
+     * a comment at the bug description. 
      */
     /**
      * Add an algorithm to configuration data.
@@ -732,19 +738,20 @@ public class ZrtpConfigure {
     public <T extends Enum<T>>int addAlgo(T algo) {
         Class<T> clazz = algo.getDeclaringClass();
         if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
-            return hashes.addAlgo((ZrtpConstants.SupportedHashes)algo);
+        //    return hashes.addAlgo((ZrtpConstants.SupportedHashes)algo);
+            return hashes.addAlgo(ZrtpConstants.SupportedHashes.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
-            return symCiphers.addAlgo((ZrtpConstants.SupportedSymCiphers)algo);
+            return symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
-            return publicKeyAlgos.addAlgo((ZrtpConstants.SupportedPubKeys)algo);
+            return publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
-            return sasTypes.addAlgo((ZrtpConstants.SupportedSASTypes)algo);
+            return sasTypes.addAlgo(ZrtpConstants.SupportedSASTypes.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
-            return authLengths.addAlgo((ZrtpConstants.SupportedAuthLengths)algo);
+            return authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.class.cast(algo));
         }
         return -1;
     }
@@ -768,19 +775,19 @@ public class ZrtpConfigure {
     public <T extends Enum<T>>int addAlgoAt(int index, T algo) {
         Class<T> clazz = algo.getDeclaringClass();
         if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
-            return hashes.addAlgoAt(index, (ZrtpConstants.SupportedHashes)algo);
+            return hashes.addAlgoAt(index, ZrtpConstants.SupportedHashes.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
-            return symCiphers.addAlgoAt(index, (ZrtpConstants.SupportedSymCiphers)algo);
+            return symCiphers.addAlgoAt(index, ZrtpConstants.SupportedSymCiphers.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
-            return publicKeyAlgos.addAlgoAt(index, (ZrtpConstants.SupportedPubKeys)algo);
+            return publicKeyAlgos.addAlgoAt(index, ZrtpConstants.SupportedPubKeys.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
-            return sasTypes.addAlgoAt(index, (ZrtpConstants.SupportedSASTypes)algo);
+            return sasTypes.addAlgoAt(index, ZrtpConstants.SupportedSASTypes.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
-            return authLengths.addAlgoAt(index, (ZrtpConstants.SupportedAuthLengths)algo);
+            return authLengths.addAlgoAt(index, ZrtpConstants.SupportedAuthLengths.class.cast(algo));
         }
         return -1;
     }
@@ -806,19 +813,19 @@ public class ZrtpConfigure {
     public <T extends Enum<T>>int removeAlgo(T algo) {
         Class<T> clazz = algo.getDeclaringClass();
         if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
-            return hashes.removeAlgo((ZrtpConstants.SupportedHashes)algo);
+            return hashes.removeAlgo(ZrtpConstants.SupportedHashes.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
-            return symCiphers.removeAlgo((ZrtpConstants.SupportedSymCiphers)algo);
+            return symCiphers.removeAlgo(ZrtpConstants.SupportedSymCiphers.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
-            return publicKeyAlgos.removeAlgo((ZrtpConstants.SupportedPubKeys)algo);
+            return publicKeyAlgos.removeAlgo(ZrtpConstants.SupportedPubKeys.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
-            return sasTypes.removeAlgo((ZrtpConstants.SupportedSASTypes)algo);
+            return sasTypes.removeAlgo(ZrtpConstants.SupportedSASTypes.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
-            return authLengths.removeAlgo((ZrtpConstants.SupportedAuthLengths)algo);
+            return authLengths.removeAlgo(ZrtpConstants.SupportedAuthLengths.class.cast(algo));
         }
         return -1;
     }
@@ -868,40 +875,41 @@ public class ZrtpConfigure {
      *        If the index does not point to a configured slot then the function
      *        returns null, otherwise the algorithm at that index.
      */
-    @SuppressWarnings("unchecked")
+    // @SuppressWarnings("unchecked")
     public <T extends Enum<T>> T getAlgoAt(int index, T algo) {
         Class<T> clazz = algo.getDeclaringClass();
         if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
             try {
-                return (T)hashes.getAlgoAt(index);
+            	// return (T)hashes.getAlgoAt(index);
+                return clazz.cast(hashes.getAlgoAt(index));
             } catch (IndexOutOfBoundsException e) {
                 return null;
             }
         }
         if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
             try {
-                return (T)symCiphers.getAlgoAt(index);
+                return clazz.cast(symCiphers.getAlgoAt(index));
             } catch (IndexOutOfBoundsException e) {
                 return null;
             }
         }
         if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
             try {
-                return (T)publicKeyAlgos.getAlgoAt(index);
+                return clazz.cast(publicKeyAlgos.getAlgoAt(index));
             } catch (IndexOutOfBoundsException e) {
                 return null;
             }
         }
         if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
             try {
-                return (T)sasTypes.getAlgoAt(index);
+                return clazz.cast(sasTypes.getAlgoAt(index));
             } catch (IndexOutOfBoundsException e) {
                 return null;
             }
         }
         if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
             try {
-                return (T)authLengths.getAlgoAt(index);
+                return clazz.cast(authLengths.getAlgoAt(index));
             } catch (IndexOutOfBoundsException e) {
                 return null;
             }
@@ -923,19 +931,20 @@ public class ZrtpConfigure {
     public <T extends Enum<T>>Iterable<T> algos(T algo) {
         Class<T> clazz = algo.getDeclaringClass();
         if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
-            return (Iterable<T>)hashes;
+            // return (Iterable<T>)hashes;
+        	return (Iterable)hashes;
         }
         if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
-            return (Iterable<T>)symCiphers;
+            return (Iterable)symCiphers;
         }
         if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
-            return (Iterable<T>)publicKeyAlgos;
+            return (Iterable)publicKeyAlgos;
         }
         if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
-            return (Iterable<T>)sasTypes;
+            return (Iterable)sasTypes;
         }
         if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
-            return (Iterable<T>)authLengths;
+            return (Iterable)authLengths;
         }
         return null;
     }
@@ -948,19 +957,19 @@ public class ZrtpConfigure {
     public <T extends Enum<T>>boolean containsAuthLength(T algo) {
         Class<T> clazz = algo.getDeclaringClass();
         if (clazz.equals(ZrtpConstants.SupportedHashes.class)) {
-            return hashes.containsAlgo((ZrtpConstants.SupportedHashes)algo);
+            return hashes.containsAlgo(ZrtpConstants.SupportedHashes.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedSymCiphers.class)) {
-            return symCiphers.containsAlgo((ZrtpConstants.SupportedSymCiphers)algo);
+            return symCiphers.containsAlgo(ZrtpConstants.SupportedSymCiphers.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedPubKeys.class)) {
-            return publicKeyAlgos.containsAlgo((ZrtpConstants.SupportedPubKeys)algo);
+            return publicKeyAlgos.containsAlgo(ZrtpConstants.SupportedPubKeys.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedSASTypes.class)) {
-            return sasTypes.containsAlgo((ZrtpConstants.SupportedSASTypes)algo);
+            return sasTypes.containsAlgo(ZrtpConstants.SupportedSASTypes.class.cast(algo));
         }
         if (clazz.equals(ZrtpConstants.SupportedAuthLengths.class)) {
-            return authLengths.containsAlgo((ZrtpConstants.SupportedAuthLengths)algo);
+            return authLengths.containsAlgo(ZrtpConstants.SupportedAuthLengths.class.cast(algo));
         }
         return false;
     }
