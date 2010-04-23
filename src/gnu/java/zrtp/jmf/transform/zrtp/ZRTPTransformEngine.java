@@ -33,7 +33,7 @@ import java.util.EnumSet;
  * keys and other necessary data (crypto data) to set-up the Secure RTP (SRTP)
  * crypto context. Refer to Phil's ZRTP specification at his <a
  * href="http://zfoneproject.com/">Zfone project</a> site to get more detailed
- * imformation about the capabilities of ZRTP.
+ * information about the capabilities of ZRTP.
  * 
  * <h3>Short overview of the ZRTP4J implementation</h3>
  * 
@@ -46,7 +46,7 @@ import java.util.EnumSet;
  * RTP/SRTP stack and the operating system:
  * <ul>
  * <li> The GNU ZRTP core is independent of a specific RTP/SRTP stack and the
- * operationg system and consists of the ZRTP protocol state engine, the ZRTP
+ * operating system and consists of the ZRTP protocol state engine, the ZRTP
  * protocol messages, and the GNU ZRTP4J engine. The GNU ZRTP4J engine provides
  * methods to setup ZRTP message and to analyze received ZRTP messages, to
  * compute the crypto data required for SRTP, and to maintain the required
@@ -56,7 +56,7 @@ import java.util.EnumSet;
  * operating system specific services such as timers. </li>
  * </ul>
  * 
- * The GNU ZRTP4J core uses a callback interface class (refer to ZrtpCallback)
+ * The GNU ZRTP4J core uses a call back interface class (refer to ZrtpCallback)
  * to access RTP/SRTP or operating specific methods, for example to send data
  * via the RTP/SRTP stack, to access timers, provide mutex handling, and to
  * report events to the application.
@@ -74,7 +74,7 @@ import java.util.EnumSet;
  * receive other specific services (timer to GNU ZRTP4J </li>
  * <li> provides ZRTP specific methods that applications may use to control and
  * setup GNU ZRTP </li>
- * <li> can register and use an application specific callback class (refer to
+ * <li> can register and use an application specific call back class (refer to
  * ZrtpUserCallback) </li>
  * </ul>
  * 

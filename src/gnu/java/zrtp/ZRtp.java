@@ -32,6 +32,7 @@ import gnu.java.zrtp.packets.ZrtpPacketPingAck;
 import gnu.java.zrtp.packets.ZrtpPacketPing;
 import gnu.java.zrtp.utils.Base32;
 import gnu.java.zrtp.utils.ZrtpUtils;
+import gnu.java.zrtp.utils.ZrtpFortuna;
 import gnu.java.zrtp.zidfile.ZidFile;
 import gnu.java.zrtp.zidfile.ZidRecord;
 
@@ -50,7 +51,6 @@ import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
-import org.bouncycastle.crypto.prng.FortunaGenerator;
 
 import org.bouncycastle.cryptozrtp.AsymmetricCipherKeyPair;
 import org.bouncycastle.cryptozrtp.agreement.DHBasicAgreement;
@@ -116,7 +116,7 @@ public class ZRtp {
     private byte[] peerZid;
 
     /**
-     * The callback class provides me with the interface to send
+     * The call back class provides me with the interface to send
      * data and to deal with timer management of the hosting system.
      */
     private ZrtpCallback callback = null;
@@ -129,7 +129,7 @@ public class ZRtp {
     private AsymmetricCipherKeyPair myKeyPair = null;
     private BufferedBlockCipher AEScipher = null;
     
-    private FortunaGenerator secRand;
+    private ZrtpFortuna secRand;
 
     /**
      * The computed DH shared secret
@@ -331,7 +331,7 @@ public class ZRtp {
      */
     public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config)  {
 
-    	secRand = new FortunaGenerator(new byte[64]); // TODO: use PRNG class
+    	secRand = ZrtpFortuna.getInstance();
         configureAlgos = config;
         System.arraycopy(myZid, 0, zid, 0, ZidRecord.IDENTIFIER_LENGTH);
         callback = cb;
