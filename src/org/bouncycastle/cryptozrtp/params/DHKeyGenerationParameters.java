@@ -1,6 +1,6 @@
 package org.bouncycastle.cryptozrtp.params;
 
-import java.security.SecureRandom;
+import org.bouncycastle.crypto.prng.RandomGenerator;
 
 import org.bouncycastle.cryptozrtp.KeyGenerationParameters;
 
@@ -10,7 +10,7 @@ public class DHKeyGenerationParameters
     private DHParameters    params;
 
     public DHKeyGenerationParameters(
-        SecureRandom    random,
+    	RandomGenerator    random,
         DHParameters    params)
     {
         super(random, params.getP().bitLength());

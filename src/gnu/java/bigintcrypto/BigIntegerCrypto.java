@@ -48,6 +48,7 @@ import java.io.ObjectOutputStream;
 import java.util.Random;
 import java.util.Arrays;
 
+import org.bouncycastle.crypto.prng.RandomGenerator;
 
 /**
  * Crypto-aware big integer implementation.
@@ -280,6 +281,14 @@ public class BigIntegerCrypto extends Number implements
         init(numBits, rnd);
     }
 
+    public BigIntegerCrypto(int numBits, RandomGenerator rnd) {
+        this();
+
+        if (numBits < 0)
+            throw new IllegalArgumentException();
+
+        init(numBits, rnd);
+    }
     private void init(int numBits, Random rnd) {
         int highbits = numBits & 31;
         // minimum number of bytes to store the above number of bits
@@ -312,6 +321,48 @@ public class BigIntegerCrypto extends Number implements
         }
     }
 
+    private void init(int numBits, RandomGenerator rnd) {
+        int highbits = numBits & 31;
+        // minimum number of bytes to store the above number of bits
+        int highBitByteCount = (highbits + 7) / 8;
+        // number of bits to discard from the last byte
+        int discardedBitCount = highbits % 8;
+        if (discardedBitCount != 0)
+            discardedBitCount = 8 - discardedBitCount;
+        byte[] highBitBytes = new byte[highBitByteCount];
+        if (highbits > 0) {
+            rnd.nextBytes(highBitBytes);
+            highbits = (highBitBytes[highBitByteCount - 1] & 0xFF) >>> discardedBitCount;
+            for (int i = highBitByteCount - 2; i >= 0; i--)
+                highbits = (highbits << 8) | (highBitBytes[i] & 0xFF);
+        }
+        int nwords = numBits / 32;
+
+        byte tmpBytes[] = new byte[4];
+        while (highbits == 0 && nwords > 0) {
+            rnd.nextBytes(tmpBytes);
+            highbits = (byte)tmpBytes[0];
+            highbits |= tmpBytes[1] << 8;
+            highbits |= tmpBytes[2] << 16;
+            highbits |= tmpBytes[3] << 24;
+            --nwords;
+        }
+        if (nwords == 0 && highbits >= 0) {
+            ival = highbits;
+        } else {
+            ival = highbits < 0 ? nwords + 2 : nwords + 1;
+            words = new int[ival];
+            words[nwords] = highbits;
+            while (--nwords >= 0) {
+                rnd.nextBytes(tmpBytes);
+                words[nwords] = (byte)tmpBytes[0];
+                words[nwords] |= tmpBytes[1] << 8;
+                words[nwords] |= tmpBytes[2] << 16;
+                words[nwords] |= tmpBytes[3] << 24;
+            }
+        }
+    }
+
     public BigIntegerCrypto(int bitLength, int certainty, Random rnd) {
         this();
 
@@ -327,6 +378,20 @@ public class BigIntegerCrypto extends Number implements
         this.words = result.words;
     }
     
+    public BigIntegerCrypto(int bitLength, int certainty, RandomGenerator rnd) {
+        this();
+
+        BigIntegerCrypto result = new BigIntegerCrypto();
+        while (true) {
+            result.init(bitLength, rnd);
+            result = result.setBit(bitLength - 1);
+            if (result.isProbablePrime(certainty))
+                break;
+        }
+
+        this.ival = result.ival;
+        this.words = result.words;
+    }
     /**
      * Clear content and reset to a zero BigIntegerCrypto.
      * 

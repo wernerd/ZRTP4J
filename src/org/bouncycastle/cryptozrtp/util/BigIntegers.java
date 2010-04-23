@@ -1,7 +1,7 @@
 package org.bouncycastle.cryptozrtp.util;
 
 import gnu.java.bigintcrypto.BigIntegerCrypto;
-import java.security.SecureRandom;
+import org.bouncycastle.crypto.prng.RandomGenerator;
 
 /**
  * BigInteger utilities.
@@ -42,7 +42,7 @@ public final class BigIntegers
     public static BigIntegerCrypto createRandomInRange(
             BigIntegerCrypto      min,
             BigIntegerCrypto      max,
-        SecureRandom    random)
+            RandomGenerator    random)
     {
         BigIntegerCrypto x;
         do

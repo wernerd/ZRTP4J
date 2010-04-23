@@ -3,13 +3,13 @@ package org.bouncycastle.cryptozrtp.generators;
 import org.bouncycastle.cryptozrtp.params.DHParameters;
 
 import gnu.java.bigintcrypto.BigIntegerCrypto;
-import java.security.SecureRandom;
+import org.bouncycastle.crypto.prng.RandomGenerator;
 
 public class DHParametersGenerator
 {
     private int             size;
     private int             certainty;
-    private SecureRandom    random;
+    private RandomGenerator    random;
 
     private static final BigIntegerCrypto TWO = BigIntegerCrypto.valueOf(2);
 
@@ -23,7 +23,7 @@ public class DHParametersGenerator
     public void init(
         int             size,
         int             certainty,
-        SecureRandom    random)
+        RandomGenerator    random)
     {
         this.size = size;
         this.certainty = certainty;

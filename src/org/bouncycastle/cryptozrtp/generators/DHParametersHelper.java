@@ -1,8 +1,8 @@
 package org.bouncycastle.cryptozrtp.generators;
 
 import gnu.java.bigintcrypto.BigIntegerCrypto;
-import java.security.SecureRandom;
 
+import org.bouncycastle.crypto.prng.RandomGenerator;
 import org.bouncycastle.cryptozrtp.util.BigIntegers;
 
 class DHParametersHelper
@@ -14,7 +14,7 @@ class DHParametersHelper
     static BigIntegerCrypto[] generateSafePrimes(
         int             size,
         int             certainty,
-        SecureRandom    random)
+        RandomGenerator    random)
     {
         BigIntegerCrypto p, q;
         int qLength = size - 1;
@@ -41,7 +41,7 @@ class DHParametersHelper
     static BigIntegerCrypto selectGenerator(
         BigIntegerCrypto      p,
         BigIntegerCrypto      q,
-        SecureRandom    random)
+        RandomGenerator    random)
     {
         BigIntegerCrypto pMinusTwo = p.subtract(TWO);
         BigIntegerCrypto g;

@@ -1,13 +1,12 @@
 package org.bouncycastle.cryptozrtp;
 
-import java.security.SecureRandom;
-
+import org.bouncycastle.crypto.prng.RandomGenerator;
 /**
  * The base class for parameters to key generators.
  */
 public class KeyGenerationParameters
 {
-    private SecureRandom    random;
+    private RandomGenerator    random;
     private int             strength;
 
     /**
@@ -18,7 +17,7 @@ public class KeyGenerationParameters
      * @param strength the size, in bits, of the keys we want to produce.
      */
     public KeyGenerationParameters(
-        SecureRandom    random,
+    	RandomGenerator    random,
         int             strength)
     {
         this.random = random;
@@ -31,7 +30,7 @@ public class KeyGenerationParameters
      *
      * @return the generators random source.
      */
-    public SecureRandom getRandom()
+    public RandomGenerator getRandom()
     {
         return random;
     }

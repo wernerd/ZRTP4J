@@ -36,11 +36,10 @@ import gnu.java.zrtp.zidfile.ZidFile;
 import gnu.java.zrtp.zidfile.ZidRecord;
 
 import java.util.EnumSet;
-import java.util.Random;
+//import java.util.Random;
 import java.util.Arrays;
 
 import gnu.java.bigintcrypto.BigIntegerCrypto;
-import java.security.SecureRandom;
 
 import org.bouncycastle.crypto.BufferedBlockCipher;
 import org.bouncycastle.crypto.Digest;
@@ -51,6 +50,7 @@ import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
+import org.bouncycastle.crypto.prng.FortunaGenerator;
 
 import org.bouncycastle.cryptozrtp.AsymmetricCipherKeyPair;
 import org.bouncycastle.cryptozrtp.agreement.DHBasicAgreement;
@@ -58,7 +58,6 @@ import org.bouncycastle.cryptozrtp.generators.DHBasicKeyPairGenerator;
 import org.bouncycastle.cryptozrtp.params.DHKeyGenerationParameters;
 import org.bouncycastle.cryptozrtp.params.DHPrivateKeyParameters;
 import org.bouncycastle.cryptozrtp.params.DHPublicKeyParameters;
-
 
 /**
  * The main ZRTP class.
@@ -89,7 +88,7 @@ import org.bouncycastle.cryptozrtp.params.DHPublicKeyParameters;
  *   zrtpEngine = transConnector.getEngine();
  *   zrtpEngine.setUserCallback(new MyCallback());
  *   if (!zrtpEngine.initialize(&quot;test_t.zid&quot;))
- *       System.out.println(&quot;iniatlize failed&quot;);
+ *       System.out.println(&quot;initialize failed&quot;);
  *
  *    zrtpEngine->startZrtpEngine();
  *</pre>
@@ -130,7 +129,7 @@ public class ZRtp {
     private AsymmetricCipherKeyPair myKeyPair = null;
     private BufferedBlockCipher AEScipher = null;
     
-    private SecureRandom secRand = new SecureRandom();
+    private FortunaGenerator secRand;
 
     /**
      * The computed DH shared secret
@@ -172,7 +171,7 @@ public class ZRtp {
     private byte[] pbxSecretIDi = null;
     
     /**
-     * Remeber is valid rs1 or rs2 records were available 
+     * Remember is valid rs1 or rs2 records were available 
      */
     private boolean rs1Valid = false;
     private boolean rs2Valid = false;
@@ -201,7 +200,7 @@ public class ZRtp {
     private HMac hmacFunctionImpl = new HMac(new SHA256Digest());
     
     /**
-     * Commited Hash, Cipher, and public key algorithms
+     * Committed Hash, Cipher, and public key algorithms
      */
     private ZrtpConstants.SupportedHashes hash;
     private ZrtpConstants.SupportedSymCiphers cipher;
@@ -327,11 +326,12 @@ public class ZRtp {
     private ZrtpConfigure configureAlgos;
     
     /**
-     * Constructor intializes all relevant data but does not start the
+     * Constructor initializes all relevant data but does not start the
      * engine.
      */
     public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config)  {
 
+    	secRand = new FortunaGenerator(new byte[64]); // TODO: use PRNG class
         configureAlgos = config;
         System.arraycopy(myZid, 0, zid, 0, ZidRecord.IDENTIFIER_LENGTH);
         callback = cb;
@@ -350,8 +350,7 @@ public class ZRtp {
          * Generate H0 as a random number (256 bits, 32 bytes) and then the hash
          * chain, refer to chapter 10
          */
-        Random ran = new Random();
-        ran.nextBytes(H0);
+        secRand.nextBytes(H0);
         
         hashFunctionImpl.update(H0, 0, ZrtpPacketBase.HASH_IMAGE_SIZE);   // hash H0 and generate H1
         hashFunctionImpl.doFinal(H1, 0);
@@ -365,7 +364,7 @@ public class ZRtp {
         zrtpHello.configureHello(config);
         zrtpHello.setH3(H3);            // set H3 in Hello, included in helloHash
 
-        ran.nextBytes(randomIV);        // IV used in ZRTP packet encryption
+        secRand.nextBytes(randomIV);        // IV used in ZRTP packet encryption
 
         zrtpHello.setZid(zid);
         setClientId(id);                // set id, compute HMAC and final helloHash
@@ -2265,10 +2264,8 @@ public class ZRtp {
          */
         byte[] randBuf = new byte[ZidRecord.RS_LENGTH];
 
-        Random ran = new Random();
-
         if (!zidRec.isRs1Valid()) {
-            ran.nextBytes(randBuf);
+            secRand.nextBytes(randBuf);
             rs1IDi = computeHmac(randBuf, ZidRecord.RS_LENGTH, ZrtpConstants.initiator,
                     ZrtpConstants.initiator.length);
             rs1IDr = computeHmac(randBuf, ZidRecord.RS_LENGTH, ZrtpConstants.responder,
@@ -2283,7 +2280,7 @@ public class ZRtp {
         }
 
         if (!zidRec.isRs2Valid()) {
-            ran.nextBytes(randBuf);
+            secRand.nextBytes(randBuf);
             rs2IDi = computeHmac(randBuf, ZidRecord.RS_LENGTH, ZrtpConstants.initiator,
                     ZrtpConstants.initiator.length);
             rs2IDr = computeHmac(randBuf, ZidRecord.RS_LENGTH, ZrtpConstants.responder,
@@ -2301,13 +2298,13 @@ public class ZRtp {
          * Could be easily done: somebody sets some data into our ZRtp object,
          * check it here and use it. Otherwise use the random data.
          */
-        ran.nextBytes(randBuf);
+        secRand.nextBytes(randBuf);
         auxSecretIDi = computeHmac(randBuf, ZidRecord.RS_LENGTH, ZrtpConstants.initiator,
                 ZrtpConstants.initiator.length);
         auxSecretIDr = computeHmac(randBuf, ZidRecord.RS_LENGTH, ZrtpConstants.responder,
                 ZrtpConstants.responder.length);
 
-        ran.nextBytes(randBuf);
+        secRand.nextBytes(randBuf);
         pbxSecretIDi = computeHmac(randBuf, ZidRecord.RS_LENGTH, ZrtpConstants.initiator,
                 ZrtpConstants.initiator.length);
         pbxSecretIDr = computeHmac(randBuf, ZidRecord.RS_LENGTH, ZrtpConstants.responder,

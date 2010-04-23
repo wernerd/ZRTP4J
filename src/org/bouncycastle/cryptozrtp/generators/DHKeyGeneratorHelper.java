@@ -1,7 +1,7 @@
 package org.bouncycastle.cryptozrtp.generators;
 
 import gnu.java.bigintcrypto.BigIntegerCrypto;
-import java.security.SecureRandom;
+import org.bouncycastle.crypto.prng.RandomGenerator;
 
 class DHKeyGeneratorHelper
 {
@@ -16,7 +16,7 @@ class DHKeyGeneratorHelper
     {
     }
     
-    BigIntegerCrypto calculatePrivate(BigIntegerCrypto p, SecureRandom random, int limit)
+    BigIntegerCrypto calculatePrivate(BigIntegerCrypto p, RandomGenerator random, int limit)
     {
         //
         // calculate the private key
@@ -40,7 +40,7 @@ class DHKeyGeneratorHelper
         return x;
     }
 
-    private BigIntegerCrypto createInRange(BigIntegerCrypto max, SecureRandom random)
+    private BigIntegerCrypto createInRange(BigIntegerCrypto max, RandomGenerator random)
     {
         BigIntegerCrypto x;
         int maxLength = max.bitLength();

@@ -4,7 +4,6 @@ import gnu.java.zrtp.ZrtpConstants;
 
 import gnu.java.bigintcrypto.BigIntegerCrypto;
 
-import java.security.SecureRandom;
 import java.util.Random;
 import java.util.Arrays;
 
@@ -25,7 +24,8 @@ import org.bouncycastle.crypto.BufferedBlockCipher;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
 import org.bouncycastle.crypto.engines.AESFastEngine;
 import org.bouncycastle.crypto.params.ParametersWithIV;
-
+import org.bouncycastle.crypto.prng.RandomGenerator;
+import org.bouncycastle.crypto.prng.FortunaGenerator;
 
 import gnu.java.zrtp.utils.ZrtpUtils;
 
@@ -34,18 +34,16 @@ import gnu.java.zrtp.utils.ZrtpUtils;
  * Class to test and check required crypto algorithms.
  * 
  * This class instantiates a security provider and all necessary crypto
- * classes and algorithms. Then it preforms a quick check if the algorithms
+ * classes and algorithms. Then it performs a quick check if the algorithms
  * are available and work. If something is wrong an exception is thrown.
  * 
  *  Most often it is just a missing "unlimited strength" policy file. The
- *  standard policy file limits the key length of some alorithms.
+ *  standard policy file limits the key length of some algorithms.
  */
 public class CryptoTestPureLW {
 
 //    public static final DHParameterSpec specDh3kjce = new DHParameterSpec(ZrtpConstants.P3072, ZrtpConstants.two, 256);
 
-    
-    private SecureRandom secRand = new SecureRandom();
     
     private DHBasicKeyPairGenerator dhKeyPairGenLw;
     private AsymmetricCipherKeyPair myKeyPairLwA;
@@ -64,7 +62,9 @@ public class CryptoTestPureLW {
     byte[] dataToSecure = dataAsText.getBytes();
     
     boolean testProvider() {
-    
+    	byte[] rnd = new byte[256];
+    	new Random().nextBytes(rnd);
+    	RandomGenerator secRand = new FortunaGenerator(rnd);
         /*
          * Test and check DH key agreement
          */
@@ -133,8 +133,7 @@ public class CryptoTestPureLW {
         hmacSha256lw.doFinal(hmac256lw, 0);        
         
         // Test the AES cipher
-        Random ran = new Random();
-        ran.nextBytes(randomIV);        // IV used in encryption
+        secRand.nextBytes(randomIV);        // IV used in encryption
         
         // test the cipher - LW
         
@@ -190,14 +189,14 @@ public class CryptoTestPureLW {
     
     byte[] adjustKey(BigIntegerCrypto in)  {
         byte[] inBytes = in.toByteArray();
-        // check for leading zero byte if public key resulted in negtive
-        // value. BigIntegerCrypto adds a leading zero to drop the negatice sign bit
+        // check for leading zero byte if public key resulted in negative
+        // value. BigIntegerCrypto adds a leading zero to drop the negative sign bit
         if (inBytes[0] == 0) {
             byte[] tmp = new byte[inBytes.length - 1];
             System.arraycopy(inBytes, 1, tmp, 0, tmp.length);
             return tmp;
 
-            // ZrtpUtils.hexdump("Public key timmed", pubKeyBytes, pubKeyBytes.length);
+            // ZrtpUtils.hexdump("Public key trimmed", pubKeyBytes, pubKeyBytes.length);
         }
         return inBytes;
     }
