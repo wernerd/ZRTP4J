@@ -219,6 +219,10 @@ public class TransmitterMultiZRTP {
                 } catch (InterruptedException ie) {
                 }
             }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException ie) {
+            }
             stopIt();
 
         }
@@ -251,7 +255,11 @@ public class TransmitterMultiZRTP {
 
         TransmitterMultiZRTP trans = new TransmitterMultiZRTP();
         trans.doIt();
-        
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException ie) {
+        }
+
         System.exit(0);
     }
 
