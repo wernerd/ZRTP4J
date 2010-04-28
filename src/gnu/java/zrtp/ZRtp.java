@@ -937,6 +937,7 @@ public class ZRtp {
             byte[] tmp = new byte[pubKeySize];
             Arrays.fill(tmp, (byte) 0);
             System.arraycopy(pubKeyBytes, 0, tmp, prepend, pubKeySize-prepend);
+            pubKeyBytes = tmp;
         }
         else if (pubKeyBytes.length > pubKeySize) {
             if (pubKeyBytes[0] == 0) {
