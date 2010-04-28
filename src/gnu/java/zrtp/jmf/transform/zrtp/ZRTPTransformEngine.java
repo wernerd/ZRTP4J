@@ -155,10 +155,10 @@ public class ZRTPTransformEngine
 {
     
     /**
-     * Very simple Timout provider class.
+     * Very simple Timeout provider class.
      * 
      * This very simple timeout provider can handle one timeout request at
-     * one time only. A secod request would overwrite the first one and would
+     * one time only. A second request would overwrite the first one and would
      * lead to unexpected results.
      * 
      * @author Werner Dittmann <Werner.Dittmann@t-online.de>
@@ -444,9 +444,10 @@ public class ZRTPTransformEngine
             // if packet was valid (i.e. not null) and ZRTP engine started and
             // not yet in secure state - emulate a Conf2Ack packet. See ZRTP spec
             // chap. 5.6
-            if (pkt != null && started && 
-                    !zrtpEngine.inState(ZrtpStateClass.ZrtpStates.WaitConfAck)) {
-                zrtpEngine.conf2AckSecure();
+            if (pkt != null && started) {
+            	if (zrtpEngine.inState(ZrtpStateClass.ZrtpStates.WaitConfAck)) {
+            		zrtpEngine.conf2AckSecure();
+            	}
             }
             return pkt;
         }
