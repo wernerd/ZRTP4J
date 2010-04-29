@@ -55,7 +55,7 @@ import org.bouncycastle.crypto.engines.AESFastEngine;
  * master encryption key and master salt key are determined outside the scope
  * of SRTP implementation. They can be assigned manually, or can be assigned
  * automatically using some key management protocol, such as MIKEY (RFC3880) or
- * Phil Zimmermann's ZRTP protocol (draft-zimmermann-avt-zrtp-01).
+ * Phil Zimmermann's ZRTP protocol.
  * 
  * @author Bing SU (nova.su@gmail.com)
  */
