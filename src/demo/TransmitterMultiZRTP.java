@@ -145,6 +145,7 @@ public class TransmitterMultiZRTP {
                     System.err.println("TX: Initialize failed, multi: "
                             + multiStream);
 
+                System.out.println("Hello hash: " + zrtpEngine.getHelloHash());
                 // IMPORTANT: set other data only _after_ initialization
                 if (multiStream) {
                     MyCallbackMulti mcb = new MyCallbackMulti();
