@@ -1,6 +1,5 @@
 package demo;
 
-import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -9,7 +8,6 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemListener;
-import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -17,7 +15,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -27,9 +24,7 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
-//import javax.swing.*;
 import javax.swing.event.*;
-import javax.swing.table.*;
 
 import java.awt.event.ItemEvent;
 
@@ -352,7 +347,7 @@ public class ConfigureDemo extends JFrame {
     }
 
     public static void main(String[] args) {
-        ConfigureDemo grid = new ConfigureDemo();
+        new ConfigureDemo();
     }
 
 }
