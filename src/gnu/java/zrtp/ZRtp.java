@@ -539,8 +539,7 @@ public class ZRtp {
      * Get the ZRTP Hello Hash data.
      * 
      * Use this method to get the ZRTP Hello Hash data. The method returns the
-     * data as a string containing hex-digits. Refer to ZRTP specification,
-     * chapter 9.1.
+     * data as a string.
      * 
      * @return a std:string containing the Hello hash value as hex-digits. The
      *         hello hash is available immediately after class instantiation.
@@ -549,6 +548,23 @@ public class ZRtp {
         String pv = new String(ZrtpConstants.zrtpVersion);
         String hs = new String(ZrtpUtils.bytesToHexString(helloHash, hashLengthImpl));
         return pv + " " + hs;
+    }
+
+    /**
+     * Get the ZRTP Hello Hash data - separate strings.
+     * 
+     * Use this method to get the ZRTP Hello Hash data. The method returns the
+     * data as separate strings.
+     * 
+     * @return String array containing the version string at offset 0, the Hello 
+     *         hash value as hex-digits at offset 1. Hello hash is available 
+     *         immediately after class instantiation.
+     */
+    public String[] getHelloHashSep() {
+        String ret[] = new String[2];
+        ret[0] = new String(ZrtpConstants.zrtpVersion);
+        ret[1] = new String(ZrtpUtils.bytesToHexString(helloHash, hashLengthImpl));
+        return ret;
     }
 
     /**
