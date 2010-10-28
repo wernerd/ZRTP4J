@@ -950,7 +950,6 @@ public class ZrtpStateClass {
                 if (!parent.verifyH2(zpCo)) {
                     return;
                 }
-                sentPacket = null;
                 cancelTimer();         // this cancels the Commit timer T2
 
                 // if our hvi is less than peer's hvi: switch to Responder mode and
@@ -1034,7 +1033,6 @@ public class ZrtpStateClass {
             if (multiStream && (first == 'c' && last == '1')) {
                 cancelTimer();
                 ZrtpPacketConfirm cpkt = new ZrtpPacketConfirm(pkt);
-                sentPacket = null;
 
                 ZrtpPacketConfirm confirm = parent.prepareConfirm2MultiStream(cpkt, errorCode);
 
@@ -1044,8 +1042,8 @@ public class ZrtpStateClass {
                     return;
                 }
                 inState = ZrtpStates.WaitConfAck;
-
                 sentPacket = confirm;
+
                 if (!parent.sendPacketZRTP(sentPacket)) {
                     sendFailed();         // returns to state Initial
                     return;
@@ -1207,7 +1205,6 @@ public class ZrtpStateClass {
             if (first == 'c' && last == '1') {
                 cancelTimer();
                 ZrtpPacketConfirm cpkt= new ZrtpPacketConfirm(pkt);
-                sentPacket = null;
 
                 ZrtpPacketConfirm confirm = parent.prepareConfirm2(cpkt, errorCode);
 
@@ -1217,8 +1214,8 @@ public class ZrtpStateClass {
                     return;
                 }
                 inState = ZrtpStates.WaitConfAck;
-
                 sentPacket = confirm;
+
                 if (!parent.sendPacketZRTP(sentPacket)) {
                     sendFailed();         // returns to state Initial
                     return;
@@ -1311,7 +1308,6 @@ public class ZrtpStateClass {
              */
             if (first == 'c' && last == '2') {
                 ZrtpPacketConfirm cpkt= new ZrtpPacketConfirm(pkt);
-                sentPacket = null;
                 ZrtpPacketConf2Ack confack = parent.prepareConf2Ack(cpkt, errorCode);
 
                 // Something went wrong during processing of the confirm2 packet

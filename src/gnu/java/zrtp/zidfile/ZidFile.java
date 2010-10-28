@@ -66,7 +66,7 @@ public class ZidFile {
      * @return
      *    A pointer to the global ZIDFile singleton instance.
      */
-    public static ZidFile getInstance() {
+    public synchronized static ZidFile getInstance() {
         if (instance == null) {
             instance = new ZidFile();
         }
@@ -118,7 +118,7 @@ public class ZidFile {
      * @return 1 if file could be opened/created, 0 if the ZID instance already
      *         has an open file, -1 if open/creation of file failed.
      */
-    public int open(String name) {
+    public synchronized int open(String name) {
 
         // check for an already active ZID file
         if (zidFile != null) {
@@ -175,7 +175,7 @@ public class ZidFile {
      * @return
      *    True if ZIDFile has an active file, false otherwise
      */
-    public boolean isOpen() { 
+    public synchronized boolean isOpen() { 
         return (zidFile != null); 
     }
 
@@ -183,7 +183,7 @@ public class ZidFile {
          * Close the ZID file. Closes the ZID file, and prepares to open a new
          * ZID file.
          */
-    public void close() {
+    public synchronized void close() {
         if (zidFile != null) {
             try {
                 zidFile.close();
@@ -209,7 +209,7 @@ public class ZidFile {
      *            fills in data .
      * @return Currently always 1 to indicate sucess
      */
-    public int getRecord(ZidRecord zidRecord) {
+    public synchronized int getRecord(ZidRecord zidRecord) {
         long pos = 0L;
         ZidRecord rec = new ZidRecord(null);
         boolean numRead = false;
@@ -287,7 +287,7 @@ public class ZidFile {
      * @return
      *    1 on success
      */
-    public int saveRecord(ZidRecord zidRecord) {
+    public synchronized int saveRecord(ZidRecord zidRecord) {
         try {
             zidFile.seek(zidRecord.getPosition());
             zidFile.write(zidRecord.getBuffer());
@@ -304,172 +304,172 @@ public class ZidFile {
      * @return
      *    Pointer to the ZID
      */
-    public byte[] getZid() { 
+    public synchronized byte[] getZid() { 
         return associatedZid;
     }
 
-    public static void main(String argv[]) {
-
-        byte[] myId = new byte[IDENTIFIER_LENGTH];
-
-        File f = new File("/tmp/tst.zid");
-        f.delete();
-
-        ZidFile zid = ZidFile.getInstance();
-        zid.open("/tmp/tst.zid");
-        ZrtpUtils.hexdump("My ZID: ", zid.getZid(), IDENTIFIER_LENGTH);
-        System.arraycopy(zid.getZid(), 0, myId, 0, IDENTIFIER_LENGTH);
-        zid.close();
-
-        zid.open("/tmp/tst.zid");
-        if (!Arrays.equals(zid.getZid(), myId)) {
-            System.err.println("Ids do not match, wrong own ZID in testfile");
-        }
-        ZrtpUtils.hexdump("My ZID 1: ", zid.getZid(), IDENTIFIER_LENGTH);
-
-        // Create a new ZID record for peer ZID "123456789012"
-        byte[] peer1 = "123456789012".getBytes();
-        ZidRecord zr3 = new ZidRecord(peer1);
-
-        zid.getRecord(zr3);
-        if (!zr3.isValid()) {
-            System.err
-                    .println("New ZID record '123456789012' not set to valid");
-            System.exit(1);
-        }
-        zid.saveRecord(zr3);
-
-        // Create a new ZID record for peer ZID "210987654321"
-        byte[] peer2 = "210987654321".getBytes();
-        ZidRecord zr4 = new ZidRecord(peer2);
-
-        zid.getRecord(zr4);
-        if (!zr4.isValid()) {
-            System.err
-                    .println("New ZID record '210987654321' not set to valid");
-            System.exit(1);
-        }
-        zid.saveRecord(zr4);
-
-        // now set a first RS1 with default expiration interval, check
-        // if set correctly, valid flag and expiration interval
-        byte[] rs1 = "11122233344455566677788899900012".getBytes();
-        zr3.setNewRs1(rs1, -1);
-        if (!zr3.isSameRs1(rs1)) {
-            System.err.println("RS1 was not set (111...012)");
-            System.exit(1);
-        }
-        if (!zr3.isRs1Valid()) {
-            System.err.println("RS1 was not set to valid state (111...012)");
-            System.exit(1);
-        }
-        if (!zr3.isRs1NotExpired()) {
-            System.err.println("RS1 expired (111...012)");
-            System.exit(1);
-        }
-        if (zr3.isRs2Valid()) {
-            System.err.println("RS2 was set to valid state (111...012)");
-            System.exit(1);
-        }
-        zid.saveRecord(zr3);
-
-        byte[] rs2 = "00099988877766655544433322211121".getBytes();
-        zr3.setNewRs1(rs2, -1);
-        if (!zr3.isSameRs1(rs2)) {
-            System.err.println("RS1 was not set (000...121)");
-            System.exit(1);
-        }
-        if (!zr3.isRs1Valid()) {
-            System.err.println("RS1 was not set to valid state (000...121)");
-            System.exit(1);
-        }
-        if (!zr3.isRs1NotExpired()) {
-            System.err.println("RS1 expired (000...121)");
-            System.exit(1);
-        }
-        if (!zr3.isSameRs2(rs1)) {
-            System.err.println("RS2 was not set (111...012)");
-            System.exit(1);
-        }
-        if (!zr3.isRs2Valid()) {
-            System.err.println("RS2 was not set to valid state (111...121)");
-            System.exit(1);
-        }
-        if (!zr3.isRs2NotExpired()) {
-            System.err.println("RS2 expired (111...121)");
-            System.exit(1);
-        }
-        zid.saveRecord(zr3);
-
-        zid.close();
-
-        // Reopen, check if first record is still valid, RSx vaild and
-        // not expired. Then manipulate 2nd record.
-        zid.open("/tmp/tst.zid");
-        ZidRecord zr3a = new ZidRecord(peer1);
-        zid.getRecord(zr3a);
-        if (!zr3a.isSameRs1(rs2)) {
-            System.err.println("Re-read RS1 was not set (000...121)");
-            System.exit(1);
-        }
-        if (!zr3a.isRs1Valid()) {
-            System.err.println("Re-read RS1 was not set to valid state (000...121)");
-            System.exit(1);
-        }
-        if (!zr3a.isRs1NotExpired()) {
-            System.err.println("Re-read RS1 expired (000...121)");
-            System.exit(1);
-        }
-        if (!zr3a.isSameRs2(rs1)) {
-            System.err.println("Re-read RS2 was not set (111...012)");
-            System.exit(1);
-        }
-        if (!zr3a.isRs2Valid()) {
-            System.err.println("Re-read RS2 was not set to valid state (111...121)");
-            System.exit(1);
-        }
-        if (!zr3a.isRs2NotExpired()) {
-            System.err.println("Re-read RS2 expired (111...121)");
-            System.exit(1);
-        }
-        
-        ZidRecord zr5 = new ZidRecord(peer2);
-        zid.getRecord(zr5);
-
-        byte[] rs3 = "aaa22233344455566677788899900012".getBytes();
-        zr5.setNewRs1(rs3, 5);
-        if (!zr5.isSameRs1(rs3)) {
-            System.err.println("RS1 (2) was not set (aaa...012)");
-            System.exit(1);
-        }
-        if (!zr5.isRs1Valid()) {
-            System.err.println("RS1 (2) was not set to valid state (aaa...012)");
-            System.exit(1);
-        }
-        if (!zr5.isRs1Valid()) {
-            System.err.println("RS1 (2) was not set to valid state (aaa...012)");
-            System.exit(1);
-        }
-        if (!zr5.isRs1NotExpired()) {
-            System.err.println("RS1 (2) expired (aaa...012)");
-            System.exit(1);
-        }
-        
-        try {
-            Thread.sleep(6000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        if (zr5.isRs1NotExpired()) {
-            System.err.println("RS1 (2) is not expired after defined interval (aaa...012)");
-            System.exit(1);
-        }
-        
-        byte[] rs4 = "bbb99988877766655544433322211121".getBytes();
-        zr5.setNewRs1(rs4, 256);
-        zid.saveRecord(zr5);
-        zid.close();
-        System.err.println("All done");
-    }
+//    public static void main(String argv[]) {
+//
+//        byte[] myId = new byte[IDENTIFIER_LENGTH];
+//
+//        File f = new File("/tmp/tst.zid");
+//        f.delete();
+//
+//        ZidFile zid = ZidFile.getInstance();
+//        zid.open("/tmp/tst.zid");
+//        ZrtpUtils.hexdump("My ZID: ", zid.getZid(), IDENTIFIER_LENGTH);
+//        System.arraycopy(zid.getZid(), 0, myId, 0, IDENTIFIER_LENGTH);
+//        zid.close();
+//
+//        zid.open("/tmp/tst.zid");
+//        if (!Arrays.equals(zid.getZid(), myId)) {
+//            System.err.println("Ids do not match, wrong own ZID in testfile");
+//        }
+//        ZrtpUtils.hexdump("My ZID 1: ", zid.getZid(), IDENTIFIER_LENGTH);
+//
+//        // Create a new ZID record for peer ZID "123456789012"
+//        byte[] peer1 = "123456789012".getBytes();
+//        ZidRecord zr3 = new ZidRecord(peer1);
+//
+//        zid.getRecord(zr3);
+//        if (!zr3.isValid()) {
+//            System.err
+//                    .println("New ZID record '123456789012' not set to valid");
+//            System.exit(1);
+//        }
+//        zid.saveRecord(zr3);
+//
+//        // Create a new ZID record for peer ZID "210987654321"
+//        byte[] peer2 = "210987654321".getBytes();
+//        ZidRecord zr4 = new ZidRecord(peer2);
+//
+//        zid.getRecord(zr4);
+//        if (!zr4.isValid()) {
+//            System.err
+//                    .println("New ZID record '210987654321' not set to valid");
+//            System.exit(1);
+//        }
+//        zid.saveRecord(zr4);
+//
+//        // now set a first RS1 with default expiration interval, check
+//        // if set correctly, valid flag and expiration interval
+//        byte[] rs1 = "11122233344455566677788899900012".getBytes();
+//        zr3.setNewRs1(rs1, -1);
+//        if (!zr3.isSameRs1(rs1)) {
+//            System.err.println("RS1 was not set (111...012)");
+//            System.exit(1);
+//        }
+//        if (!zr3.isRs1Valid()) {
+//            System.err.println("RS1 was not set to valid state (111...012)");
+//            System.exit(1);
+//        }
+//        if (!zr3.isRs1NotExpired()) {
+//            System.err.println("RS1 expired (111...012)");
+//            System.exit(1);
+//        }
+//        if (zr3.isRs2Valid()) {
+//            System.err.println("RS2 was set to valid state (111...012)");
+//            System.exit(1);
+//        }
+//        zid.saveRecord(zr3);
+//
+//        byte[] rs2 = "00099988877766655544433322211121".getBytes();
+//        zr3.setNewRs1(rs2, -1);
+//        if (!zr3.isSameRs1(rs2)) {
+//            System.err.println("RS1 was not set (000...121)");
+//            System.exit(1);
+//        }
+//        if (!zr3.isRs1Valid()) {
+//            System.err.println("RS1 was not set to valid state (000...121)");
+//            System.exit(1);
+//        }
+//        if (!zr3.isRs1NotExpired()) {
+//            System.err.println("RS1 expired (000...121)");
+//            System.exit(1);
+//        }
+//        if (!zr3.isSameRs2(rs1)) {
+//            System.err.println("RS2 was not set (111...012)");
+//            System.exit(1);
+//        }
+//        if (!zr3.isRs2Valid()) {
+//            System.err.println("RS2 was not set to valid state (111...121)");
+//            System.exit(1);
+//        }
+//        if (!zr3.isRs2NotExpired()) {
+//            System.err.println("RS2 expired (111...121)");
+//            System.exit(1);
+//        }
+//        zid.saveRecord(zr3);
+//
+//        zid.close();
+//
+//        // Reopen, check if first record is still valid, RSx vaild and
+//        // not expired. Then manipulate 2nd record.
+//        zid.open("/tmp/tst.zid");
+//        ZidRecord zr3a = new ZidRecord(peer1);
+//        zid.getRecord(zr3a);
+//        if (!zr3a.isSameRs1(rs2)) {
+//            System.err.println("Re-read RS1 was not set (000...121)");
+//            System.exit(1);
+//        }
+//        if (!zr3a.isRs1Valid()) {
+//            System.err.println("Re-read RS1 was not set to valid state (000...121)");
+//            System.exit(1);
+//        }
+//        if (!zr3a.isRs1NotExpired()) {
+//            System.err.println("Re-read RS1 expired (000...121)");
+//            System.exit(1);
+//        }
+//        if (!zr3a.isSameRs2(rs1)) {
+//            System.err.println("Re-read RS2 was not set (111...012)");
+//            System.exit(1);
+//        }
+//        if (!zr3a.isRs2Valid()) {
+//            System.err.println("Re-read RS2 was not set to valid state (111...121)");
+//            System.exit(1);
+//        }
+//        if (!zr3a.isRs2NotExpired()) {
+//            System.err.println("Re-read RS2 expired (111...121)");
+//            System.exit(1);
+//        }
+//        
+//        ZidRecord zr5 = new ZidRecord(peer2);
+//        zid.getRecord(zr5);
+//
+//        byte[] rs3 = "aaa22233344455566677788899900012".getBytes();
+//        zr5.setNewRs1(rs3, 5);
+//        if (!zr5.isSameRs1(rs3)) {
+//            System.err.println("RS1 (2) was not set (aaa...012)");
+//            System.exit(1);
+//        }
+//        if (!zr5.isRs1Valid()) {
+//            System.err.println("RS1 (2) was not set to valid state (aaa...012)");
+//            System.exit(1);
+//        }
+//        if (!zr5.isRs1Valid()) {
+//            System.err.println("RS1 (2) was not set to valid state (aaa...012)");
+//            System.exit(1);
+//        }
+//        if (!zr5.isRs1NotExpired()) {
+//            System.err.println("RS1 (2) expired (aaa...012)");
+//            System.exit(1);
+//        }
+//        
+//        try {
+//            Thread.sleep(6000);
+//        } catch (InterruptedException e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//        }
+//        if (zr5.isRs1NotExpired()) {
+//            System.err.println("RS1 (2) is not expired after defined interval (aaa...012)");
+//            System.exit(1);
+//        }
+//        
+//        byte[] rs4 = "bbb99988877766655544433322211121".getBytes();
+//        zr5.setNewRs1(rs4, 256);
+//        zid.saveRecord(zr5);
+//        zid.close();
+//        System.err.println("All done");
+//    }
 }
