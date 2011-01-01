@@ -138,7 +138,8 @@ public class TransmitterMultiZRTP {
                 zrtpEngine = transConnector.getEngine();
                 
                 ZrtpConfigure config = new ZrtpConfigure();
-                config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
+                config.setStandardConfig();
+//                config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
 //                config.setMandatoryOnly();
                 // IMPORTANT: crypto provider must be set before initialization
                 if (!zrtpEngine.initialize("test_r.zid", config))

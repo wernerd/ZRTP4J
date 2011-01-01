@@ -119,7 +119,8 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             zrtpEngine = transConnector.getEngine();
             zrtpEngine.setUserCallback(new MyCallback());
             ZrtpConfigure config = new ZrtpConfigure();
-            config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
+            config.setStandardConfig();
+//            config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
            
             if (!zrtpEngine.initialize("test_t.zid", config))
                 System.out.println("iniatlize failed");

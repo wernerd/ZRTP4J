@@ -197,16 +197,12 @@ public class ZrtpConstants {
 
     /**
      * The names of the algorithms as defined in ZRTP specification
-     * 
-     * The arrays are sorted: the most secure / best algorithm is first in the
-     * array. If we add an algorithm here then we need to adjust the corresponding
-     * value in ZrtpTextData.h as well.
      */
 
     public static final byte[] s256 = {
         (byte)0x53, (byte)0x32, (byte)0x35, (byte)0x36};        // "S256"
     public static final byte[] s384 = {
-        (byte)0x53, (byte)0x33, (byte)0x38, (byte)0x34};        // "S§($"
+        (byte)0x53, (byte)0x33, (byte)0x38, (byte)0x34};        // "S384"
     public static final byte[] aes3 = {
         (byte)0x41, (byte)0x45, (byte)0x53, (byte)0x33};        // "AES3"
     public static final byte[] aes1 = {
@@ -225,6 +221,10 @@ public class ZrtpConstants {
         (byte)0x48, (byte)0x53, (byte)0x33, (byte)0x32};        // "HS32"
     public static final byte[] hs80 = {
         (byte)0x48, (byte)0x53, (byte)0x38, (byte)0x30};        // "HS80"
+    public static final byte[] sk32 = {
+        (byte)0x53, (byte)0x4B, (byte)0x33, (byte)0x32};        // "SK32"
+    public static final byte[] sk64 = {
+        (byte)0x53, (byte)0x4B, (byte)0x36, (byte)0x34};        // "SK64"
 
     // Keep the Hash identifers in supportedHashes in the same order than the
     // following enum, starting with zero.
@@ -247,6 +247,9 @@ public class ZrtpConstants {
         private SupportedSymCiphers(byte[] nm) {
             name = nm;
         }
+    }
+    public static enum SupportedSymAlgos {
+        AES, TwoFish
     }
 
     // Keep the PubKey identifers in supportedPubKey in the same order than the
@@ -276,7 +279,9 @@ public class ZrtpConstants {
     // Keep the auth len identifers in supportedAuthLen in the same order than the
     // following enum, starting with zero.
     public static enum SupportedAuthLengths {
+        SK32(sk32),
         HS32(hs32),
+        SK64(sk64),
         HS80(hs80);
         
         public byte[] name;
@@ -284,6 +289,11 @@ public class ZrtpConstants {
             name = nm;
         }
     }
+    
+    public static enum SupportedAuthAlgos {
+        HS, SK
+    }
+
 
     // The Diffie-Helman constants as defined in the ZRTP specification
     // The DH prime for DH2k (2048 bit) as defined in RFC 3526

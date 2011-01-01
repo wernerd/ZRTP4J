@@ -504,6 +504,22 @@ public class ZRTPTransformEngine
     public boolean srtpSecretsReady(ZrtpSrtpSecrets secrets, EnableSecurity part) {
 
         SRTPPolicy srtpPolicy = null;
+        int cipher = 0, authn = 0, authKeyLen = 0;
+
+        if (secrets.getAuthAlgorithm() == ZrtpConstants.SupportedAuthAlgos.HS) {
+            authn = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            authKeyLen = 20;
+        }
+        
+        if (secrets.getAuthAlgorithm() == ZrtpConstants.SupportedAuthAlgos.SK) {
+            authn = SRTPPolicy.SKEIN_AUTHENTICATION;
+            authKeyLen = 32;
+        }
+        if (secrets.getSymEncAlgorithm() == ZrtpConstants.SupportedSymAlgos.AES)
+            cipher = SRTPPolicy.AESCM_ENCRYPTION;
+        
+        if (secrets.getSymEncAlgorithm() == ZrtpConstants.SupportedSymAlgos.TwoFish)
+            cipher = SRTPPolicy.TWOFISH_ENCRYPTION;
 
         if (part == EnableSecurity.ForSender) {
             // To encrypt packets: intiator uses initiator keys,
@@ -511,9 +527,9 @@ public class ZRTPTransformEngine
             // Create a "half baked" crypto context first and store it. This is
             // the main crypto context for the sending part of the connection.
             if (secrets.getRole() == Role.Initiator) {
-                srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
+                srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getInitKeyLen() / 8,            // key length
-                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 20, // auth key
+                        authn, authKeyLen,                      // auth key
                                                                 // length
                         secrets.getSrtpAuthTagLen() / 8,        // auth tag length
                         secrets.getInitSaltLen() / 8            // salt length
@@ -523,9 +539,9 @@ public class ZRTPTransformEngine
                         srtpPolicy, srtpPolicy);
                 srtpOutTransformer = engine.getRTPTransformer();
             } else {
-                srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
+                srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getRespKeyLen() / 8,            // key length
-                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 20, // auth key
+                        authn, authKeyLen,                      // auth key
                                                                 // length
                         secrets.getSrtpAuthTagLen() / 8,        // auth taglength
                         secrets.getRespSaltLen() / 8            // salt length
@@ -542,9 +558,9 @@ public class ZRTPTransformEngine
             // responder initiator keys
             // See comment above.
             if (secrets.getRole() == Role.Initiator) {
-                srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
+                srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getRespKeyLen() / 8,            // key length
-                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 20, // auth key
+                        authn, authKeyLen,                      // auth key
                                                                 // length
                         secrets.getSrtpAuthTagLen() / 8,        // auth tag length
                         secrets.getRespSaltLen() / 8            // salt length
@@ -555,9 +571,9 @@ public class ZRTPTransformEngine
                         srtpPolicy, srtpPolicy);
                 srtpInTransformer = engine.getRTPTransformer();
             } else {
-                srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION,
+                srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getInitKeyLen() / 8,            // key length
-                        SRTPPolicy.HMACSHA1_AUTHENTICATION, 20, // auth key
+                        authn, authKeyLen,                      // auth key
                                                                 // length
                         secrets.getSrtpAuthTagLen() / 8,        // auth tag length
                         secrets.getInitSaltLen() / 8            // salt length

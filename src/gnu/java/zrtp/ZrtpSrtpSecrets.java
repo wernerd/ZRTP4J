@@ -26,7 +26,7 @@ package gnu.java.zrtp;
  */
 
 public class ZrtpSrtpSecrets {
-
+        ZrtpConstants.SupportedSymAlgos symEncAlgorithm;     ///< symmetrical cipher algorithm
         protected byte[] keyInitiator;
         protected byte[] saltInitiator;
         protected byte[] keyResponder;
@@ -35,6 +35,7 @@ public class ZrtpSrtpSecrets {
         protected int initSaltLen;
         protected int respKeyLen;
         protected int respSaltLen;
+        ZrtpConstants.SupportedAuthAlgos authAlgorithm;       ///< SRTP authentication algorithm
         protected int srtpAuthTagLen;
         protected ZrtpCallback.Role  role;
 
@@ -179,6 +180,20 @@ public class ZrtpSrtpSecrets {
          */
         public void setRespSaltLen(int respSaltLen) {
             this.respSaltLen = respSaltLen;
+        }
+
+        /**
+         * @return the symEncAlgorithm
+         */
+        public ZrtpConstants.SupportedSymAlgos getSymEncAlgorithm() {
+            return symEncAlgorithm;
+        }
+
+        /**
+         * @return the authAlgorithm
+         */
+        public ZrtpConstants.SupportedAuthAlgos getAuthAlgorithm() {
+            return authAlgorithm;
         }
 
 }

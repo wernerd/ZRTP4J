@@ -196,11 +196,6 @@ public class ZrtpUtils {
     }
 
     public static int byteArrayCompare(byte[] arg1, byte[] arg2, int length) {
-//        if (arg1.length > length || arg2.length > length) {
-//            return 0;
-//        }
-//        hexdump("arg1", arg1, arg1.length);
-//        hexdump("arg2", arg2, arg2.length);
         for (int i = 0; i < length; i++) {
             if ((arg1[i]&0xff) == (arg2[i]&0xff))
                 continue;
@@ -209,51 +204,51 @@ public class ZrtpUtils {
         return 0;
     }
    
-    public static void main(String argv[]) {
-        byte[] a = new byte[256];
-        for (int i = 0; i < a.length; i++) {
-            a[i] = (byte)i;
-        }
-        hexdump("Test", a, a.length);
-        a = int32ToArray(16909060); // shall result in 01 02 03 04
-        System.err.println("int: " + 0x01020304);
-        hexdump("int32to", a, a.length);
-
-        String s = new String(bytesToHexString(a, a.length));
-        System.err.println("Byte to hex: " + s);
-        
-        byte[] b = new byte[4];
-        byte[] c = new byte[4];
-        
-        b[0] = 2; c[0] = 2; 
-        b[1] = 3; c[1] = 3;
-        b[2] = 4; c[2] = 5;
-        b[3] = 5; c[3] = 1;       
-        System.err.println("b compare c (expected -1): " + byteArrayCompare(b, c, 4));
-
-        b[0] = 2; c[0] = 2; 
-        b[1] = 4; c[1] = 3;
-        b[2] = 4; c[2] = 5;
-        b[3] = 5; c[3] = 1;
-        System.err.println("b compare c (expected 1): " + byteArrayCompare(b, c, 4));
-
-        // treat bytes as unsigned
-        b[0] = (byte)150; c[0] = 2; 
-        b[1] = 4; c[1] = 3;
-        b[2] = 4; c[2] = 5;
-        b[3] = 5; c[3] = 1;
-        System.err.println("b compare c (expected 1): " + byteArrayCompare(b, c, 4));
-
-        b[0] = 2; c[0] = 2; 
-        b[1] = 3; c[1] = 3;
-        b[2] = 4; c[2] = 4;
-        b[3] = 5; c[3] = 5;       
-        System.err.println("b compare c (expected 0): " + byteArrayCompare(b, c, 4));
-
-        b[0] = 2; c[0] = 2; 
-        b[1] = 3; c[1] = 3;
-        b[2] = (byte)150; c[2] = (byte)150;
-        b[3] = 5; c[3] = 5;       
-        System.err.println("b compare c (expected 0): " + byteArrayCompare(b, c, 4));
-    }
+//    public static void main(String argv[]) {
+//        byte[] a = new byte[256];
+//        for (int i = 0; i < a.length; i++) {
+//            a[i] = (byte)i;
+//        }
+//        hexdump("Test", a, a.length);
+//        a = int32ToArray(16909060); // shall result in 01 02 03 04
+//        System.err.println("int: " + 0x01020304);
+//        hexdump("int32to", a, a.length);
+//
+//        String s = new String(bytesToHexString(a, a.length));
+//        System.err.println("Byte to hex: " + s);
+//        
+//        byte[] b = new byte[4];
+//        byte[] c = new byte[4];
+//        
+//        b[0] = 2; c[0] = 2; 
+//        b[1] = 3; c[1] = 3;
+//        b[2] = 4; c[2] = 5;
+//        b[3] = 5; c[3] = 1;       
+//        System.err.println("b compare c (expected -1): " + byteArrayCompare(b, c, 4));
+//
+//        b[0] = 2; c[0] = 2; 
+//        b[1] = 4; c[1] = 3;
+//        b[2] = 4; c[2] = 5;
+//        b[3] = 5; c[3] = 1;
+//        System.err.println("b compare c (expected 1): " + byteArrayCompare(b, c, 4));
+//
+//        // treat bytes as unsigned
+//        b[0] = (byte)150; c[0] = 2; 
+//        b[1] = 4; c[1] = 3;
+//        b[2] = 4; c[2] = 5;
+//        b[3] = 5; c[3] = 1;
+//        System.err.println("b compare c (expected 1): " + byteArrayCompare(b, c, 4));
+//
+//        b[0] = 2; c[0] = 2; 
+//        b[1] = 3; c[1] = 3;
+//        b[2] = 4; c[2] = 4;
+//        b[3] = 5; c[3] = 5;       
+//        System.err.println("b compare c (expected 0): " + byteArrayCompare(b, c, 4));
+//
+//        b[0] = 2; c[0] = 2; 
+//        b[1] = 3; c[1] = 3;
+//        b[2] = (byte)150; c[2] = (byte)150;
+//        b[3] = 5; c[3] = 5;       
+//        System.err.println("b compare c (expected 0): " + byteArrayCompare(b, c, 4));
+//    }
 }

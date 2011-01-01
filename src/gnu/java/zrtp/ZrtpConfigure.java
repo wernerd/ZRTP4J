@@ -127,7 +127,9 @@ public class ZrtpConfigure {
 
         sasTypes.addAlgo(ZrtpConstants.SupportedSASTypes.B32);
 
+        authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.SK32);
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.HS32);
+        authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.SK64);
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.HS80);
     }
 

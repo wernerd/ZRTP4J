@@ -2072,14 +2072,38 @@ public class ZRtp {
         ZrtpSrtpSecrets sec = new ZrtpSrtpSecrets();
         
         sec.keyInitiator = srtpKeyI;
-        sec.initKeyLen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 128 :256;
+
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1) {
+            sec.symEncAlgorithm = ZrtpConstants.SupportedSymAlgos.AES;
+            sec.initKeyLen = 128;
+            sec.respKeyLen = 128;
+        }
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES3) {
+            sec.symEncAlgorithm = ZrtpConstants.SupportedSymAlgos.AES;
+            sec.initKeyLen = 256;
+            sec.respKeyLen = 256;
+        }
         sec.saltInitiator = srtpSaltI;
         sec.initSaltLen = 112;
         sec.keyResponder = srtpKeyR;
-        sec.respKeyLen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 128 :256;
         sec.saltResponder = srtpSaltR;
         sec.respSaltLen = 112;
-        sec.srtpAuthTagLen = (authLength == ZrtpConstants.SupportedAuthLengths.HS32)? 32 : 80;
+        if (authLength == ZrtpConstants.SupportedAuthLengths.HS32) {
+            sec.authAlgorithm = ZrtpConstants.SupportedAuthAlgos.HS;
+            sec.srtpAuthTagLen = 32;
+        }
+        if (authLength == ZrtpConstants.SupportedAuthLengths.SK32) {
+            sec.authAlgorithm = ZrtpConstants.SupportedAuthAlgos.SK;
+            sec.srtpAuthTagLen = 32;
+        }
+        if (authLength == ZrtpConstants.SupportedAuthLengths.HS80) {
+            sec.authAlgorithm = ZrtpConstants.SupportedAuthAlgos.HS;
+            sec.srtpAuthTagLen = 80;
+        }
+        if (authLength == ZrtpConstants.SupportedAuthLengths.SK64) {
+            sec.authAlgorithm = ZrtpConstants.SupportedAuthAlgos.SK;
+            sec.srtpAuthTagLen = 64;
+        }
         sec.setRole(myRole);
         
         return callback.srtpSecretsReady(sec, part);

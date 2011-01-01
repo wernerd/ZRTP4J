@@ -29,8 +29,10 @@ package gnu.java.zrtp.jmf.transform.srtp;
 import gnu.java.zrtp.jmf.transform.RawPacket;
 
 import org.bouncycastle.crypto.digests.SHA1Digest;
-import org.bouncycastle.crypto.macs.HMac;
+import org.bouncycastle.crypto.macs.*;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.crypto.params.ParametersForSkein;
+import org.bouncycastle.crypto.Mac;
 
 import org.bouncycastle.crypto.engines.AESFastEngine;
 
@@ -139,7 +141,7 @@ public class SRTPCryptoContext
     /**
      * The HMAC object we used to do packet authentication
      */
-    private HMac hmacSha1;             // used for various HMAC computations
+    private Mac mac;             // used for various HMAC computations
     
     // The symmetric cipher engines we need here
     private AESFastEngine AEScipher = null;
@@ -229,24 +231,23 @@ public class SRTPCryptoContext
         System.arraycopy(masterS, 0, masterSalt, 0, policy
                 .getSaltKeyLength());
 
-        hmacSha1 = new HMac(new SHA1Digest());
-        AEScipher = new AESFastEngine();
-        
         switch (policy.getEncType()) {
         case SRTPPolicy.NULL_ENCRYPTION:
             encKey = null;
             saltKey = null;
             break;
 
-        case SRTPPolicy.AESF8_ENCRYPTION:
-            AEScipherF8 = new AESFastEngine();  // Cipher.getInstance("AES/ECB/NOPADDING", cryptoProvider);
            
         case SRTPPolicy.AESCM_ENCRYPTION:
+            AEScipher = new AESFastEngine();
             encKey = new byte[this.policy.getEncKeyLength()];
             saltKey = new byte[this.policy.getSaltKeyLength()];
+            
+        case SRTPPolicy.AESF8_ENCRYPTION:
+            AEScipherF8 = new AESFastEngine();  // Cipher.getInstance("AES/ECB/NOPADDING", cryptoProvider);
             break;
         }
-
+        
         switch (policy.getAuthType()) {
         case SRTPPolicy.NULL_AUTHENTICATION:
             authKey = null;
@@ -254,10 +255,17 @@ public class SRTPCryptoContext
             break;
 
         case SRTPPolicy.HMACSHA1_AUTHENTICATION:
+            mac = new HMac(new SHA1Digest());
             authKey = new byte[policy.getAuthKeyLength()];
-            tagStore = new byte[hmacSha1.getMacSize()];
+            tagStore = new byte[mac.getMacSize()];
             break;
             
+        case SRTPPolicy.SKEIN_AUTHENTICATION:
+            mac = new SkeinMac();
+            authKey = new byte[policy.getAuthKeyLength()];
+            tagStore = new byte[policy.getAuthTagLength()];
+            break;
+
         default:
             tagStore = null;
         }
@@ -341,8 +349,8 @@ public class SRTPCryptoContext
         }
 
         /* Authenticate the packet */
-        if (policy.getAuthType() == SRTPPolicy.HMACSHA1_AUTHENTICATION) {
-            authenticatePacketHMCSHA1(pkt, roc);
+        if (policy.getAuthType() != SRTPPolicy.HMACSHA1_AUTHENTICATION) {
+            authenticatePacket(pkt, roc);
             pkt.append(tagStore, policy.getAuthTagLength());
         }
 
@@ -387,7 +395,7 @@ public class SRTPCryptoContext
             return false;
         }
         /* Authenticate the packet */
-        if (policy.getAuthType() == SRTPPolicy.HMACSHA1_AUTHENTICATION) {
+        if (policy.getAuthType() != SRTPPolicy.NULL_AUTHENTICATION) {
             int tagLength = policy.getAuthTagLength();
 
             // get original authentication and store in tempStore
@@ -397,7 +405,7 @@ public class SRTPCryptoContext
             pkt.shrink(tagLength);
 
             // save computed authentication in tagStore
-            authenticatePacketHMCSHA1(pkt, guessedROC);
+            authenticatePacket(pkt, guessedROC);
 
             for (int i = 0; i < tagLength; i++) {
                 if ((tempStore[i]&0xff) == (tagStore[i]&0xff))
@@ -482,22 +490,23 @@ public class SRTPCryptoContext
     }
 
     /**
-     * Authenticate a packet using HMC SHA1 method.
+     * Authenticate a packet.
+     * 
      * Calculated authentication tag is returned.
      *
      * @param pkt the RTP packet to be authenticated
      * @return authentication tag of pkt
      */
-    private void authenticatePacketHMCSHA1(RawPacket pkt, int rocIn) {
+    private void authenticatePacket(RawPacket pkt, int rocIn) {
 
-        hmacSha1.update(pkt.getBuffer(), 0, pkt.getLength());
+        mac.update(pkt.getBuffer(), 0, pkt.getLength());
         // byte[] rb = new byte[4];
         rbStore[0] = (byte) (rocIn >> 24);
         rbStore[1] = (byte) (rocIn >> 16);
         rbStore[2] = (byte) (rocIn >> 8);
         rbStore[3] = (byte) rocIn;
-        hmacSha1.update(rbStore, 0, rbStore.length);
-        hmacSha1.doFinal(tagStore, 0);
+        mac.update(rbStore, 0, rbStore.length);
+        mac.doFinal(tagStore, 0);
     }
 
     /**
@@ -587,10 +596,19 @@ public class SRTPCryptoContext
             computeIv(label, index);
             cipherCtr.getCipherStream(AEScipher, authKey, policy.getAuthKeyLength(), ivStore);
 
-            KeyParameter key =  new KeyParameter(authKey);
-            hmacSha1.init(key);
-        }
+            switch ((policy.getAuthType())) {
+            case SRTPPolicy.HMACSHA1_AUTHENTICATION:
+                KeyParameter key =  new KeyParameter(authKey);
+                mac.init(key);
+                break;
 
+            case SRTPPolicy.SKEIN_AUTHENTICATION:
+                // Skein MAC uses number of bits as MAC size, not just bytes
+                ParametersForSkein pfs = new ParametersForSkein(new KeyParameter(authKey), 512, tagStore.length*8);
+                mac.init(pfs);
+                break;
+            }
+        }
         // compute the session salt
         label = 0x02;
         computeIv(label, index);
