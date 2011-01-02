@@ -349,7 +349,7 @@ public class SRTPCryptoContext
         }
 
         /* Authenticate the packet */
-        if (policy.getAuthType() != SRTPPolicy.HMACSHA1_AUTHENTICATION) {
+        if (policy.getAuthType() != SRTPPolicy.NULL_AUTHENTICATION) {
             authenticatePacket(pkt, roc);
             pkt.append(tagStore, policy.getAuthTagLength());
         }
@@ -604,7 +604,8 @@ public class SRTPCryptoContext
 
             case SRTPPolicy.SKEIN_AUTHENTICATION:
                 // Skein MAC uses number of bits as MAC size, not just bytes
-                ParametersForSkein pfs = new ParametersForSkein(new KeyParameter(authKey), 512, tagStore.length*8);
+                ParametersForSkein pfs = new ParametersForSkein(new KeyParameter(authKey),
+                        ParametersForSkein.Skein512, tagStore.length*8);
                 mac.init(pfs);
                 break;
             }
