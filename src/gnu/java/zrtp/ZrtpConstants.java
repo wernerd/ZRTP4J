@@ -225,6 +225,10 @@ public class ZrtpConstants {
         (byte)0x53, (byte)0x4B, (byte)0x33, (byte)0x32};        // "SK32"
     public static final byte[] sk64 = {
         (byte)0x53, (byte)0x4B, (byte)0x36, (byte)0x34};        // "SK64"
+    public static final byte[] ec25 = {
+        (byte)0x45, (byte)0x43, (byte)0x32, (byte)0x35};        // "EC25"
+    public static final byte[] ec38 = {
+        (byte)0x45, (byte)0x43, (byte)0x33, (byte)0x38};        // "EC38"
 
     // Keep the Hash identifers in supportedHashes in the same order than the
     // following enum, starting with zero.
@@ -255,6 +259,8 @@ public class ZrtpConstants {
     // Keep the PubKey identifers in supportedPubKey in the same order than the
     // following enum, starting with zero.
     public static enum SupportedPubKeys {
+        EC25(ec25),
+        EC38(ec38),
         DH2K(dh2k),
         DH3K(dh3k),
         MULT(mult);

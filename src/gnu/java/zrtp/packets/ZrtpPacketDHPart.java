@@ -67,7 +67,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
      * 
      * @param pkt type of DH key agreement to use
      */
-    public ZrtpPacketDHPart(final ZrtpConstants.SupportedPubKeys pkt) {    // TODO use enum when ready
+    public ZrtpPacketDHPart(final ZrtpConstants.SupportedPubKeys pkt) {
         super(null);
         setPubKeyType(pkt);
     }
@@ -87,9 +87,14 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         else if (len == 117) {
             dhLength = 384;
         }
+        else if (len == 37) {
+            dhLength = 64;
+        }
+        else if (len == 45) {
+            dhLength = 96;
+        }
         else {
             dhLength = 0;
-            System.err.println("Wrong DHPart length: " + len);  // TODO throw an exception?
             return;
         }
     }
@@ -101,6 +106,14 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         else if (pkt == ZrtpConstants.SupportedPubKeys.DH3K) {
             dhLength = 384;
         }
+        else if (pkt == ZrtpConstants.SupportedPubKeys.EC25) {
+            dhLength = 64;
+        }
+        else if (pkt == ZrtpConstants.SupportedPubKeys.EC38) {
+            dhLength = 96;
+        }
+        else
+            return;
         // compute total length of ZRTP message including space for CRC
         int length = DHPART_FIXED_LENGTH + dhLength + (2 * ZRTP_WORD_SIZE);  // HMAC field is 2*ZRTP_WORD_SIZE
         
