@@ -1081,41 +1081,34 @@ public class ZRtp {
              * resulted in negtive value. BigInteger adds a leading zero to hide
              * the negative sign bit.
              */
-            if (pubKeyBytes.length < pubKeySize) {
-                int prepend = pubKeySize - pubKeyBytes.length;
-                byte[] tmp = new byte[pubKeySize];
-                Arrays.fill(tmp, (byte) 0);
-                System.arraycopy(pubKeyBytes, 0, tmp, prepend, pubKeySize
-                        - prepend);
-                pubKeyBytes = tmp;
-            }
-            else if (pubKeyBytes.length > pubKeySize) {
-                if (pubKeyBytes[0] == 0) {
-                    byte[] tmp = new byte[pubKeySize];
-                    System.arraycopy(pubKeyBytes, 1, tmp, 0, pubKeySize);
-                    pubKeyBytes = tmp;
-                }
-                else {
+            if (pubKeyBytes.length != pubKeySize) {
+                if ((pubKeyBytes = adjustBigBytes(pubKeyBytes, pubKeySize)) == null)
                     return false;
-                }
             }
         }
         // Here produce the ECDH stuff
         else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25
                 || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
 
-            X9ECParameters x9 = null;
-
+            ECDomainParameters ecDomain = null;
             if (pubKey == ZrtpConstants.SupportedPubKeys.EC25) {
-                x9 = SECNamedCurves.getByName("secp256r1");
+                ecDomain = new ECDomainParameters(
+                        ZrtpConstants.x9Ec25.getCurve(),
+                        ZrtpConstants.x9Ec25.getG(),
+                        ZrtpConstants.x9Ec25.getN(),
+                        ZrtpConstants.x9Ec25.getH(),
+                        ZrtpConstants.x9Ec25.getSeed());
                 pubKeySize = 64;
             }
             if (pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
-                x9 = SECNamedCurves.getByName("secp384r1");
+                ecDomain = new ECDomainParameters(
+                        ZrtpConstants.x9Ec38.getCurve(),
+                        ZrtpConstants.x9Ec38.getG(),
+                        ZrtpConstants.x9Ec38.getN(),
+                        ZrtpConstants.x9Ec38.getH(),
+                        ZrtpConstants.x9Ec38.getSeed());
                 pubKeySize = 96;
             }
-            ECDomainParameters ecDomain = new ECDomainParameters(x9.getCurve(),
-                    x9.getG(), x9.getN(), x9.getH(), x9.getSeed());
             ECKeyGenerationParameters ecdhKeyPairGen = new ECKeyGenerationParameters(
                     ecDomain, new SecureRandom());
 
@@ -1271,7 +1264,10 @@ public class ZRtp {
                 || (pubKey == ZrtpConstants.SupportedPubKeys.DH3K && pubKeyBytes.length != 384)
                 || (pubKey == ZrtpConstants.SupportedPubKeys.EC25 && pubKeyBytes.length != 64)
                 || (pubKey == ZrtpConstants.SupportedPubKeys.EC38 && pubKeyBytes.length != 96)) {
-            fillPubKey();
+            if (!fillPubKey()) {
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+                return null;
+            }
         }
         sendInfo(ZrtpCodes.MessageSeverity.Info,
                 EnumSet.of(ZrtpCodes.InfoCodes.InfoDH1DHGenerated));
@@ -1360,7 +1356,8 @@ public class ZRtp {
         }
         // get and check Responder's public value, see chap. 5.4.3 in the spec
         byte[] pvrBytes = dhPart1.getPv();
-
+        int dhSize = 0;
+        
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K
                 || pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
 
@@ -1374,6 +1371,7 @@ public class ZRtp {
                     errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongPV;
                     return null;
                 }
+                dhSize = 256;
                 pvr = new DHPublicKeyParameters(pvrBigInt,
                         ZrtpConstants.specDh2k);
             }
@@ -1382,6 +1380,7 @@ public class ZRtp {
                     errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongPV;
                     return null;
                 }
+                dhSize = 384;
                 pvr = new DHPublicKeyParameters(pvrBigInt,
                         ZrtpConstants.specDh3k);
             }
@@ -1395,32 +1394,34 @@ public class ZRtp {
                 || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
 
             System.out.println("EC " + pubKey.name());
-            ECCurve curve = null;
-
-            if (pubKey == ZrtpConstants.SupportedPubKeys.EC25) {
-                curve = SECNamedCurves.getByName("secp256r1").getCurve();
-            }
-            if (pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
-                curve = SECNamedCurves.getByName("secp384r1").getCurve();
-            }
+            
             byte[] encoded = new byte[pvrBytes.length + 1];
             encoded[0] = 0x04; // uncompressed
             System.arraycopy(pvrBytes, 0, encoded, 1, pvrBytes.length);
-            ECPoint point = curve.decodePoint(encoded);
+            ECPoint point = null;
 
+            if (pubKey == ZrtpConstants.SupportedPubKeys.EC25) {
+                point = ZrtpConstants.curveEc25.decodePoint(encoded);
+                dhSize = 32;
+            }
+            if (pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
+                point = ZrtpConstants.curveEc38.decodePoint(encoded);
+                dhSize = 48;
+            }
             ecdhContext.init(ecKeyPair.getPrivate());
             DHss = ecdhContext.calculateAgreement(
                     new ECPublicKeyParameters(point, null)).toByteArray();
+            ecdhContext = null;
         }
         else {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
-        // adjust byte arry if we have a leading zero
-        if (DHss[0] == 0) {
-            byte[] tmp = new byte[DHss.length - 1];
-            System.arraycopy(DHss, 1, tmp, 0, tmp.length);
-            DHss = tmp;
+        if (DHss.length != dhSize) {
+            if ((DHss = adjustBigBytes(DHss, dhSize)) == null) {
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+                return null;
+            }
         }
         myRole = ZrtpCallback.Role.Initiator;
 
@@ -1491,7 +1492,8 @@ public class ZRtp {
         // Get and check the Initiator's public value, see chap. 5.4.2 of the
         // spec
         byte[] pviBytes = dhPart2.getPv();
-
+        int dhSize = 0;
+        
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K
                 || pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
 
@@ -1507,6 +1509,7 @@ public class ZRtp {
                 }
                 pvi = new DHPublicKeyParameters(pviBigInt,
                         ZrtpConstants.specDh2k);
+                dhSize = 256;
             }
             else if (pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
                 if (!checkPubKey(pviBigInt, ZrtpConstants.SupportedPubKeys.DH3K)) {
@@ -1515,6 +1518,7 @@ public class ZRtp {
                 }
                 pvi = new DHPublicKeyParameters(pviBigInt,
                         ZrtpConstants.specDh3k);
+                dhSize = 384;
             }
             DHss = dhContext.calculateAgreement(pvi).toByteArray();
             ((DHPrivateKeyParameters) dhKeyPair.getPrivate()).getX().zeroize();
@@ -1526,19 +1530,20 @@ public class ZRtp {
                 || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
 
             System.out.println("EC " + pubKey.name());
-            ECCurve curve = null;
-
-            if (pubKey == ZrtpConstants.SupportedPubKeys.EC25) {
-                curve = SECNamedCurves.getByName("secp256r1").getCurve();
-            }
-            if (pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
-                curve = SECNamedCurves.getByName("secp384r1").getCurve();
-            }
+            
             byte[] encoded = new byte[pviBytes.length + 1];
             encoded[0] = 0x04; // uncompressed
             System.arraycopy(pviBytes, 0, encoded, 1, pviBytes.length);
-            ECPoint point = curve.decodePoint(encoded);
+            ECPoint point = null;
 
+            if (pubKey == ZrtpConstants.SupportedPubKeys.EC25) {
+                point = ZrtpConstants.curveEc25.decodePoint(encoded);
+                dhSize = 32;
+            }
+            if (pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
+                point = ZrtpConstants.curveEc38.decodePoint(encoded);
+                dhSize = 48;
+            }
             ecdhContext.init(ecKeyPair.getPrivate());
             DHss = ecdhContext.calculateAgreement(
                     new ECPublicKeyParameters(point, null)).toByteArray();
@@ -1548,13 +1553,12 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
-        // adjust byte arry if we have a leading zero
-        if (DHss[0] == 0) {
-            byte[] tmp = new byte[DHss.length - 1];
-            System.arraycopy(DHss, 1, tmp, 0, tmp.length);
-            DHss = tmp;
+        if (DHss.length != dhSize) {
+            if ((DHss = adjustBigBytes(DHss, dhSize)) == null) {
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+                return null;
+            }
         }
-
         // Now we have the peer's pvi. Because we are responder re-compute my
         // hvi using my Hello packet and the Initiator's DHPart2 and compare
         // with hvi sent in commit packet. If it doesn't macht then a MitM
@@ -1628,6 +1632,23 @@ public class ZRtp {
         return zrtpConfirm1;
     }
 
+    private byte[] adjustBigBytes(byte[] in, int size) {
+        // adjust byte arry if we have a leading zero
+        byte[] tmp = null;
+        if (in.length > size && in[0] == 0) {
+            tmp = new byte[in.length - 1];
+            System.arraycopy(in, 1, tmp, 0, tmp.length);
+            return tmp;
+        }
+        // Fill with zeros if too short
+        if (in.length < size) {
+            int prepend = size - in.length;
+            tmp = new byte[size];
+            System.arraycopy(DHss, 0, tmp, prepend, size - prepend);
+            return tmp;
+        }
+        return null;
+    }
     /*
      * At this point we are Responder.
      */

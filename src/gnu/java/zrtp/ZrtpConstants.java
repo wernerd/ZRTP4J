@@ -21,7 +21,10 @@ package gnu.java.zrtp;
 
 import gnu.java.bigintcrypto.BigIntegerCrypto;
 
+import org.bouncycastle.asn1.sec.SECNamedCurves;
+import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.cryptozrtp.params.DHParameters;
+import org.bouncycastle.math.ec.ECCurve;
 
 /**
  * @author Werner Dittmann <Werner.Dittmann@t-online.de>
@@ -379,4 +382,10 @@ public class ZrtpConstants {
     public static final DHParameters specDh2k = new DHParameters(ZrtpConstants.P2048, ZrtpConstants.two, null, 256);
     public static final DHParameters specDh3k = new DHParameters(ZrtpConstants.P3072, ZrtpConstants.two, null, 256);
 //    public static final DHParameters specDh4k = new DHParameters(ZrtpConstants.P4096, ZrtpConstants.two, null, 512);
+
+    public static final X9ECParameters x9Ec25 = SECNamedCurves.getByName("secp256r1");
+    public static final X9ECParameters x9Ec38 = SECNamedCurves.getByName("secp384r1");
+    
+    public static final ECCurve curveEc25 = x9Ec25.getCurve();
+    public static final ECCurve curveEc38 = x9Ec38.getCurve();
 }
