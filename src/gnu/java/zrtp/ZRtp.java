@@ -934,7 +934,7 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppZRTPVersion;
             return null;
         }
-        // Save our peer's (presumably the Responder) ZRTP id
+        // Save our peer's ZRTP id
         peerZid = hello.getZid();
         // peers have the same ZID?
         if (ZrtpUtils.byteArrayCompare(peerZid, zid,
@@ -1053,7 +1053,7 @@ public class ZRtp {
     }
 
     private boolean fillPubKey() {
-        // Generate the standard DH data and keys according to the selected 
+        // Generate the standard DH data and keys according to the selected
         // DH algorithm
         int pubKeySize = 0;
 
@@ -1105,7 +1105,7 @@ public class ZRtp {
                 || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
 
             X9ECParameters x9 = null;
-            
+
             if (pubKey == ZrtpConstants.SupportedPubKeys.EC25) {
                 x9 = SECNamedCurves.getByName("secp256r1");
                 pubKeySize = 64;
@@ -1118,70 +1118,23 @@ public class ZRtp {
                     x9.getG(), x9.getN(), x9.getH(), x9.getSeed());
             ECKeyGenerationParameters ecdhKeyPairGen = new ECKeyGenerationParameters(
                     ecDomain, new SecureRandom());
-            
+
             ecKeyPairGen.init(ecdhKeyPairGen);
             ecKeyPair = ecKeyPairGen.generateKeyPair();
-            byte[] encoded = ((ECPublicKeyParameters) ecKeyPair.getPublic()).getQ().getEncoded();
-//            byte[] x = ((ECPublicKeyParameters) ecKeyPair.getPublic()).getQ()
-//                    .getX().toBigInteger().toByteArray();
-//            byte[] y = ((ECPublicKeyParameters) ecKeyPair.getPublic()).getQ()
-//                    .getY().toBigInteger().toByteArray();
-//            /*
-//             * Check both fields for length and negative values (each field
-//             * must be of length pubKeySize/2), pubKeysize is 64 or 96 
-//             * according to EC25 or EC38. Then contactenate both to have to 
-//             * full public key.
-//             */
-//            if (x.length < pubKeySize / 2) {
-//                int prepend = pubKeySize / 2 - x.length;
-//                byte[] tmp = new byte[pubKeySize / 2];
-//                System.arraycopy(x, 0, tmp, prepend, pubKeySize / 2 - prepend);
-//                x = tmp;
-//            }
-//            else if (x.length > pubKeySize / 2) {
-//                if (x[0] == 0) {
-//                    byte[] tmp = new byte[pubKeySize / 2];
-//                    System.arraycopy(x, 1, tmp, 0, pubKeySize / 2);
-//                    x = tmp;
-//                }
-//                else {
-//                    return false;
-//                }
-//            }
-//            if (y.length < pubKeySize / 2) {
-//                int prepend = pubKeySize / 2 - y.length;
-//                byte[] tmp = new byte[pubKeySize / 2];
-//                Arrays.fill(tmp, (byte) 0);
-//                System.arraycopy(y, 0, tmp, prepend, pubKeySize / 2 - prepend);
-//                y = tmp;
-//            }
-//            else if (y.length > pubKeySize / 2) {
-//                if (y[0] == 0) {
-//                    byte[] tmp = new byte[pubKeySize / 2];
-//                    System.arraycopy(y, 1, tmp, 0, pubKeySize / 2);
-//                    y = tmp;
-//                }
-//                else {
-//                    return false;
-//                }
-//            }
+            byte[] encoded = ((ECPublicKeyParameters) ecKeyPair.getPublic())
+                    .getQ().getEncoded();
             pubKeyBytes = new byte[pubKeySize];
             System.arraycopy(encoded, 1, pubKeyBytes, 0, pubKeySize);
-//            System.arraycopy(x, 0, pubKeyBytes, 0, pubKeySize / 2);
-//            System.arraycopy(y, 0, pubKeyBytes, pubKeySize / 2, pubKeySize / 2);
         }
         else {
             return false;
-            // Error - shouldn't happen
         }
         return true;
     }
 
     protected ZrtpPacketCommit prepareCommitMultiStream(ZrtpPacketHello hello) {
-
-        hvi = new byte[ZrtpPacketBase.ZRTP_WORD_SIZE * 4]; // This is the
-                                                           // Multi-Stream NONCE
-                                                           // size;
+        // This is the Multi-Stream NONCE size
+        hvi = new byte[ZrtpPacketBase.ZRTP_WORD_SIZE * 4];
         secRand.nextBytes(hvi);
 
         zrtpCommit.setZid(zid);
@@ -1202,15 +1155,13 @@ public class ZRtp {
 
         // hash first messages to produce overall message hash
         // First the Responder's Hello message, second the Commit
-        // (always Initator's)
-        // Use negotiated Hash algo.
+        // (always Initator's). Use negotiated Hash algo.
         hashCtxFunction.update(hello.getHeaderBase(), 0, hello.getLength()
                 * ZrtpPacketBase.ZRTP_WORD_SIZE);
         hashCtxFunction.update(zrtpCommit.getHeaderBase(), 0, len);
 
         // store Hello data temporarily until we can check HMAC after receiving
-        // Commit as
-        // Responder or DHPart1 as Initiator
+        // Commit as Responder or DHPart1 as Initiator
         storeMsgTemp(hello);
         return zrtpCommit;
     }
@@ -1313,8 +1264,8 @@ public class ZRtp {
 
         /*
          * Saftey check if we can resuse the DH key pair. According to the
-         * public key algo check this is usually the case. If we cannot
-         * reuse it refill the pubkey.
+         * public key algo check this is usually the case. If we cannot reuse it
+         * refill the pubkey.
          */
         if ((pubKey == ZrtpConstants.SupportedPubKeys.DH2K && pubKeyBytes.length != 256)
                 || (pubKey == ZrtpConstants.SupportedPubKeys.DH3K && pubKeyBytes.length != 384)
@@ -1388,10 +1339,8 @@ public class ZRtp {
         hashFunctionImpl.doFinal(peerH2, 0);
 
         byte[] tmpHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
-        hashFunctionImpl.update(peerH2, 0, ZrtpPacketBase.HASH_IMAGE_SIZE); // Compute
-                                                                            // peer's
-                                                                            // H3
-                                                                            // (tmpHash)
+        // Compute peer's H3 (tmpHash)
+        hashFunctionImpl.update(peerH2, 0, ZrtpPacketBase.HASH_IMAGE_SIZE);
         hashFunctionImpl.doFinal(tmpHash, 0);
 
         if (ZrtpUtils.byteArrayCompare(tmpHash, peerH3,
@@ -1409,8 +1358,6 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
-
-        // TODO: ECDH handling
         // get and check Responder's public value, see chap. 5.4.3 in the spec
         byte[] pvrBytes = dhPart1.getPv();
 
@@ -1449,7 +1396,7 @@ public class ZRtp {
 
             System.out.println("EC " + pubKey.name());
             ECCurve curve = null;
-            
+
             if (pubKey == ZrtpConstants.SupportedPubKeys.EC25) {
                 curve = SECNamedCurves.getByName("secp256r1").getCurve();
             }
@@ -1457,12 +1404,13 @@ public class ZRtp {
                 curve = SECNamedCurves.getByName("secp384r1").getCurve();
             }
             byte[] encoded = new byte[pvrBytes.length + 1];
-            encoded[0] = 0x04;                  // uncompressed
+            encoded[0] = 0x04; // uncompressed
             System.arraycopy(pvrBytes, 0, encoded, 1, pvrBytes.length);
             ECPoint point = curve.decodePoint(encoded);
 
             ecdhContext.init(ecKeyPair.getPrivate());
-            DHss = ecdhContext.calculateAgreement(new ECPublicKeyParameters(point, null)).toByteArray();
+            DHss = ecdhContext.calculateAgreement(
+                    new ECPublicKeyParameters(point, null)).toByteArray();
         }
         else {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1540,12 +1488,8 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
-        
-        // TODO: ECDH handling - construct point, calculate agreement
-        
         // Get and check the Initiator's public value, see chap. 5.4.2 of the
         // spec
-        // get and check Responder's public value, see chap. 5.4.3 in the spec
         byte[] pviBytes = dhPart2.getPv();
 
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K
@@ -1583,7 +1527,7 @@ public class ZRtp {
 
             System.out.println("EC " + pubKey.name());
             ECCurve curve = null;
-            
+
             if (pubKey == ZrtpConstants.SupportedPubKeys.EC25) {
                 curve = SECNamedCurves.getByName("secp256r1").getCurve();
             }
@@ -1591,12 +1535,14 @@ public class ZRtp {
                 curve = SECNamedCurves.getByName("secp384r1").getCurve();
             }
             byte[] encoded = new byte[pviBytes.length + 1];
-            encoded[0] = 0x04;                  // uncompressed
+            encoded[0] = 0x04; // uncompressed
             System.arraycopy(pviBytes, 0, encoded, 1, pviBytes.length);
             ECPoint point = curve.decodePoint(encoded);
 
             ecdhContext.init(ecKeyPair.getPrivate());
-            DHss = ecdhContext.calculateAgreement(new ECPublicKeyParameters(point, null)).toByteArray();
+            DHss = ecdhContext.calculateAgreement(
+                    new ECPublicKeyParameters(point, null)).toByteArray();
+            ecdhContext = null;
         }
         else {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1610,10 +1556,9 @@ public class ZRtp {
         }
 
         // Now we have the peer's pvi. Because we are responder re-compute my
-        // hvi
-        // using my Hello packet and the Initiator's DHPart2 and compare with
-        // hvi sent in commit packet. If it doesn't macht then a MitM attack
-        // may have occured.
+        // hvi using my Hello packet and the Initiator's DHPart2 and compare
+        // with hvi sent in commit packet. If it doesn't macht then a MitM
+        // attack may have occured.
         computeHvi(dhPart2, zrtpHello);
         if (ZrtpUtils.byteArrayCompare(hvi, peerHvi, ZrtpPacketBase.HVI_SIZE) != 0) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongHVI;
@@ -1628,8 +1573,7 @@ public class ZRtp {
         hashCtxFunction = null;
 
         // To compute the S0 for the Initiator we need the retained secrets of
-        // our
-        // peer. Get them from the storage.
+        // our peer. Get them from the storage.
         ZidRecord zidRec = new ZidRecord(peerZid);
         ZidFile zidf = ZidFile.getInstance();
         zidf.getRecord(zidRec);
@@ -1641,8 +1585,6 @@ public class ZRtp {
          */
         generateKeysResponder(dhPart2, zidRec);
         zidf.saveRecord(zidRec);
-
-        dhContext = null;
 
         // Fill in Confirm1 packet.
         zrtpConfirm1.setMessageType(ZrtpConstants.Confirm1Msg);
@@ -1658,7 +1600,7 @@ public class ZRtp {
         zrtpConfirm1.setHashH0(H0);
 
         // Encrypt and HMAC with Responder's key - we are Respondere here
-        // see ZRTP specification chapter xYxY
+        // see ZRTP specification chapter
         byte[] dataToSecure = zrtpConfirm1.getDataToSecure();
         int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
                 : 32;
@@ -1696,8 +1638,7 @@ public class ZRtp {
                 EnumSet.of(ZrtpCodes.InfoCodes.InfoRespCommitReceived));
 
         // In multi stream mode we don't get a DH packt. Thus we need to
-        // recompute
-        // the hash chain starting with Commit's H2
+        // recompute the hash chain starting with Commit's H2.
         // Use the implicit hash algo
         System.arraycopy(commit.getH2(), 0, peerH2, 0,
                 ZrtpPacketBase.HASH_IMAGE_SIZE);
@@ -1976,21 +1917,16 @@ public class ZRtp {
         confirm1.setDataToSecure(dataToSecure);
 
         // Because we are initiator the protocol engine didn't receive Commit
-        // and
-        // because we are using multi-stream mode here we also did not receive a
-        // DHPart1 and
-        // thus could not store a responder's H2 or H1. A two step hash is
-        // required to
-        // re-compute H1 and H2.
+        // and because we are using multi-stream mode here we also did not
+        // receive a DHPart1 and thus could not store a responder's H2 or H1.
+        // A two step hash is required to re-compute H1 and H2.
         // Use implicit hash algo
         byte[] tmpHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
         hashFunctionImpl.update(confirm1.getHashH0(), 0,
                 ZrtpPacketBase.HASH_IMAGE_SIZE); // Compute peer's H1 in tmpHash
         hashFunctionImpl.doFinal(tmpHash, 0);
-
-        hashFunctionImpl.update(tmpHash, 0, ZrtpPacketBase.HASH_IMAGE_SIZE); // Compute
-                                                                             // peer's
-                                                                             // H2
+        // Compute peer's H2
+        hashFunctionImpl.update(tmpHash, 0, ZrtpPacketBase.HASH_IMAGE_SIZE);
         hashFunctionImpl.doFinal(peerH2, 0);
 
         // Check HMAC of previous Hello packet stored in temporary buffer. The
