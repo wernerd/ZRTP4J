@@ -1393,8 +1393,6 @@ public class ZRtp {
         else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25
                 || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
 
-            System.out.println("EC " + pubKey.name());
-            
             byte[] encoded = new byte[pvrBytes.length + 1];
             encoded[0] = 0x04; // uncompressed
             System.arraycopy(pvrBytes, 0, encoded, 1, pvrBytes.length);
@@ -1529,13 +1527,11 @@ public class ZRtp {
         else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25
                 || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
 
-            System.out.println("EC " + pubKey.name());
-            
             byte[] encoded = new byte[pviBytes.length + 1];
             encoded[0] = 0x04; // uncompressed
             System.arraycopy(pviBytes, 0, encoded, 1, pviBytes.length);
+            
             ECPoint point = null;
-
             if (pubKey == ZrtpConstants.SupportedPubKeys.EC25) {
                 point = ZrtpConstants.curveEc25.decodePoint(encoded);
                 dhSize = 32;
@@ -1569,8 +1565,7 @@ public class ZRtp {
             return null;
         }
         // Hash the Initiator's DH2 into the message Hash (other messages
-        // already
-        // prepared, see method prepareDHPart1().
+        // already prepared, see method prepareDHPart1().
         hashCtxFunction.update(dhPart2.getHeaderBase(), 0, dhPart2.getLength()
                 * ZrtpPacketBase.ZRTP_WORD_SIZE);
         hashCtxFunction.doFinal(messageHash, 0);
