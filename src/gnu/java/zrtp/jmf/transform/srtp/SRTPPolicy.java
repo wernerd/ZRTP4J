@@ -35,6 +35,10 @@ public class SRTPPolicy
     public final static int AESF8_ENCRYPTION = 2;
 
     /**
+     * Counter Mode TwoFish Cipher
+     */
+    public final static int TWOFISHF8_ENCRYPTION = 4;
+    /**
      * Null Authentication, no authentication
      */
     public final static int NULL_AUTHENTICATION = 0;

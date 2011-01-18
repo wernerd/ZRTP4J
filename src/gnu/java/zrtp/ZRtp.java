@@ -45,14 +45,13 @@ import gnu.java.bigintcrypto.BigIntegerCrypto;
 
 import org.bouncycastle.asn1.sec.SECNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
-import org.bouncycastle.crypto.AsymmetricCipherKeyPairGenerator;
 import org.bouncycastle.crypto.BufferedBlockCipher;
 import org.bouncycastle.crypto.Digest;
-import org.bouncycastle.crypto.KeyGenerationParameters;
 import org.bouncycastle.crypto.agreement.ECDHBasicAgreement;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA384Digest;
 import org.bouncycastle.crypto.engines.AESFastEngine;
+import org.bouncycastle.crypto.engines.TwofishEngine;
 import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.generators.ECKeyPairGenerator;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
@@ -144,7 +143,9 @@ public class ZRtp {
     private ECKeyPairGenerator ecKeyPairGen;
     private ECDHBasicAgreement ecdhContext;
 
-    private BufferedBlockCipher AEScipher = null;
+    private BufferedBlockCipher symCipher = null;
+    private BufferedBlockCipher symCipherAes = null;
+    private BufferedBlockCipher symCipherTwo = null;
 
     private ZrtpFortuna secRand;
 
@@ -398,8 +399,12 @@ public class ZRtp {
         ecdhContext = new ECDHBasicAgreement();
 
         AESFastEngine aes = new AESFastEngine();
-        CFBBlockCipher cfbAes = new CFBBlockCipher(aes, aes.getBlockSize() * 8);
-        AEScipher = new BufferedBlockCipher(cfbAes);
+        CFBBlockCipher cfb = new CFBBlockCipher(aes, aes.getBlockSize() * 8);
+        symCipherAes = new BufferedBlockCipher(cfb);
+
+        TwofishEngine two = new TwofishEngine();
+        cfb = new CFBBlockCipher(two, two.getBlockSize() * 8);
+        symCipherTwo = new BufferedBlockCipher(cfb);
 
         /*
          * Generate H0 as a random number (256 bits, 32 bytes) and then the hash
@@ -1601,15 +1606,25 @@ public class ZRtp {
         // Encrypt and HMAC with Responder's key - we are Respondere here
         // see ZRTP specification chapter
         byte[] dataToSecure = zrtpConfirm1.getDataToSecure();
-        int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
-                : 32;
-
+        int keylen = 0;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1
+                || cipher == ZrtpConstants.SupportedSymCiphers.AES3) {
+            symCipher = symCipherAes;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
+                    : 32;
+        }
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1
+                || cipher == ZrtpConstants.SupportedSymCiphers.TWO3) {
+            symCipher = symCipherTwo;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.TWO1) ? 16
+                    : 32;
+        }
         try {
-            AEScipher.init(true, new ParametersWithIV(new KeyParameter(
+            symCipher.init(true, new ParametersWithIV(new KeyParameter(
                     zrtpKeyR, 0, keylen), randomIV));
-            int done = AEScipher.processBytes(dataToSecure, 0,
+            int done = symCipher.processBytes(dataToSecure, 0,
                     dataToSecure.length, dataToSecure, 0);
-            AEScipher.doFinal(dataToSecure, done);
+            symCipher.doFinal(dataToSecure, done);
         } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe,
                     EnumSet.of(ZrtpCodes.SevereCodes.SevereSecurityException));
@@ -1731,15 +1746,25 @@ public class ZRtp {
         // Encrypt and HMAC with Responder's key - we are Respondere here
         // see ZRTP specification chapter xYxY
         byte[] dataToSecure = zrtpConfirm1.getDataToSecure();
-        int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
-                : 32;
-
+        int keylen = 0;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1
+                || cipher == ZrtpConstants.SupportedSymCiphers.AES3) {
+            symCipher = symCipherAes;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
+                    : 32;
+        }
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1
+                || cipher == ZrtpConstants.SupportedSymCiphers.TWO3) {
+            symCipher = symCipherTwo;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.TWO1) ? 16
+                    : 32;
+        }
         try {
-            AEScipher.init(true, new ParametersWithIV(new KeyParameter(
+            symCipher.init(true, new ParametersWithIV(new KeyParameter(
                     zrtpKeyR, 0, keylen), randomIV));
-            int done = AEScipher.processBytes(dataToSecure, 0,
+            int done = symCipher.processBytes(dataToSecure, 0,
                     dataToSecure.length, dataToSecure, 0);
-            AEScipher.doFinal(dataToSecure, done);
+            symCipher.doFinal(dataToSecure, done);
         } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe,
                     EnumSet.of(ZrtpCodes.SevereCodes.SevereSecurityException));
@@ -1772,8 +1797,19 @@ public class ZRtp {
 
         // Use the Responder's keys here to decrypt because we are
         // Initiator and receive packets from Responder
-        int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
-                : 32;
+        int keylen = 0;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1
+                || cipher == ZrtpConstants.SupportedSymCiphers.AES3) {
+            symCipher = symCipherAes;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
+                    : 32;
+        }
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1
+                || cipher == ZrtpConstants.SupportedSymCiphers.TWO3) {
+            symCipher = symCipherTwo;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.TWO1) ? 16
+                    : 32;
+        }
         byte[] dataToSecure = confirm1.getDataToSecure();
 
         byte[] confMac = computeHmac(hmacKeyR, hashLength, dataToSecure,
@@ -1787,11 +1823,11 @@ public class ZRtp {
 
         try {
             // Decrypting here
-            AEScipher.init(false, new ParametersWithIV(new KeyParameter(
+            symCipher.init(false, new ParametersWithIV(new KeyParameter(
                     zrtpKeyR, 0, keylen), confirm1.getIv()));
-            int done = AEScipher.processBytes(dataToSecure, 0,
+            int done = symCipher.processBytes(dataToSecure, 0,
                     dataToSecure.length, dataToSecure, 0);
-            AEScipher.doFinal(dataToSecure, done);
+            symCipher.doFinal(dataToSecure, done);
         } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe,
                     EnumSet.of(ZrtpCodes.SevereCodes.SevereSecurityException));
@@ -1855,11 +1891,11 @@ public class ZRtp {
         dataToSecure = zrtpConfirm2.getDataToSecure();
 
         try {
-            AEScipher.init(true, new ParametersWithIV(new KeyParameter(
+            symCipher.init(true, new ParametersWithIV(new KeyParameter(
                     zrtpKeyI, 0, keylen), randomIV));
-            int done = AEScipher.processBytes(dataToSecure, 0,
+            int done = symCipher.processBytes(dataToSecure, 0,
                     dataToSecure.length, dataToSecure, 0);
-            AEScipher.doFinal(dataToSecure, done);
+            symCipher.doFinal(dataToSecure, done);
         } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe,
                     EnumSet.of(ZrtpCodes.SevereCodes.SevereSecurityException));
@@ -1872,8 +1908,16 @@ public class ZRtp {
         zrtpConfirm2.setDataToSecure(dataToSecure);
         zrtpConfirm2.setHmac(confMac);
 
-        String cs = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? ZrtpConstants.AES_128
-                : ZrtpConstants.AES_256;
+        String cs = null;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1)
+            cs = ZrtpConstants.AES_128;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES3)
+            cs = ZrtpConstants.AES_256;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1)
+            cs = ZrtpConstants.TWO_128;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO3)
+            cs = ZrtpConstants.TWO_256;
+        
         callback.srtpSecretsOn(cs, SAS, sasVerified);
         return zrtpConfirm2;
     }
@@ -1904,8 +1948,19 @@ public class ZRtp {
 
         // Use the Responder's keys here to decrypt because we are
         // Initiator and receive packets from Responder
-        int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
-                : 32;
+        int keylen = 0;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1
+                || cipher == ZrtpConstants.SupportedSymCiphers.AES3) {
+            symCipher = symCipherAes;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
+                    : 32;
+        }
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1
+                || cipher == ZrtpConstants.SupportedSymCiphers.TWO3) {
+            symCipher = symCipherTwo;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.TWO1) ? 16
+                    : 32;
+        }
         byte[] dataToSecure = confirm1.getDataToSecure();
 
         byte[] confMac = computeHmac(hmacKeyR, hashLength, dataToSecure,
@@ -1919,11 +1974,11 @@ public class ZRtp {
 
         try {
             // Decrypting here
-            AEScipher.init(false, new ParametersWithIV(new KeyParameter(
+            symCipher.init(false, new ParametersWithIV(new KeyParameter(
                     zrtpKeyR, 0, keylen), confirm1.getIv()));
-            int done = AEScipher.processBytes(dataToSecure, 0,
+            int done = symCipher.processBytes(dataToSecure, 0,
                     dataToSecure.length, dataToSecure, 0);
-            AEScipher.doFinal(dataToSecure, done);
+            symCipher.doFinal(dataToSecure, done);
         } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe,
                     EnumSet.of(ZrtpCodes.SevereCodes.SevereSecurityException));
@@ -1965,11 +2020,11 @@ public class ZRtp {
         dataToSecure = zrtpConfirm2.getDataToSecure();
 
         try {
-            AEScipher.init(true, new ParametersWithIV(new KeyParameter(
+            symCipher.init(true, new ParametersWithIV(new KeyParameter(
                     zrtpKeyI, 0, keylen), randomIV));
-            int done = AEScipher.processBytes(dataToSecure, 0,
+            int done = symCipher.processBytes(dataToSecure, 0,
                     dataToSecure.length, dataToSecure, 0);
-            AEScipher.doFinal(dataToSecure, done);
+            symCipher.doFinal(dataToSecure, done);
         } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe,
                     EnumSet.of(ZrtpCodes.SevereCodes.SevereSecurityException));
@@ -1981,8 +2036,16 @@ public class ZRtp {
         zrtpConfirm2.setDataToSecure(dataToSecure);
         zrtpConfirm2.setHmac(confMac);
 
-        String cs = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? ZrtpConstants.AES_128
-                : ZrtpConstants.AES_256;
+        String cs = null;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1)
+            cs = ZrtpConstants.AES_128;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES3)
+            cs = ZrtpConstants.AES_256;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1)
+            cs = ZrtpConstants.TWO_128;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO3)
+            cs = ZrtpConstants.TWO_256;
+
         // Inform GUI about security state, don't show SAS and its state
         callback.srtpSecretsOn(cs, null, true);
         return zrtpConfirm2;
@@ -2003,8 +2066,19 @@ public class ZRtp {
 
         // Use the Initiator's keys here because we are Responder here and
         // reveice packets from Initiator
-        int keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
-                : 32;
+        int keylen = 0;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1
+                || cipher == ZrtpConstants.SupportedSymCiphers.AES3) {
+            symCipher = symCipherAes;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 16
+                    : 32;
+        }
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1
+                || cipher == ZrtpConstants.SupportedSymCiphers.TWO3) {
+            symCipher = symCipherTwo;
+            keylen = (cipher == ZrtpConstants.SupportedSymCiphers.TWO1) ? 16
+                    : 32;
+        }
         byte[] dataToSecure = confirm2.getDataToSecure();
 
         byte[] confMac = computeHmac(hmacKeyI, hashLength, dataToSecure,
@@ -2018,11 +2092,11 @@ public class ZRtp {
 
         try {
             // Decrypting here
-            AEScipher.init(false, new ParametersWithIV(new KeyParameter(
+            symCipher.init(false, new ParametersWithIV(new KeyParameter(
                     zrtpKeyI, 0, keylen), confirm2.getIv()));
-            int done = AEScipher.processBytes(dataToSecure, 0,
+            int done = symCipher.processBytes(dataToSecure, 0,
                     dataToSecure.length, dataToSecure, 0);
-            AEScipher.doFinal(dataToSecure, done);
+            symCipher.doFinal(dataToSecure, done);
         } catch (Exception e) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe,
                     EnumSet.of(ZrtpCodes.SevereCodes.SevereSecurityException));
@@ -2031,8 +2105,16 @@ public class ZRtp {
         }
         confirm2.setDataToSecure(dataToSecure);
 
-        String cs = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? ZrtpConstants.AES_128
-                : ZrtpConstants.AES_256;
+        String cs = null;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1)
+            cs = ZrtpConstants.AES_128;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.AES3)
+            cs = ZrtpConstants.AES_256;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1)
+            cs = ZrtpConstants.TWO_128;
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO3)
+            cs = ZrtpConstants.TWO_256;
+
         boolean sasVerified = false;
         if (!multiStream) {
             // Check HMAC of DHPart2 packet stored in temporary buffer. The
@@ -2278,6 +2360,16 @@ public class ZRtp {
         }
         if (cipher == ZrtpConstants.SupportedSymCiphers.AES3) {
             sec.symEncAlgorithm = ZrtpConstants.SupportedSymAlgos.AES;
+            sec.initKeyLen = 256;
+            sec.respKeyLen = 256;
+        }
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1) {
+            sec.symEncAlgorithm = ZrtpConstants.SupportedSymAlgos.TwoFish;
+            sec.initKeyLen = 128;
+            sec.respKeyLen = 128;
+        }
+        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO3) {
+            sec.symEncAlgorithm = ZrtpConstants.SupportedSymAlgos.TwoFish;
             sec.initKeyLen = 256;
             sec.respKeyLen = 256;
         }

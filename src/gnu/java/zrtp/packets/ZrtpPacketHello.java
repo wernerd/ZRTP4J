@@ -330,7 +330,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         ArrayList<ZrtpConstants.SupportedSymCiphers> algosConf = 
             new ArrayList<ZrtpConstants.SupportedSymCiphers>(numAlgosConf+1);
 
-        // Build a list of configured hashes, appending a mandatory algo if 
+        // Build a list of configured ciphers, appending a mandatory algo if 
         // necessary
         for (ZrtpConstants.SupportedSymCiphers sh: config.symCiphers()) {
             if (sh == ZrtpConstants.SupportedSymCiphers.AES1) {
@@ -342,7 +342,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
             algosConf.add(ZrtpConstants.SupportedSymCiphers.AES1);
         }
 
-        // Build a list of offered hashes, appending a mandatory algo if 
+        // Build a list of offered ciphers, appending a mandatory algo if 
         // necessary
         mandatoryFound = false;
         for (int ii = 0; ii < nCipher; ii++) {
@@ -364,22 +364,12 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
             algosOffered.add(ZrtpConstants.SupportedSymCiphers.AES1);
         }
         
-        boolean[] matchingCiphers = new boolean[ZrtpConstants.SupportedSymCiphers.values().length];
-        boolean found = false;
         for (ZrtpConstants.SupportedSymCiphers sho: algosOffered) {
             for (ZrtpConstants.SupportedSymCiphers shc: algosConf) {
                 if(sho == shc) {
-                    matchingCiphers[shc.ordinal()] = found = true;
-                    break;
+                    return shc;
                 }
-                matchingCiphers[shc.ordinal()] = false;
             }
-            if (found)
-                break;
-        }
-        
-        if (matchingCiphers[ZrtpConstants.SupportedSymCiphers.AES3.ordinal()]) {
-            return ZrtpConstants.SupportedSymCiphers.AES3;
         }
         return ZrtpConstants.SupportedSymCiphers.AES1;
     }

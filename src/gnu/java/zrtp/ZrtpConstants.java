@@ -49,7 +49,10 @@ public class ZrtpConstants {
     // Human readable names of encryption algorithms
     public static final String AES_128 = "AES-CM-128";
     public static final String AES_256 = "AES-CM-256";
-   /**
+    public static final String TWO_128 = "TWO-CM-128";
+    public static final String TWO_256 = "TWO-CM-256";
+
+    /**
     * The message names as defined in ZRTP specification.
     */
 //  "Hello   "
@@ -210,6 +213,10 @@ public class ZrtpConstants {
         (byte)0x41, (byte)0x45, (byte)0x53, (byte)0x33};        // "AES3"
     public static final byte[] aes1 = {
         (byte)0x41, (byte)0x45, (byte)0x53, (byte)0x31};        // "AES1"
+    public static final byte[] two1 = {
+        (byte)0x32, (byte)0x46, (byte)0x53, (byte)0x31};        // "2FS1"
+    public static final byte[] two3 = {
+        (byte)0x32, (byte)0x46, (byte)0x53, (byte)0x33};        // "2FS3"
     public static final byte[] dh4k = {
         (byte)0x44, (byte)0x48, (byte)0x34, (byte)0x6b};        // "DH4k"
     public static final byte[] dh3k = {
@@ -248,7 +255,9 @@ public class ZrtpConstants {
     // following enum, starting with zero.
     public static enum SupportedSymCiphers {
         AES3(aes3),
-        AES1(aes1);
+        AES1(aes1),
+        TWO3(two3),
+        TWO1(two1);
         
         public byte[] name;
         private SupportedSymCiphers(byte[] nm) {

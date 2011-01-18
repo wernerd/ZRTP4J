@@ -25,6 +25,7 @@
 */
 package gnu.java.zrtp.jmf.transform.srtp;
 
+import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.engines.AESFastEngine;
 
 /**
@@ -70,7 +71,7 @@ public class SRTPCipherCTR
      * @see net.java.sip.communicator.impl.media.transform.srtp.
      * SRTPCipher#process(byte[], int, int, byte[])
      */
-    public void process(AESFastEngine aesCipher, byte[] data, int off, int len,
+    public void process(BlockCipher cipher, byte[] data, int off, int len,
             byte[] iv) {
 
         if (off + len > data.length) {
@@ -90,7 +91,7 @@ public class SRTPCipherCTR
             cipherStream = streamBuf;
         }
 
-        getCipherStream(aesCipher, cipherStream, len, iv);
+        getCipherStream(cipher, cipherStream, len, iv);
 
         for (int i = 0; i < len; i++) {
             data[i + off] ^= cipherStream[i];
@@ -108,7 +109,7 @@ public class SRTPCipherCTR
      * @param iv
      *            initialization vector used to generate this cipher stream
      */
-    public void getCipherStream(AESFastEngine aesCipher, byte[] out, int length, byte[] iv)
+    public void getCipherStream(BlockCipher aesCipher, byte[] out, int length, byte[] iv)
     {
         System.arraycopy(iv, 0, cipherInBlock, 0, 14);
 

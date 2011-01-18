@@ -118,7 +118,9 @@ public class ZrtpConfigure {
         clear();
         hashes.addAlgo(ZrtpConstants.SupportedHashes.S256);
 
+        symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.TWO3);
         symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.AES3);
+        symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.TWO1);
         symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.AES1);
 
         publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.EC25);

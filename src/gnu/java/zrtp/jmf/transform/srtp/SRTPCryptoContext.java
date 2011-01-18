@@ -32,9 +32,11 @@ import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.macs.*;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersForSkein;
+import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.Mac;
 
 import org.bouncycastle.crypto.engines.AESFastEngine;
+import org.bouncycastle.crypto.engines.TwofishEngine;
 
 
 /**
@@ -144,8 +146,8 @@ public class SRTPCryptoContext
     private Mac mac;             // used for various HMAC computations
     
     // The symmetric cipher engines we need here
-    private AESFastEngine AEScipher = null;
-    private AESFastEngine AEScipherF8 = null; // used inside F8 mode only
+    private BlockCipher cipher = null;
+    private BlockCipher cipherF8 = null; // used inside F8 mode only
     
     // implements the counter cipher mode for RTP according to RFC 3711
     private final SRTPCipherCTR cipherCtr = new SRTPCipherCTR();
@@ -237,14 +239,22 @@ public class SRTPCryptoContext
             saltKey = null;
             break;
 
-           
         case SRTPPolicy.AESCM_ENCRYPTION:
-            AEScipher = new AESFastEngine();
+            cipher = new AESFastEngine();
             encKey = new byte[this.policy.getEncKeyLength()];
             saltKey = new byte[this.policy.getSaltKeyLength()];
             
         case SRTPPolicy.AESF8_ENCRYPTION:
-            AEScipherF8 = new AESFastEngine();  // Cipher.getInstance("AES/ECB/NOPADDING", cryptoProvider);
+            cipherF8 = new AESFastEngine();
+            break;
+
+        case SRTPPolicy.TWOFISH_ENCRYPTION:
+            cipher = new TwofishEngine();
+            encKey = new byte[this.policy.getEncKeyLength()];
+            saltKey = new byte[this.policy.getSaltKeyLength()];
+            
+        case SRTPPolicy.TWOFISHF8_ENCRYPTION:
+            cipherF8 = new TwofishEngine();
             break;
         }
         
@@ -459,7 +469,7 @@ public class SRTPCryptoContext
         final int payloadOffset = PacketManipulator.GetRTPHeaderLength(pkt);
         final int payloadLength = PacketManipulator.GetRTPPayloadLength(pkt);
 
-        cipherCtr.process(AEScipher, pkt.getBuffer(), pkt.getOffset() + payloadOffset,
+        cipherCtr.process(cipher, pkt.getBuffer(), pkt.getOffset() + payloadOffset,
                 payloadLength, ivStore);
     }
 
@@ -485,8 +495,8 @@ public class SRTPCryptoContext
         final int payloadOffset = PacketManipulator.GetRTPHeaderLength(pkt);
         final int payloadLength = PacketManipulator.GetRTPPayloadLength(pkt);
 
-        SRTPCipherF8.process(AEScipher, pkt.getBuffer(), pkt.getOffset() + payloadOffset,
-                payloadLength, ivStore, encKey, saltKey, AEScipherF8);
+        SRTPCipherF8.process(cipher, pkt.getBuffer(), pkt.getOffset() + payloadOffset,
+                payloadLength, ivStore, encKey, saltKey, cipherF8);
     }
 
     /**
@@ -587,14 +597,14 @@ public class SRTPCryptoContext
         computeIv(label, index);
 
         KeyParameter encryptionKey = new KeyParameter(masterKey);
-        AEScipher.init(true, encryptionKey);
-        cipherCtr.getCipherStream(AEScipher, encKey, policy.getEncKeyLength(), ivStore);
+        cipher.init(true, encryptionKey);
+        cipherCtr.getCipherStream(cipher, encKey, policy.getEncKeyLength(), ivStore);
 
         // compute the session authentication key
         if (authKey != null) {
             label = 0x01;
             computeIv(label, index);
-            cipherCtr.getCipherStream(AEScipher, authKey, policy.getAuthKeyLength(), ivStore);
+            cipherCtr.getCipherStream(cipher, authKey, policy.getAuthKeyLength(), ivStore);
 
             switch ((policy.getAuthType())) {
             case SRTPPolicy.HMACSHA1_AUTHENTICATION:
@@ -613,11 +623,11 @@ public class SRTPCryptoContext
         // compute the session salt
         label = 0x02;
         computeIv(label, index);
-        cipherCtr.getCipherStream(AEScipher, saltKey, policy.getSaltKeyLength(), ivStore);
+        cipherCtr.getCipherStream(cipher, saltKey, policy.getSaltKeyLength(), ivStore);
         
-        // As last step: initialize AES cipher with derived encryption key.
+        // As last step: initialize cipher with derived encryption key.
         encryptionKey = new KeyParameter(encKey);
-        AEScipher.init(true, encryptionKey);
+        cipher.init(true, encryptionKey);
     }
 
     /**

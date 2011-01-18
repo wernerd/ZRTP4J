@@ -27,6 +27,7 @@ package gnu.java.zrtp.jmf.transform.srtp;
 
 import java.util.*;
 
+import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.engines.AESFastEngine;
 import org.bouncycastle.crypto.params.KeyParameter;
 
@@ -78,8 +79,8 @@ public class SRTPCipherF8
      * @see net.java.sip.communicator.impl.media.transform.srtp.
      * SRTPCipher#process(byte[], int, int, byte[])
      */
-    public static void process(AESFastEngine aesCipher, byte[] data, int off, int len,
-            byte[] iv, byte[] key, byte[] salt, AESFastEngine f8Cipher) {
+    public static void process(BlockCipher cipher, byte[] data, int off, int len,
+            byte[] iv, byte[] key, byte[] salt, BlockCipher f8Cipher) {
         F8Context f8ctx = new SRTPCipherF8().new F8Context();
 
         /*
@@ -131,13 +132,13 @@ public class SRTPCipherF8
         int inLen = len;
 
         while (inLen >= BLKLEN) {
-            processBlock(aesCipher, f8ctx, data, off, data, off, BLKLEN);
+            processBlock(cipher, f8ctx, data, off, data, off, BLKLEN);
             inLen -= BLKLEN;
             off += BLKLEN;
         }
 
         if (inLen > 0) {
-            processBlock(aesCipher, f8ctx, data, off, data, off, inLen);
+            processBlock(cipher, f8ctx, data, off, data, off, inLen);
         }
     }
     
@@ -158,7 +159,7 @@ public class SRTPCipherF8
      * @param len
      *            length of the input data
      */
-    private static void processBlock(AESFastEngine aesCipher, F8Context f8ctx,
+    private static void processBlock(BlockCipher cipher, F8Context f8ctx,
             byte[] in, int inOff, byte[] out, int outOff, int len) {
 
         /*
@@ -182,7 +183,7 @@ public class SRTPCipherF8
         /*
          * Now compute the new key stream using AES encrypt
          */
-        aesCipher.processBlock(f8ctx.S, 0, f8ctx.S, 0);
+        cipher.processBlock(f8ctx.S, 0, f8ctx.S, 0);
 
         /*
          * As the last step XOR the plain text with the key stream to produce
