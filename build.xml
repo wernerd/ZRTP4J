@@ -8,7 +8,7 @@
     	<property name='product.shortname' value='zrtp4j'/>
 
 	    <property name='product.version.major' value='1'/>
-    	<property name='product.version.minor' value='5'/>
+    	<property name='product.version.minor' value='6'/>
 	    <property name='product.version.level' value='1'/>
     	<property name='product.Version' value='${product.version.major}.${product.version.minor}'/>
 	    <property name='product.version' value='${product.version.major}.${product.version.minor}.${product.version.level}'/>
