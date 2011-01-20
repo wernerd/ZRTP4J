@@ -19,10 +19,24 @@
 
 package gnu.java.zrtp;
 
+import java.security.SecureRandom;
+
 import gnu.java.bigintcrypto.BigIntegerCrypto;
+import gnu.java.zrtp.utils.ZrtpFortuna;
 
 import org.bouncycastle.asn1.sec.SECNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.crypto.BufferedBlockCipher;
+import org.bouncycastle.crypto.agreement.ECDHBasicAgreement;
+import org.bouncycastle.crypto.engines.AESFastEngine;
+import org.bouncycastle.crypto.engines.TwofishEngine;
+import org.bouncycastle.crypto.generators.ECKeyPairGenerator;
+import org.bouncycastle.crypto.modes.CFBBlockCipher;
+import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.crypto.params.ECKeyGenerationParameters;
+import org.bouncycastle.cryptozrtp.agreement.DHBasicAgreement;
+import org.bouncycastle.cryptozrtp.generators.DHBasicKeyPairGenerator;
+import org.bouncycastle.cryptozrtp.params.DHKeyGenerationParameters;
 import org.bouncycastle.cryptozrtp.params.DHParameters;
 import org.bouncycastle.math.ec.ECCurve;
 
@@ -99,11 +113,11 @@ public class ZrtpConstants {
     public static final byte[] PingMsg = {
         (byte)0x50, (byte)0x69, (byte)0x6e, (byte)0x67, (byte)0x20, (byte)0x20, (byte)0x20, (byte)0x20};
 
-    //  "PingACK "
+//  "PingACK "
     public static final byte[] PingAckMsg = {
         (byte)0x50, (byte)0x69, (byte)0x6e, (byte)0x67, (byte)0x41, (byte)0x43, (byte)0x4b, (byte)0x20};
 
-    //  "GoClear "
+//  "GoClear "
     public static final byte[] GoClearMsg = {
         (byte)0x47, (byte)0x6f, (byte)0x43, (byte)0x6c, (byte)0x65, (byte)0x61, (byte)0x72, (byte)0x20};
 
@@ -240,8 +254,6 @@ public class ZrtpConstants {
     public static final byte[] ec38 = {
         (byte)0x45, (byte)0x43, (byte)0x33, (byte)0x38};        // "EC38"
 
-    // Keep the Hash identifers in supportedHashes in the same order than the
-    // following enum, starting with zero.
    public static enum  SupportedHashes {
         S256(s256),
         S384(s384);
@@ -251,40 +263,113 @@ public class ZrtpConstants {
             name = nm;
         }
     }
-    // Keep the Cipher identifers in supportedCipher in the same order than the
-    // following enum, starting with zero.
-    public static enum SupportedSymCiphers {
-        AES3(aes3),
-        AES1(aes1),
-        TWO3(two3),
-        TWO1(two1);
-        
-        public byte[] name;
-        private SupportedSymCiphers(byte[] nm) {
+
+   public static enum SupportedSymCiphers {
+        AES3(aes3, 32, AES_256, new BufferedBlockCipher(new CFBBlockCipher(new AESFastEngine(), 128))),
+        AES1(aes1, 16, AES_128, new BufferedBlockCipher(new CFBBlockCipher(new AESFastEngine(), 128))), 
+        TWO3(two3, 32, TWO_256, new BufferedBlockCipher(new CFBBlockCipher(new TwofishEngine(), 128))),
+        TWO1(two1, 16, TWO_128, new BufferedBlockCipher(new CFBBlockCipher(new TwofishEngine(), 128)));
+
+        final public byte[] name;
+        final public int keyLength;
+        final public String readable;
+        final public BufferedBlockCipher cipher;
+
+        private SupportedSymCiphers(byte[] nm, int klen, String ra,
+                BufferedBlockCipher ci) {
             name = nm;
+            keyLength = klen;
+            readable = ra;
+            cipher = ci;
         }
     }
+
     public static enum SupportedSymAlgos {
         AES, TwoFish
     }
 
-    // Keep the PubKey identifers in supportedPubKey in the same order than the
-    // following enum, starting with zero.
+    public static final X9ECParameters x9Ec25 = SECNamedCurves.getByName("secp256r1");
+    public static final X9ECParameters x9Ec38 = SECNamedCurves.getByName("secp384r1");
+
     public static enum SupportedPubKeys {
-        EC25(ec25),
-        EC38(ec38),
-        DH2K(dh2k),
-        DH3K(dh3k),
+        EC25(ec25, 64, new ECKeyGenerationParameters(
+                new ECDomainParameters(x9Ec25.getCurve(),
+                        x9Ec25.getG(), x9Ec25.getN(), x9Ec25.getH(),
+                        x9Ec25.getSeed()), new SecureRandom())), 
+        EC38(ec38, 96, new ECKeyGenerationParameters(
+                new ECDomainParameters(x9Ec38.getCurve(),
+                         x9Ec38.getG(), x9Ec38.getN(), x9Ec38.getH(),
+                         x9Ec38.getSeed()), new SecureRandom())), 
+        DH2K(dh2k, 256,
+                new DHKeyGenerationParameters(ZrtpFortuna.getInstance(),
+                        specDh2k)), 
+        DH3K(dh3k, 384,
+                new DHKeyGenerationParameters(ZrtpFortuna.getInstance(),
+                        specDh3k)), 
         MULT(mult);
-        
+
+
         public byte[] name;
+        final public DHBasicKeyPairGenerator dhKeyPairGen;
+        final public ECKeyPairGenerator ecKeyPairGen;
+        final public int pubKeySize;
+        final public DHParameters specDh;
+        final public ECCurve curve;
+        final public ECDHBasicAgreement ecdhContext;
+        final public DHBasicAgreement dhContext;
+
         private SupportedPubKeys(byte[] nm) {
             name = nm;
+            pubKeySize = 0;
+            dhKeyPairGen = null;
+            specDh = null;
+            dhContext = null;
+            ecdhContext = null;
+            ecKeyPairGen = null;
+            curve = null;            
+        }
+        
+        private SupportedPubKeys(byte[] nm, int size,
+                ECKeyGenerationParameters ecdh) {
+            name = nm;
+            pubKeySize = size;
+            if (ecdh != null) {
+                ecKeyPairGen = new ECKeyPairGenerator();
+                ecKeyPairGen.init(ecdh);
+                curve = ecdh.getDomainParameters().getCurve();
+                ecdhContext = new ECDHBasicAgreement();
+            }
+            else {
+                ecKeyPairGen = null;
+                curve = null;
+                ecdhContext = null;
+            }
+            dhKeyPairGen = null;
+            specDh = null;
+            dhContext = null;
+        }
+
+        private SupportedPubKeys(byte[] nm, int size,
+                DHKeyGenerationParameters dh) {
+            name = nm;
+            pubKeySize = size;
+            if (dh != null) {
+                dhKeyPairGen = new DHBasicKeyPairGenerator();
+                dhKeyPairGen.init(dh);
+                specDh = dh.getParameters();
+                dhContext = new DHBasicAgreement();
+            }
+            else {
+                dhKeyPairGen = null;
+                specDh = null;
+                dhContext = null;
+            }
+            ecdhContext = null;
+            ecKeyPairGen = null;
+            curve = null;
         }
     }
 
-    // Keep the SAS identifers in supportedSASType in the same order than the
-    // following enum, starting with zero.
     public static enum SupportedSASTypes {
         B32(b32);
         
@@ -294,8 +379,6 @@ public class ZrtpConstants {
         }
     }
 
-    // Keep the auth len identifers in supportedAuthLen in the same order than the
-    // following enum, starting with zero.
     public static enum SupportedAuthLengths {
         SK32(sk32),
         HS32(hs32),
@@ -387,14 +470,10 @@ public class ZrtpConstants {
     public static final BigIntegerCrypto P3072MinusOne = P3072.subtract(BigIntegerCrypto.ONE);
 //    public static final BigIntegerCrypto P4096MinusOne = P4096.subtract(BigIntegerCrypto.ONE);
     
+    public static final DHParameters specDh2k = new DHParameters(ZrtpConstants.P2048,
+            ZrtpConstants.two, null, 256);
+    public static final DHParameters specDh3k = new DHParameters(ZrtpConstants.P3072,
+            ZrtpConstants.two, null, 512);
 
-    public static final DHParameters specDh2k = new DHParameters(ZrtpConstants.P2048, ZrtpConstants.two, null, 256);
-    public static final DHParameters specDh3k = new DHParameters(ZrtpConstants.P3072, ZrtpConstants.two, null, 256);
 //    public static final DHParameters specDh4k = new DHParameters(ZrtpConstants.P4096, ZrtpConstants.two, null, 512);
-
-    public static final X9ECParameters x9Ec25 = SECNamedCurves.getByName("secp256r1");
-    public static final X9ECParameters x9Ec38 = SECNamedCurves.getByName("secp384r1");
-    
-    public static final ECCurve curveEc25 = x9Ec25.getCurve();
-    public static final ECCurve curveEc38 = x9Ec38.getCurve();
 }
