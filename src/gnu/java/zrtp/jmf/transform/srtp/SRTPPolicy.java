@@ -35,7 +35,7 @@ public class SRTPPolicy
     public final static int AESF8_ENCRYPTION = 2;
 
     /**
-     * Counter Mode TwoFish Cipher
+     * F8 Mode TwoFish Cipher
      */
     public final static int TWOFISHF8_ENCRYPTION = 4;
     /**

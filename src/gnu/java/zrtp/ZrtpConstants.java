@@ -264,22 +264,24 @@ public class ZrtpConstants {
     }
 
    public static enum SupportedSymCiphers {
-        AES3(aes3, 32, AES_256, new BufferedBlockCipher(new CFBBlockCipher(new AESFastEngine(), 128))),
-        AES1(aes1, 16, AES_128, new BufferedBlockCipher(new CFBBlockCipher(new AESFastEngine(), 128))), 
-        TWO3(two3, 32, TWO_256, new BufferedBlockCipher(new CFBBlockCipher(new TwofishEngine(), 128))),
-        TWO1(two1, 16, TWO_128, new BufferedBlockCipher(new CFBBlockCipher(new TwofishEngine(), 128)));
+        AES3(aes3, 32, AES_256, new BufferedBlockCipher(new CFBBlockCipher(new AESFastEngine(), 128)), SupportedSymAlgos.AES),
+        AES1(aes1, 16, AES_128, new BufferedBlockCipher(new CFBBlockCipher(new AESFastEngine(), 128)), SupportedSymAlgos.AES), 
+        TWO3(two3, 32, TWO_256, new BufferedBlockCipher(new CFBBlockCipher(new TwofishEngine(), 128)), SupportedSymAlgos.TwoFish),
+        TWO1(two1, 16, TWO_128, new BufferedBlockCipher(new CFBBlockCipher(new TwofishEngine(), 128)), SupportedSymAlgos.TwoFish);
 
         final public byte[] name;
         final public int keyLength;
         final public String readable;
         final public BufferedBlockCipher cipher;
+        final public SupportedSymAlgos algo;
 
         private SupportedSymCiphers(byte[] nm, int klen, String ra,
-                BufferedBlockCipher ci) {
+                BufferedBlockCipher ci, SupportedSymAlgos al) {
             name = nm;
             keyLength = klen;
             readable = ra;
             cipher = ci;
+            algo = al;
         }
     }
 
@@ -379,14 +381,18 @@ public class ZrtpConstants {
     }
 
     public static enum SupportedAuthLengths {
-        SK32(sk32),
-        HS32(hs32),
-        SK64(sk64),
-        HS80(hs80);
+        SK32(sk32, SupportedAuthAlgos.SK, 32),
+        HS32(hs32, SupportedAuthAlgos.HS, 32),
+        SK64(sk64, SupportedAuthAlgos.SK, 64),
+        HS80(hs80, SupportedAuthAlgos.HS, 80);
         
-        public byte[] name;
-        private SupportedAuthLengths(byte[] nm) {
+        final public byte[] name;
+        final public SupportedAuthAlgos algo;
+        final public int length;
+        private SupportedAuthLengths(byte[] nm, SupportedAuthAlgos al, int len) {
             name = nm;
+            algo = al;
+            length = len;
         }
     }
     

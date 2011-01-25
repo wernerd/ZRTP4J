@@ -349,12 +349,14 @@ public class SRTPCryptoContext
      */
     public void transformPacket(RawPacket pkt) {
         /* Encrypt the packet using Counter Mode encryption */
-        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION) {
+        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION || 
+                policy.getEncType() == SRTPPolicy.TWOFISH_ENCRYPTION) {
             processPacketAESCM(pkt);
         }
 
         /* Encrypt the packet using F8 Mode encryption */
-        else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION) {
+        else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION ||
+                policy.getEncType() == SRTPPolicy.TWOFISHF8_ENCRYPTION) {
             processPacketAESF8(pkt);
         }
 
@@ -426,12 +428,14 @@ public class SRTPCryptoContext
         }
 
         /* Decrypt the packet using Counter Mode encryption*/
-        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION) {
+        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION ||
+                policy.getEncType() == SRTPPolicy.TWOFISH_ENCRYPTION) {
             processPacketAESCM(pkt);
         }
 
         /* Decrypt the packet using F8 Mode encryption*/
-        else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION) {
+        else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION ||
+                    policy.getEncType() == SRTPPolicy.TWOFISHF8_ENCRYPTION) {
             processPacketAESF8(pkt);
         }
 

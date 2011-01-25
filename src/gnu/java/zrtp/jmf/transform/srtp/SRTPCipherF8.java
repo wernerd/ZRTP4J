@@ -28,7 +28,6 @@ package gnu.java.zrtp.jmf.transform.srtp;
 import java.util.*;
 
 import org.bouncycastle.crypto.BlockCipher;
-import org.bouncycastle.crypto.engines.AESFastEngine;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 /**

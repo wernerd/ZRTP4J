@@ -1156,12 +1156,23 @@ public class ZRtp {
         // different pubkey - maybe we need to create a new own public 
         // key here if the peer's commit differs with respect to our 
         // preparation done in prepareCommit(...)
-        pubKey = commit.getPubKey();
-        if (pubKey == null) {
+        ZrtpConstants.SupportedPubKeys commitPubKey = commit.getPubKey();
+        if (commitPubKey == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppPKExchange;
             return null;
         }
-
+        /*
+         * Saftey check if we can resuse the DH key pair. According to the
+         * public key algo check this is usually the case. If we cannot reuse it
+         * refill the pubkey.
+         */
+        if (commitPubKey != pubKey) {
+            pubKey = commitPubKey;
+            if (!fillPubKey()) {
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+                return null;
+            }
+        }
         // if ECDH 384 is in use then hash must be SHA 384 or better
         if (pubKey == ZrtpConstants.SupportedPubKeys.EC38 &&
                 hash != ZrtpConstants.SupportedHashes.S384) {
@@ -1173,18 +1184,6 @@ public class ZRtp {
         if (sasType == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppSASScheme;
             return null;
-        }
-
-        /*
-         * Saftey check if we can resuse the DH key pair. According to the
-         * public key algo check this is usually the case. If we cannot reuse it
-         * refill the pubkey.
-         */
-        if (pubKey.pubKeySize != pubKeyBytes.length) {
-            if (!fillPubKey()) {
-                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
-                return null;
-            }
         }
         sendInfo(ZrtpCodes.MessageSeverity.Info,
                 EnumSet.of(ZrtpCodes.InfoCodes.InfoDH1DHGenerated));
@@ -2124,49 +2123,21 @@ public class ZRtp {
     protected boolean srtpSecretsReady(ZrtpCallback.EnableSecurity part) {
         ZrtpSrtpSecrets sec = new ZrtpSrtpSecrets();
 
+        sec.symEncAlgorithm = cipher.algo;
+        
         sec.keyInitiator = srtpKeyI;
-
-        if (cipher == ZrtpConstants.SupportedSymCiphers.AES1) {
-            sec.symEncAlgorithm = ZrtpConstants.SupportedSymAlgos.AES;
-            sec.initKeyLen = 128;
-            sec.respKeyLen = 128;
-        }
-        if (cipher == ZrtpConstants.SupportedSymCiphers.AES3) {
-            sec.symEncAlgorithm = ZrtpConstants.SupportedSymAlgos.AES;
-            sec.initKeyLen = 256;
-            sec.respKeyLen = 256;
-        }
-        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO1) {
-            sec.symEncAlgorithm = ZrtpConstants.SupportedSymAlgos.TwoFish;
-            sec.initKeyLen = 128;
-            sec.respKeyLen = 128;
-        }
-        if (cipher == ZrtpConstants.SupportedSymCiphers.TWO3) {
-            sec.symEncAlgorithm = ZrtpConstants.SupportedSymAlgos.TwoFish;
-            sec.initKeyLen = 256;
-            sec.respKeyLen = 256;
-        }
+        sec.initKeyLen = cipher.keyLength * 8;
         sec.saltInitiator = srtpSaltI;
         sec.initSaltLen = 112;
+        
         sec.keyResponder = srtpKeyR;
+        sec.respKeyLen = cipher.keyLength * 8;
         sec.saltResponder = srtpSaltR;
         sec.respSaltLen = 112;
-        if (authLength == ZrtpConstants.SupportedAuthLengths.HS32) {
-            sec.authAlgorithm = ZrtpConstants.SupportedAuthAlgos.HS;
-            sec.srtpAuthTagLen = 32;
-        }
-        if (authLength == ZrtpConstants.SupportedAuthLengths.SK32) {
-            sec.authAlgorithm = ZrtpConstants.SupportedAuthAlgos.SK;
-            sec.srtpAuthTagLen = 32;
-        }
-        if (authLength == ZrtpConstants.SupportedAuthLengths.HS80) {
-            sec.authAlgorithm = ZrtpConstants.SupportedAuthAlgos.HS;
-            sec.srtpAuthTagLen = 80;
-        }
-        if (authLength == ZrtpConstants.SupportedAuthLengths.SK64) {
-            sec.authAlgorithm = ZrtpConstants.SupportedAuthAlgos.SK;
-            sec.srtpAuthTagLen = 64;
-        }
+        
+        sec.authAlgorithm = authLength.algo;
+        sec.srtpAuthTagLen = authLength.length;
+
         sec.setRole(myRole);
 
         return callback.srtpSecretsReady(sec, part);
@@ -2480,8 +2451,7 @@ public class ZRtp {
         System.arraycopy(messageHash, 0, KDFcontext, zid.length
                 + peerZid.length, hashLength);
 
-        int keyLen = (cipher == ZrtpConstants.SupportedSymCiphers.AES1) ? 128
-                : 256;
+        int keyLen = cipher.keyLength * 8;
 
         // Inititiator key and salt
         srtpKeyI = KDF(s0, ZrtpConstants.iniMasterKey, KDFcontext, keyLen);
