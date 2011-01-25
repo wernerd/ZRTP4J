@@ -49,7 +49,6 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 
 import org.bouncycastle.cryptozrtp.AsymmetricCipherKeyPair;
-import org.bouncycastle.cryptozrtp.params.DHPrivateKeyParameters;
 import org.bouncycastle.cryptozrtp.params.DHPublicKeyParameters;
 import org.bouncycastle.cryptozrtp.params.ECPublicKeyParameters;
 import org.bouncycastle.mathzrtp.ec.ECPoint;
@@ -1742,7 +1741,7 @@ public class ZRtp {
         zrtpConfirm2.setDataToSecure(dataToSecure);
         zrtpConfirm2.setHmac(confMac);
         
-        callback.srtpSecretsOn(cipher.readable, SAS, sasVerified);
+        callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasVerified);
         return zrtpConfirm2;
     }
 
@@ -1923,7 +1922,7 @@ public class ZRtp {
             // save new RS1, this inherits the verified flag from old RS1
             zidRec.setNewRs1(newRs1, -1);
             zidf.saveRecord(zidRec);
-            callback.srtpSecretsOn(cipher.readable, SAS, sasVerified);
+            callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasVerified);
         }
         else {
             byte[] tmpHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
