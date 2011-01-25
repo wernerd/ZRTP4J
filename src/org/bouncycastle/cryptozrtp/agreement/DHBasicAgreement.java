@@ -65,13 +65,14 @@ public class DHBasicAgreement
     }
     
     /**
-     * Clear agreement data.
+     * Clear agreement data including private key data.
      * 
      * Clears all known agreement data and resets the agreement. To use the
      * agreement againt the application must initialize it again.
      */
     
     public void clear() {
+        key.getX().zeroize();   // clear private key data
         key = null;
         dhParams = null;
     }

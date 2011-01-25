@@ -24,7 +24,7 @@ public class SimplePushStream implements PushSourceStream, PushBufferStream {
     public SimplePushStream() {
         cd = new ContentDescriptor("unknown");
         af = new AudioFormat(AudioFormat.ULAW_RTP, 8000.0, 8, 1);
-        System.err.println("AF: " + af.toString());
+//        System.err.println("AF: " + af.toString());
         sendBytes = sendData.getBytes();
         myBuffer = new byte[sendBytes.length];
     }

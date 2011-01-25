@@ -45,14 +45,14 @@ import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA384Digest;
 import org.bouncycastle.crypto.macs.HMac;
-import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 
 import org.bouncycastle.cryptozrtp.AsymmetricCipherKeyPair;
 import org.bouncycastle.cryptozrtp.params.DHPrivateKeyParameters;
 import org.bouncycastle.cryptozrtp.params.DHPublicKeyParameters;
-import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.cryptozrtp.params.ECPublicKeyParameters;
+import org.bouncycastle.mathzrtp.ec.ECPoint;
 
 /**
  * The main ZRTP class.
@@ -117,7 +117,7 @@ public class ZRtp {
 
     private AsymmetricCipherKeyPair dhKeyPair = null;
 
-    private org.bouncycastle.crypto.AsymmetricCipherKeyPair ecKeyPair = null;
+    private AsymmetricCipherKeyPair ecKeyPair = null;
 
     private ZrtpFortuna secRand;
 
@@ -1283,7 +1283,7 @@ public class ZRtp {
             // generate the resonpder's public key from the pvr data and the key
             // specs, then compute the shared secret.
             BigIntegerCrypto pvrBigInt = new BigIntegerCrypto(1, pvrBytes);
-            if (!checkPubKey(pvrBigInt, ZrtpConstants.SupportedPubKeys.DH2K)) {
+            if (!checkPubKey(pvrBigInt, pubKey)) {
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongPV;
                 return null;
             }
@@ -1291,9 +1291,10 @@ public class ZRtp {
             DHPublicKeyParameters pvr = new DHPublicKeyParameters(pvrBigInt,
                     pubKey.specDh);
             dhSize = pubKey.pubKeySize;
-            DHss = pubKey.dhContext.calculateAgreement(pvr).toByteArray();
-            ((DHPrivateKeyParameters) dhKeyPair.getPrivate()).getX().zeroize();
+            BigIntegerCrypto bi = pubKey.dhContext.calculateAgreement(pvr);
+            DHss = bi.toByteArray();
             pubKey.dhContext.clear();
+            bi.zeroize();   // clear secret big integer data
         }
         // Here produce the ECDH stuff
         else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25
@@ -1305,8 +1306,11 @@ public class ZRtp {
             ECPoint point = pubKey.curve.decodePoint(encoded);
             dhSize = pubKey.pubKeySize / 2;
             pubKey.ecdhContext.init(ecKeyPair.getPrivate());
-            DHss = pubKey.ecdhContext.calculateAgreement(
-                    new ECPublicKeyParameters(point, null)).toByteArray();
+            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(
+                    new ECPublicKeyParameters(point, null));
+            DHss = bi.toByteArray();
+            pubKey.ecdhContext.clear();
+            bi.zeroize();   // clear secret big integer data
         }
         else {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1356,8 +1360,8 @@ public class ZRtp {
      * DHPart2 packect received from our peer. The peer sends the DHPart2 packet
      * as response of our DHPart1. Here we are in the role of the Responder.
      * 
-     * The method uses the Data of the DHPart2 packet to create the respnder's
-     * secrects. 
+     * The method uses the data of the DHPart2 packet to create the responder's
+     * secrets. 
      * 
      */
     protected ZrtpPacketConfirm prepareConfirm1(ZrtpPacketDHPart dhPart2,
@@ -1377,7 +1381,15 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.IgnorePacket;
             return null;
         }
-
+        // Because we are responder re-compute my
+        // hvi using my Hello packet and the Initiator's DHPart2 and compare
+        // with hvi sent in commit packet. If it doesn't macht then a MitM
+        // attack may have occured.
+        computeHvi(dhPart2, zrtpHello);
+        if (ZrtpUtils.byteArrayCompare(hvi, peerHvi, ZrtpPacketBase.HVI_SIZE) != 0) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongHVI;
+            return null;
+        }
         // Check HMAC of Commit packet stored in temporary buffer. The
         // HMAC key of the Commit packet is peer's H1 that is contained in.
         // DHPart2. Refer to chapter 9.1 and chapter 10.
@@ -1406,9 +1418,10 @@ public class ZRtp {
             DHPublicKeyParameters pvi = new DHPublicKeyParameters(pviBigInt,
                     pubKey.specDh);
             dhSize = pubKey.pubKeySize;
-            DHss = pubKey.dhContext.calculateAgreement(pvi).toByteArray();
-            ((DHPrivateKeyParameters) dhKeyPair.getPrivate()).getX().zeroize();
+            BigIntegerCrypto bi = pubKey.dhContext.calculateAgreement(pvi);
+            DHss = bi.toByteArray();
             pubKey.dhContext.clear();
+            bi.zeroize();   // clear secret big integer data
         }
         // Here produce the ECDH stuff
         else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25
@@ -1417,11 +1430,14 @@ public class ZRtp {
             byte[] encoded = new byte[pviBytes.length + 1];
             encoded[0] = 0x04; // uncompressed
             System.arraycopy(pviBytes, 0, encoded, 1, pviBytes.length);
-            ECPoint point = pubKey.curve.decodePoint(encoded);
+            ECPoint pubPoint = pubKey.curve.decodePoint(encoded);
             dhSize = pubKey.pubKeySize / 2;
             pubKey.ecdhContext.init(ecKeyPair.getPrivate());
-            DHss = pubKey.ecdhContext.calculateAgreement(
-                    new ECPublicKeyParameters(point, null)).toByteArray();
+            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(
+                    new ECPublicKeyParameters(pubPoint, null));
+            DHss = bi.toByteArray();
+            pubKey.ecdhContext.clear();
+            bi.zeroize();   // clear secret big integer data
         }
         else {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1432,15 +1448,6 @@ public class ZRtp {
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
                 return null;
             }
-        }
-        // Now we have the peer's pvi. Because we are responder re-compute my
-        // hvi using my Hello packet and the Initiator's DHPart2 and compare
-        // with hvi sent in commit packet. If it doesn't macht then a MitM
-        // attack may have occured.
-        computeHvi(dhPart2, zrtpHello);
-        if (ZrtpUtils.byteArrayCompare(hvi, peerHvi, ZrtpPacketBase.HVI_SIZE) != 0) {
-            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongHVI;
-            return null;
         }
         // Hash the Initiator's DH2 into the message Hash (other messages
         // already prepared, see method prepareDHPart1().
@@ -1542,7 +1549,6 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.IgnorePacket;
             return null;
         }
-
         // Check HMAC of previous Hello packet stored in temporary buffer. The
         // HMAC key of peer's Hello packet is peer's H2 that is contained in the
         // Commit packet. Refer to chapter 9.1.
@@ -1557,20 +1563,17 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppPKExchange;
             return null;
         }
-
         cipher = commit.getCipher();
         if (cipher == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppCiphertype;
             return null;
         }
-
         // check if we support the commited Authentication length
         authLength = commit.getAuthlen();
         if (authLength == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppSRTPAuthTag;
             return null;
         }
-
         ZrtpConstants.SupportedHashes newHash = commit.getHash();
         if (newHash == null) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppHashType;
@@ -1580,7 +1583,6 @@ public class ZRtp {
             hash = newHash;
             setNegotiatedHash(hash);
         }
-
         myRole = ZrtpCallback.Role.Responder;
         // We are responder. Reset message SHA context
         hashCtxFunction.reset();

@@ -19,26 +19,25 @@
 
 package gnu.java.zrtp;
 
-import java.security.SecureRandom;
-
 import gnu.java.bigintcrypto.BigIntegerCrypto;
 import gnu.java.zrtp.utils.ZrtpFortuna;
 
 import org.bouncycastle.asn1.sec.SECNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.BufferedBlockCipher;
-import org.bouncycastle.crypto.agreement.ECDHBasicAgreement;
 import org.bouncycastle.crypto.engines.AESFastEngine;
 import org.bouncycastle.crypto.engines.TwofishEngine;
-import org.bouncycastle.crypto.generators.ECKeyPairGenerator;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
-import org.bouncycastle.crypto.params.ECDomainParameters;
-import org.bouncycastle.crypto.params.ECKeyGenerationParameters;
+
+import org.bouncycastle.cryptozrtp.agreement.ECDHBasicAgreement;
+import org.bouncycastle.cryptozrtp.params.ECDomainParameters;
+import org.bouncycastle.cryptozrtp.params.ECKeyGenerationParameters;
 import org.bouncycastle.cryptozrtp.agreement.DHBasicAgreement;
 import org.bouncycastle.cryptozrtp.generators.DHBasicKeyPairGenerator;
+import org.bouncycastle.cryptozrtp.generators.ECKeyPairGenerator;
 import org.bouncycastle.cryptozrtp.params.DHKeyGenerationParameters;
 import org.bouncycastle.cryptozrtp.params.DHParameters;
-import org.bouncycastle.math.ec.ECCurve;
+import org.bouncycastle.mathzrtp.ec.ECCurve;
 
 /**
  * @author Werner Dittmann <Werner.Dittmann@t-online.de>
@@ -295,11 +294,11 @@ public class ZrtpConstants {
         EC25(ec25, 64, new ECKeyGenerationParameters(
                 new ECDomainParameters(x9Ec25.getCurve(),
                         x9Ec25.getG(), x9Ec25.getN(), x9Ec25.getH(),
-                        x9Ec25.getSeed()), new SecureRandom())), 
+                        x9Ec25.getSeed()), ZrtpFortuna.getInstance())), 
         EC38(ec38, 96, new ECKeyGenerationParameters(
                 new ECDomainParameters(x9Ec38.getCurve(),
                          x9Ec38.getG(), x9Ec38.getN(), x9Ec38.getH(),
-                         x9Ec38.getSeed()), new SecureRandom())), 
+                         x9Ec38.getSeed()), ZrtpFortuna.getInstance())), 
         DH2K(dh2k, 256,
                 new DHKeyGenerationParameters(ZrtpFortuna.getInstance(),
                         specDh2k)), 

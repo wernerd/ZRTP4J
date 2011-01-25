@@ -321,7 +321,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
         //	rcv.start();
         rcv.run();
         try {
-            Thread.sleep(60000);
+            Thread.sleep(6000);
         } catch (InterruptedException ie) {
         }
 
