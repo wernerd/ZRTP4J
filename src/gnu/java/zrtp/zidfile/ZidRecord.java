@@ -360,9 +360,13 @@ public class ZidRecord {
         this.position = position;
     }
 
-    void setMiTMData(byte[] data) {
+    public void setMiTMData(byte[] data) {
         System.arraycopy(data, 0, buffer, MITMKEY_OFFSET, RS_LENGTH);
         setMITMKeyAvailable();
+    }
+
+     public byte[] getMiTMData() {
+        return ZrtpUtils.readRegion(buffer, MITMKEY_OFFSET, RS_LENGTH);
     }
 
     public static void main(String argv[]) {

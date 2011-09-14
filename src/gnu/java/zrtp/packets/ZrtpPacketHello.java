@@ -49,6 +49,9 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     // offsets in bytes into hello packet where algo names are stored
     private int oHash, oCipher, oPubkey, oSas, oAuth, oHmac;
 
+    private byte helloFlags = 0;
+//    private static final byte HELLO_PASSIVE = 0x10;
+    private static final byte HELLO_TRUSTED_PBX = 0x20;
     /*
      * The length of the Hello specific ZRTP packet part in words
      */
@@ -110,7 +113,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
 
         setVersion(ZrtpConstants.zrtpVersion);
 
-        packetBuffer[FLAG_LENGTH_OFFSET] = (byte)0;  // Passive flag if required
+        packetBuffer[FLAG_LENGTH_OFFSET] = helloFlags;  // Passive flag if required
         
         packetBuffer[FLAG_LENGTH_OFFSET+1] = (byte)(nHash);
         int index = 0;
@@ -146,9 +149,9 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     public ZrtpPacketHello(final byte[] data) {
         super(data);
         
-        int temp = packetBuffer[FLAG_LENGTH_OFFSET];    // check for passive flag (0x10)
+        helloFlags = packetBuffer[FLAG_LENGTH_OFFSET];  // check for passive flag (0x10)
 
-        temp = packetBuffer[FLAG_LENGTH_OFFSET+1];      // contains hash counter on low 4 bits
+        int temp = packetBuffer[FLAG_LENGTH_OFFSET+1];  // contains hash counter on low 4 bits
         nHash = temp & 0xf;
         
         temp = packetBuffer[FLAG_LENGTH_OFFSET+2];      // contains cipher cnt on high 4 bits, auth cnt on low        
@@ -220,7 +223,11 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     public final void setHMAC(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, oHmac, 2*ZRTP_WORD_SIZE);
     }
-    
+
+    public final boolean isTrustedPBX() {
+        return ((helloFlags & HELLO_TRUSTED_PBX) == HELLO_TRUSTED_PBX); 
+    }
+
     /**
      * Check if version data matches.
      * 

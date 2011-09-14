@@ -124,6 +124,14 @@ public class ZrtpConstants {
     public static final byte[] ClearAckMsg = {
         (byte)0x43, (byte)0x6c, (byte)0x65, (byte)0x61, (byte)0x72, (byte)0x41, (byte)0x43, (byte)0x4b};
 
+//  "SASrelay"
+    public static final byte[] SASRelayMsg = {
+        (byte)0x53, (byte)0x41, (byte)0x53, (byte)0x72, (byte)0x65, (byte)0x6c, (byte)0x61, (byte)0x79};
+
+//  "RelayACK"
+    public static final byte[] RelayAckMsg = {
+        (byte)0x52, (byte)0x65, (byte)0x6c, (byte)0x61, (byte)0x79, (byte)0x41, (byte)0x43, (byte)0x4b};
+
     /**
      * Various strings used to build the keys, hashes and HMACs
      */

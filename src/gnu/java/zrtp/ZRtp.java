@@ -2375,7 +2375,7 @@ public class ZRtp {
         }
 
         /*
-         * For the time being we don't support these types of shared secrect.
+         * For the time being we don't support the following type of shared secrect.
          * Could be easily done: somebody sets some data into our ZRtp object,
          * check it here and use it. Otherwise use the random data.
          */
@@ -2385,11 +2385,19 @@ public class ZRtp {
         auxSecretIDr = computeHmac(randBuf, ZidRecord.RS_LENGTH,
                 ZrtpConstants.responder, ZrtpConstants.responder.length);
 
-        secRand.nextBytes(randBuf);
-        pbxSecretIDi = computeHmac(randBuf, ZidRecord.RS_LENGTH,
-                ZrtpConstants.initiator, ZrtpConstants.initiator.length);
-        pbxSecretIDr = computeHmac(randBuf, ZidRecord.RS_LENGTH,
-                ZrtpConstants.responder, ZrtpConstants.responder.length);
+        if (!zidRec.isMITMKeyAvailable()) {
+            secRand.nextBytes(randBuf);
+            pbxSecretIDi = computeHmac(randBuf, ZidRecord.RS_LENGTH,
+                    ZrtpConstants.initiator, ZrtpConstants.initiator.length);
+            pbxSecretIDr = computeHmac(randBuf, ZidRecord.RS_LENGTH,
+                    ZrtpConstants.responder, ZrtpConstants.responder.length);
+        }
+        else {
+            pbxSecretIDi = computeHmac(zidRec.getMiTMData(), ZidRecord.RS_LENGTH,
+                    ZrtpConstants.initiator, ZrtpConstants.initiator.length);
+            pbxSecretIDr = computeHmac(zidRec.getMiTMData(), ZidRecord.RS_LENGTH,
+                    ZrtpConstants.responder, ZrtpConstants.responder.length);
+        }
     }
 
     private void generateKeysMultiStream() {
