@@ -302,7 +302,15 @@ public class ZRtp {
      * True if PBX enrollment is enabled.
      */
     @SuppressWarnings("unused")
-    private boolean PBXEnrollment = false;;
+    private boolean PBXEnrollment = false;
+    
+    /**
+     * True if the Hello packet was sent by a trusted PBX. This is true only
+     * if the Hello packet has the M-flag set and the according ZIDRecord contains
+     * a valid MitM key. 
+     */
+    private boolean trustedMitM = false;
+    private byte[] pbxSecretTmp = null;
 
     /**
      * Pre-initialized packets.
@@ -493,10 +501,20 @@ public class ZRtp {
      * chapter 4.3 ff and 7.3
      * 
      * @param data
-     *            Points to the PBX secret data.
+     *            Points to the PBX secret data provided by client in case
+     *            the client support some sort of external provisioning of
+     *            pbx secret.
      */
     public void setPbxSecret(byte[] data) {
+        // Initialize a ZID record to get peer's zid record to store the pbx (MitM) secret
+        ZidRecord zidRec = new ZidRecord(peerZid);
+        ZidFile zidf = ZidFile.getInstance();
 
+        zidf.getRecord(zidRec);
+        if (data != null)  
+            zidRec.setMiTMData(data);
+        
+        zidf.saveRecord(zidRec);
     }
 
     /**
@@ -698,6 +716,22 @@ public class ZRtp {
      */
     public void acceptEnrollment(boolean accepted) {
 
+        if (!accepted) {
+            callback.zrtpInformEnrollment("NO_PBX_ENROLLMENT");
+            return;
+        }
+        // Initialize a ZID record to get peer's zid record to store the pbx (MitM) secret
+        ZidRecord zidRec = new ZidRecord(peerZid);
+        ZidFile zidf = ZidFile.getInstance();
+
+        zidf.getRecord(zidRec);
+        if (pbxSecretTmp != null)  
+            zidRec.setMiTMData(pbxSecretTmp);
+        else {
+            callback.zrtpInformEnrollment("PBX_ENROLLMENT_FAIL");
+            return;
+        }
+        zidf.saveRecord(zidRec);
     }
 
     /**
@@ -955,6 +989,9 @@ public class ZRtp {
         // Compute the Initator's and Responder's retained secret ids.
         computeSharedSecretSet(zidRec);
 
+        // Check for trusted MitM
+        trustedMitM = zidRec.isMITMKeyAvailable() && hello.isTrustedPBX();
+        
         // Construct a DHPart2 message (Initiator's DH message). This packet
         // is required to compute the HVI (Hash Value Initiator), refer to
         // chapter 5.4.1.1.
@@ -1741,6 +1778,11 @@ public class ZRtp {
         zrtpConfirm2.setHmac(confMac);
         
         callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasVerified);
+        
+        if (PBXEnrollment && confirm1.isPBXEnrollment()) {
+            computePBXSecret();
+            callback.zrtpAskEnrollment("PBXEnrollement");
+        }
         return zrtpConfirm2;
     }
 
@@ -1921,6 +1963,12 @@ public class ZRtp {
             // save new RS1, this inherits the verified flag from old RS1
             zidRec.setNewRs1(newRs1, -1);
             zidf.saveRecord(zidRec);
+
+            if (PBXEnrollment && confirm2.isPBXEnrollment()) {
+                computePBXSecret();
+                callback.zrtpAskEnrollment("PBXEnrollement");
+            }
+
             callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasVerified);
         }
         else {
@@ -2445,7 +2493,6 @@ public class ZRtp {
 
         // Construct the KDF context as per ZRTP specification:
         // ZIDi || ZIDr || total_hash
-        // and the SAS context: ZIDi || ZIDr
         byte[] KDFcontext = new byte[zid.length + peerZid.length + hashLength];
 
         if (myRole == ZrtpCallback.Role.Responder) {
@@ -2506,6 +2553,24 @@ public class ZRtp {
         }
     }
 
+    private void computePBXSecret() {
+        // Construct the KDF context as per ZRTP specification chap 7.3.1:
+        // ZIDi || ZIDr
+        byte[] KDFcontext = new byte[zid.length + peerZid.length];
+
+        if (myRole == ZrtpCallback.Role.Responder) {
+            System.arraycopy(peerZid, 0, KDFcontext, 0, peerZid.length);
+            System.arraycopy(zid, 0, KDFcontext, peerZid.length, zid.length);
+        }
+        else {
+            System.arraycopy(zid, 0, KDFcontext, 0, zid.length);
+            System.arraycopy(peerZid, 0, KDFcontext, zid.length, peerZid.length);
+        }
+    
+        pbxSecretTmp = KDF(zrtpSession, ZrtpConstants.zrtpTrustedMitm, KDFcontext, 
+                ZrtpConstants.SHA256_DIGEST_LENGTH * 8);
+    }
+    
     private void generateKeysInitiator(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
         byte[][] setD = new byte[3][];
         int rsFound = 0;

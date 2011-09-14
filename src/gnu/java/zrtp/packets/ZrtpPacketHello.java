@@ -50,6 +50,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     private int oHash, oCipher, oPubkey, oSas, oAuth, oHmac;
 
     private byte helloFlags = 0;
+    
 //    private static final byte HELLO_PASSIVE = 0x10;
     private static final byte HELLO_TRUSTED_PBX = 0x20;
     /*

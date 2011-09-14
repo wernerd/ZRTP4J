@@ -222,6 +222,12 @@ public class ZrtpConstants {
         (byte)0x5a, (byte)0x52, (byte)0x54, (byte)0x50, (byte)0x20, (byte)0x4d, (byte)0x53, (byte)0x4b,
         (byte)0x0};
 
+//  "Trusted MiTM key"
+    public static final byte[] zrtpTrustedMitm = {
+        (byte)0x54, (byte)0x72, (byte)0x75, (byte)0x73, (byte)0x74, (byte)0x65, (byte)0x64, (byte)0x20,
+        (byte)0x4d, (byte)0x69, (byte)0x54, (byte)0x4d, (byte)0x20, (byte)0x6b, (byte)0x65, (byte)0x79,
+        (byte)0x0};
+
     /**
      * The names of the algorithms as defined in ZRTP specification
      */

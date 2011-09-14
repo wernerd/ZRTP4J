@@ -92,10 +92,13 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
             signatureLength |= 0x100;
         }
     }
-
     
     public final boolean isSASFlag() {
         return ((packetBuffer[FLAGS_OFFSET] & 0x4) == 0x4); 
+    }
+    
+    public final boolean isPBXEnrollment() {
+        return ((packetBuffer[FLAGS_OFFSET] & 0x8) == 0x8); 
     }
     
     public final byte[] getIv() {
