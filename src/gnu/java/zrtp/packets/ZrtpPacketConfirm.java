@@ -137,6 +137,10 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
         packetBuffer[FLAGS_OFFSET] |= 0x4; 
     }
 
+    public final void setPBXEnrollment() {
+        packetBuffer[FLAGS_OFFSET] |= 0x8; 
+    }
+    
     public final void setHmac(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
     }

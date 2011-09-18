@@ -52,7 +52,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     private byte helloFlags = 0;
     
 //    private static final byte HELLO_PASSIVE = 0x10;
-    private static final byte HELLO_TRUSTED_PBX = 0x20;
+    private static final byte HELLO_MITM_FLAG = 0x20;
     /*
      * The length of the Hello specific ZRTP packet part in words
      */
@@ -225,8 +225,12 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         System.arraycopy(data, 0, packetBuffer, oHmac, 2*ZRTP_WORD_SIZE);
     }
 
-    public final boolean isTrustedPBX() {
-        return ((helloFlags & HELLO_TRUSTED_PBX) == HELLO_TRUSTED_PBX); 
+    public final void setMitmMode() {
+        packetBuffer[FLAG_LENGTH_OFFSET] |= HELLO_MITM_FLAG; 
+    }
+
+    public final boolean isMitmMode() {
+        return ((helloFlags & HELLO_MITM_FLAG) == HELLO_MITM_FLAG); 
     }
 
     /**

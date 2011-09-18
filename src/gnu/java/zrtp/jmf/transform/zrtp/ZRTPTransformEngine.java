@@ -273,6 +273,8 @@ public class ZRTPTransformEngine
     private TimeoutProvider timeoutProvider = null;
     
     private boolean started = false;
+    
+    private boolean mitmMode = false;
 
 
     /**
@@ -342,7 +344,7 @@ public class ZRTPTransformEngine
             }
         }
         enableZrtp = autoEnable;
-        zrtpEngine = new ZRtp(zf.getZid(), this, clientIdString, config);
+        zrtpEngine = new ZRtp(zf.getZid(), this, clientIdString, config, mitmMode);
         return true;
     }
 
@@ -734,6 +736,102 @@ public class ZRTPTransformEngine
             zrtpEngine.acceptEnrollment(accepted);
     }
 
+    /**
+     * Get the commited SAS rendering algorithm for this ZRTP session.
+     * 
+     * @return the commited SAS rendering algorithm
+     */
+    public ZrtpConstants.SupportedSASTypes getSasType() {
+        if (zrtpEngine != null)
+            return zrtpEngine.getSasType();
+        else
+            return null;
+    }
+
+    /**
+     * Get the computed SAS hash for this ZRTP session.
+     * 
+     * @return a refernce to the byte array that contains the full 
+     *         SAS hash.
+     */
+    public byte[] getSasHash() {
+        if (zrtpEngine != null)
+            return zrtpEngine.getSasHash();
+        else
+            return null;
+    }
+
+    /**
+     * Send the SAS relay packet.
+     * 
+     * The method creates and sends a SAS relay packet according to the ZRTP
+     * specifications. Usually only a MitM capable user agent (PBX) uses this
+     * function.
+     * 
+     * @param sh the full SAS hash value
+     * @param render the SAS rendering algorithm
+     */
+    public boolean sendSASRelayPacket(byte[] sh, ZrtpConstants.SupportedSASTypes render) {
+        if (zrtpEngine != null)
+            return zrtpEngine.sendSASRelayPacket(sh, render);
+        else
+            return false;
+    }
+    /**
+     * Check the state of the MitM mode flag.
+     * 
+     * If true then this ZRTP session acts as MitM, usually enabled by a PBX
+     * based client (user agent)
+     * 
+     * @return state of mitmMode 
+     */
+    public boolean isMitmMode() {
+        return mitmMode;
+    }
+
+    /**
+     * Set the state of the MitM mode flag.
+     * 
+     * If MitM mode is set to true this ZRTP session acts as MitM, usually 
+     * enabled by a PBX based client (user agent).
+     * 
+     * @param mitmMode defines the new state of the mitmMode flag
+     */
+    public void setMitmMode(boolean mitmMode) {
+        this.mitmMode = mitmMode;
+    }
+
+    /**
+     * Check the state of the enrollment mode.
+     * 
+     * If true then we will set the enrollment flag (E) in the confirm
+     * packets and performs the enrollment actions. A MitM (PBX) enrollment service sets this flagstarted this ZRTP 
+     * session. Can be set to true only if mitmMode is also true. 
+     * @return status of the enrollmentMode flag.
+     */
+    public boolean isEnrollmentMode() {
+        if (zrtpEngine != null)
+            return zrtpEngine.isEnrollmentMode();
+        else
+            return false;
+    }
+
+    /**
+     * Check the state of the enrollment mode.
+     * 
+     * If true then we will set the enrollment flag (E) in the confirm
+     * packets and perform the enrollment actions. A MitM (PBX) enrollment 
+     * service must sets this mode to true. 
+     * 
+     * Can be set to true only if mitmMode is also true. 
+     * 
+     * @param enrollmentMode defines the new state of the enrollmentMode flag
+     */
+    public void setEnrollmentMode(boolean enrollmentMode) {
+        if (zrtpEngine != null)
+            zrtpEngine.setEnrollmentMode(enrollmentMode);
+    }
+
     public boolean setSignatureData(byte[] data) {
         return ((zrtpEngine != null) ? zrtpEngine.setSignatureData(data)
                 : false);
@@ -748,11 +846,6 @@ public class ZRTPTransformEngine
 
     public int getSignatureLength() {
         return ((zrtpEngine != null) ? zrtpEngine.getSignatureLength() : 0);
-    }
-
-    public void setPBXEnrollment(boolean yesNo) {
-        if (zrtpEngine != null)
-            zrtpEngine.setPBXEnrollment(yesNo);
     }
 
     public void handleGoClear() {

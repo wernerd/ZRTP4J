@@ -40,8 +40,8 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
     private static final int FILLER_OFFSET = IV_OFFSET + 4*ZRTP_WORD_SIZE;
     private static final int SIG_LENGTH_OFFSET = FILLER_OFFSET + 2;
     private static final int FLAGS_OFFSET = SIG_LENGTH_OFFSET + 1;
-    private static final int RENDER_OFFSET = FLAGS_OFFSET + 1;
-    private static final int TRUSTED_SAS_OFFSET = RENDER_OFFSET + 2;
+    private static final int SAS_OFFSET = FLAGS_OFFSET + 1;
+    private static final int TRUSTED_SAS_OFFSET = SAS_OFFSET + ZRTP_WORD_SIZE;
     private static final int SIG_DATA_OFFSET = TRUSTED_SAS_OFFSET + 8*ZRTP_WORD_SIZE;
 
     // required bytes to hold the header, the fix part and the CRC
@@ -108,9 +108,23 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
     public final byte[] getHmac() {
         return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
     }
-        
-    public final byte[] getRender() {
-        return ZrtpUtils.readRegion(packetBuffer, RENDER_OFFSET, ZRTP_WORD_SIZE);
+
+    public ZrtpConstants.SupportedSASTypes getSas() {
+
+        for (ZrtpConstants.SupportedSASTypes sh : ZrtpConstants.SupportedSASTypes
+                .values()) {
+            byte[] s = sh.name;
+            if (s[0] == packetBuffer[SAS_OFFSET] && s[1] == packetBuffer[SAS_OFFSET + 1]
+                    && s[2] == packetBuffer[SAS_OFFSET + 2]
+                    && s[3] == packetBuffer[SAS_OFFSET + 3]) {
+                return sh;
+            }
+        }
+        return null;
+    }
+
+    public final byte[] getTrustedSas() {
+        return ZrtpUtils.readRegion(packetBuffer, TRUSTED_SAS_OFFSET, 8*ZRTP_WORD_SIZE);
     }
 
     public final byte[] getDataToSecure() {
@@ -141,8 +155,12 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
         System.arraycopy(data, 0, packetBuffer, IV_OFFSET, 4*ZRTP_WORD_SIZE);
     }
         
-    public final void setRender(final byte[] data)  { 
-        System.arraycopy(data, 0, packetBuffer, RENDER_OFFSET, ZRTP_WORD_SIZE);
+    public final void setSasType(final byte[] data) { 
+        System.arraycopy(data, 0, packetBuffer, SAS_OFFSET, ZRTP_WORD_SIZE);
+    }
+    
+    public final void setTrustedSas(final byte[] data) {
+        System.arraycopy(data, 0, packetBuffer, TRUSTED_SAS_OFFSET, 8*ZRTP_WORD_SIZE);
     }
     
     public final void setDataToSecure(final byte[] data) {

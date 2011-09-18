@@ -19,6 +19,7 @@
 
 package gnu.java.zrtp;
 
+import gnu.java.zrtp.ZrtpConstants.SupportedSASTypes;
 import gnu.java.zrtp.packets.ZrtpPacketBase;
 import gnu.java.zrtp.packets.ZrtpPacketCommit;
 import gnu.java.zrtp.packets.ZrtpPacketConf2Ack;
@@ -30,6 +31,8 @@ import gnu.java.zrtp.packets.ZrtpPacketHello;
 import gnu.java.zrtp.packets.ZrtpPacketHelloAck;
 import gnu.java.zrtp.packets.ZrtpPacketPingAck;
 import gnu.java.zrtp.packets.ZrtpPacketPing;
+import gnu.java.zrtp.packets.ZrtpPacketRelayAck;
+import gnu.java.zrtp.packets.ZrtpPacketSASRelay;
 import gnu.java.zrtp.utils.Base32;
 import gnu.java.zrtp.utils.ZrtpUtils;
 import gnu.java.zrtp.utils.ZrtpFortuna;
@@ -63,9 +66,9 @@ import org.bouncycastle.mathzrtp.ec.ECPoint;
  * Refer to the ZrtpCallback class to get detailed information regarding the
  * callback methods required by GNU RTP.
  * 
- * The class ZrtpQueue is the GNU ccRTP specific implementation that extends
- * standard ccRTP RTP provide ZRTP support. Refer to the documentation of
- * ZrtpQueue to get more information about the usage of ZRtp and associated
+ * The class ZRTPTransformEngine is the Java JMF specific implementation that extends
+ * standard Java JMF and the related RTP transport. Refer to the documentation of
+ * ZRTPTransformEngine to get more information about the usage of ZRtp and associated
  * classes.
  * 
  * The main entry into the ZRTP class is the processExtensionHeader() method.
@@ -86,6 +89,7 @@ import org.bouncycastle.mathzrtp.ec.ECPoint;
  * </pre>
  * 
  * @see ZrtpCallback
+ * @see gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine
  * 
  * @author Werner Dittmann <Werner.Dittmann@t-online.de>
  * 
@@ -123,7 +127,7 @@ public class ZRtp {
     /**
      * The computed DH shared secret
      */
-    byte[] DHss = null;
+    private byte[] DHss = null;
 
     /**
      * My computed public key
@@ -216,7 +220,7 @@ public class ZRtp {
     private ZrtpConstants.SupportedSASTypes sasType;
 
     /**
-     * The selected SAS type.
+     * The selected authenitaction length.
      */
     private ZrtpConstants.SupportedAuthLengths authLength;
 
@@ -299,10 +303,14 @@ public class ZRtp {
     private boolean multiStreamAvailable = false;
 
     /**
-     * True if PBX enrollment is enabled.
+     * Enable MitM (PBX) enrollment
+     * 
+     * If set to true then ZRTP honors the PBX enrollment flag in
+     * Commit packets and calls the appropriate user callback
+     * methods. If the parameter is set to false ZRTP ignores the PBX
+     * enrollment flags.
      */
-    @SuppressWarnings("unused")
-    private boolean PBXEnrollment = false;
+    private boolean enableMitmEnrollment = false;
     
     /**
      * True if the Hello packet was sent by a trusted PBX. This is true only
@@ -310,8 +318,32 @@ public class ZRtp {
      * a valid MitM key. 
      */
     private boolean trustedMitM = false;
+
+    /**
+     * Set to true if the Hello packet contained the M-flag (MitM flag).
+     * We use this later to check some stuff for SAS Relay processing
+     */
+    private boolean mitMseen = false;
+    
+    /**
+     * Temporarily store computed pbxSecret, if user accepts enrollment then
+     * it will copied to our ZID record of the PBX (MitM)  
+     */
     private byte[] pbxSecretTmp = null;
 
+    /**
+     * If true then this ZRTP session acts as MitM, usually enabled by a PBX
+     * based client (user agent)
+     */
+    private boolean mitmMode = false;
+    
+    /**
+     * If true then we will set the enrollment flag (E) in the confirm
+     * packets. Set to true if the PBX enrollment service started this ZRTP 
+     * session. Can be set to true only if mitmMode is also true. 
+     */
+    private boolean enrollmentMode = false;
+    
     /**
      * Pre-initialized packets.
      */
@@ -339,6 +371,9 @@ public class ZRtp {
 
     private ZrtpPacketPingAck zrtpPingAck = new ZrtpPacketPingAck();
 
+    private ZrtpPacketSASRelay zrtpSasRelay = new ZrtpPacketSASRelay();
+
+    private ZrtpPacketRelayAck zrtpRelayAck = new ZrtpPacketRelayAck();
     /**
      * Random IV data to encrypt the confirm data, 128 bit for AES
      */
@@ -362,10 +397,12 @@ public class ZRtp {
     /**
      * Constructor initializes all relevant data but does not start the engine.
      */
-    public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config) {
+    public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config, boolean mitmMode) {
 
         secRand = ZrtpFortuna.getInstance();
         configureAlgos = config;
+        enableMitmEnrollment = config.isTrustedMitM();
+        
         System.arraycopy(myZid, 0, zid, 0, ZidRecord.IDENTIFIER_LENGTH);
         callback = cb;
         /*
@@ -388,6 +425,8 @@ public class ZRtp {
 
         secRand.nextBytes(randomIV); // IV used in ZRTP packet encryption
 
+        if (mitmMode)
+            zrtpHello.setMitmMode();
         zrtpHello.setZid(zid);
         setClientId(id); // set id, compute HMAC and final helloHash
 
@@ -491,7 +530,6 @@ public class ZRtp {
      *            Points to the secret data.
      */
     public void setAuxSecret(byte[] data) {
-
     }
 
     /**
@@ -501,21 +539,130 @@ public class ZRtp {
      * chapter 4.3 ff and 7.3
      * 
      * @param data
-     *            Points to the PBX secret data provided by client in case
-     *            the client support some sort of external provisioning of
-     *            pbx secret.
+     *            Points to the PBX secret data provided by client running on
+     *            a PBX usually.
+     * TODO - revise the PBX master mechanisms
      */
     public void setPbxSecret(byte[] data) {
-        // Initialize a ZID record to get peer's zid record to store the pbx (MitM) secret
-        ZidRecord zidRec = new ZidRecord(peerZid);
-        ZidFile zidf = ZidFile.getInstance();
-
-        zidf.getRecord(zidRec);
-        if (data != null)  
-            zidRec.setMiTMData(data);
-        
-        zidf.saveRecord(zidRec);
     }
+    
+    /**
+     * Check the state of the MitM mode flag.
+     * 
+     * If true then this ZRTP session acts as MitM, usually enabled by a PBX
+     * based client (user agent)
+     * 
+     * @return state of mitmMode 
+     */
+    public boolean isMitmMode() {
+        return mitmMode;
+    }
+
+    /**
+     * Set the state of the MitM mode flag.
+     * 
+     * If MitM mode is set to true this ZRTP session acts as MitM, usually 
+     * enabled by a PBX based client (user agent).
+     * 
+     * @param mitmMode defines the new state of the mitmMode flag
+     */
+    public void setMitmMode(boolean mitmMode) {
+        this.mitmMode = mitmMode;
+    }
+
+    /**
+     * Check the state of the enrollment mode.
+     * 
+     * If true then we will set the enrollment flag (E) in the confirm
+     * packets and performs the enrollment actions. A MitM (PBX) enrollment service sets this flagstarted this ZRTP 
+     * session. Can be set to true only if mitmMode is also true. 
+     * @return status of the enrollmentMode flag.
+     */
+    public boolean isEnrollmentMode() {
+        return enrollmentMode;
+    }
+
+    /**
+     * Check the state of the enrollment mode.
+     * 
+     * If true then we will set the enrollment flag (E) in the confirm
+     * packets and perform the enrollment actions. A MitM (PBX) enrollment 
+     * service must sets this mode to true. 
+     * 
+     * Can be set to true only if mitmMode is also true. 
+     * 
+     * @param enrollmentMode defines the new state of the enrollmentMode flag
+     */
+    public void setEnrollmentMode(boolean enrollmentMode) {
+        this.enrollmentMode = enrollmentMode;
+    }
+
+    /**
+     * Send the SAS relay packet.
+     * 
+     * The method creates and sends a SAS relay packet according to the ZRTP
+     * specifications. Usually only a MitM capable user agent (PBX) uses this
+     * function.
+     * 
+     * @param sh the full SAS hash value
+     * @param render the SAS rendering algorithm
+     */
+    public boolean sendSASRelayPacket(byte[] sh, ZrtpConstants.SupportedSASTypes render) {
+        byte[] hkey, ekey;
+        // If we are responder then the PBX used it's Initiator keys
+        if (myRole == ZrtpCallback.Role.Responder) {
+            hkey = hmacKeyR;
+            ekey = zrtpKeyR;
+        }
+        else {
+            hkey = hmacKeyI;
+            ekey = zrtpKeyI;   
+        }
+        secRand.nextBytes(randomIV);
+        zrtpSasRelay.setIv(randomIV);
+        zrtpSasRelay.setTrustedSas(sh);
+        zrtpSasRelay.setSasType(render.name);
+
+        // Encrypt and HMAC with selectedkey 
+        byte[] dataToSecure = zrtpSasRelay.getDataToSecure();
+        try {
+            cipher.cipher.init(true, new ParametersWithIV(new KeyParameter(
+                    ekey, 0, cipher.keyLength), randomIV));
+            int done = cipher.cipher.processBytes(dataToSecure, 0,
+                    dataToSecure.length, dataToSecure, 0);
+            cipher.cipher.doFinal(dataToSecure, done);
+        } catch (Exception e) {
+            sendInfo(ZrtpCodes.MessageSeverity.Severe,
+                    EnumSet.of(ZrtpCodes.SevereCodes.SevereSecurityException));
+            return false;
+        }
+        byte[] confMac = computeHmac(hkey, hashLength, dataToSecure,
+                dataToSecure.length);
+        zrtpSasRelay.setDataToSecure(dataToSecure);
+        zrtpSasRelay.setHmac(confMac);
+        stateEngine.sendSASRelay(zrtpSasRelay);
+        return true;
+    }
+
+    /**
+     * Get the commited SAS rendering algorithm for this ZRTP session.
+     * 
+     * @return the commited SAS rendering algorithm
+     */
+    public ZrtpConstants.SupportedSASTypes getSasType() {
+        return sasType;
+    }
+
+    /**
+     * Get the computed SAS hash for this ZRTP session.
+     * 
+     * @return a refernce to the byte array that contains the full 
+     *         SAS hash.
+     */
+    public byte[] getSasHash() {
+        return sasHash;
+    }
+
 
     /**
      * Check current state of the ZRTP state engine
@@ -563,7 +710,6 @@ public class ZRtp {
         zidf.getRecord(zidRec);
         zidRec.resetSasVerified();
         zidf.saveRecord(zidRec);
-
     }
 
     /**
@@ -725,31 +871,15 @@ public class ZRtp {
         ZidFile zidf = ZidFile.getInstance();
 
         zidf.getRecord(zidRec);
-        if (pbxSecretTmp != null)  
+        if (pbxSecretTmp != null) {
             zidRec.setMiTMData(pbxSecretTmp);
+            callback.zrtpInformEnrollment("PBX_ENROLLMENT_OK");
+        }
         else {
             callback.zrtpInformEnrollment("PBX_ENROLLMENT_FAIL");
             return;
         }
         zidf.saveRecord(zidRec);
-    }
-
-    /**
-     * Enable PBX enrollment
-     * 
-     * The application calls this method to allow or disallow PBX enrollment. If
-     * the applications allows PBX enrollment then the ZRTP implementation
-     * honors the PBX enrollment flag in Confirm packets. Refer to chapter 8.3
-     * for further details of PBX enrollment.
-     * 
-     * @param yesNo
-     *            If set to true then ZRTP honors the PBX enrollment flag in
-     *            Commit packets and calls the appropriate user callback
-     *            methods. If the parameter is set to false ZRTP ignores the PBX
-     *            enrollment flags.
-     */
-    public void setPBXEnrollment(boolean yesNo) {
-        PBXEnrollment = yesNo;
     }
 
     /**
@@ -937,7 +1067,7 @@ public class ZRtp {
          * The Following section extracts the algorithm from the Hello packet.
          * Always the best possible (offered) algorithms are used. If the
          * received Hello does not contain algo specifiers or offers only
-         * unsupported (optional) alogos then replace these with mandatory algos
+         * unsupported (optional) algos then replace these with mandatory algos
          * and put them into the Commit packet. Refer to the findBest*()
          * functions.
          */
@@ -989,9 +1119,13 @@ public class ZRtp {
         // Compute the Initator's and Responder's retained secret ids.
         computeSharedSecretSet(zidRec);
 
-        // Check for trusted MitM
-        trustedMitM = zidRec.isMITMKeyAvailable() && hello.isTrustedPBX();
-        
+        // Check for PBX and if we have a MitM Key available. This would
+        // qualify the PBX as trusted MitM and that this client enrolled to
+        // the trusted PBX
+        if (hello.isMitmMode()) {
+            mitMseen = true;
+            trustedMitM = zidRec.isMITMKeyAvailable();
+        }
         // Construct a DHPart2 message (Initiator's DH message). This packet
         // is required to compute the HVI (Hash Value Initiator), refer to
         // chapter 5.4.1.1.
@@ -1517,6 +1651,14 @@ public class ZRtp {
         zrtpConfirm1.setExpTime(0xFFFFFFFF);
         zrtpConfirm1.setIv(randomIV);
         zrtpConfirm1.setHashH0(H0);
+            
+        // if this run at PBX user agent enrollment service then set flag in confirm
+        // packet and store the MitM key
+        if (enrollmentMode) {
+            computePBXSecret();
+            zrtpConfirm1.setPBXEnrollment();
+            writeEnrollmentPBX();
+        }
 
         // Encrypt and HMAC with Responder's key - we are Respondere here
         // see ZRTP specification chapter
@@ -1755,6 +1897,20 @@ public class ZRtp {
         zrtpConfirm2.setExpTime(0xFFFFFFFF);
         zrtpConfirm2.setIv(randomIV);
 
+        // Compute PBX secret if we are in enrollemnt mode (PBX user agent)
+        // or enrollment was enabled at normal user agent and flag in confirm packet
+        if (enrollmentMode || (enableMitmEnrollment && confirm1.isPBXEnrollment())) {
+            computePBXSecret();
+            
+            // if this run at PBX user agent enrollment service then set flag in confirm
+            // packet and store the MitM key. The PBX user agent service always stores
+            // it's MitM key.
+            if (enrollmentMode) {
+                zrtpConfirm2.setPBXEnrollment();
+                writeEnrollmentPBX();
+            }
+        }
+
         // Encrypt and HMAC with Initiator's key - we are Initiator here
         // see ZRTP specification chapter xYxY
         dataToSecure = zrtpConfirm2.getDataToSecure();
@@ -1779,11 +1935,28 @@ public class ZRtp {
         
         callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasVerified);
         
-        if (PBXEnrollment && confirm1.isPBXEnrollment()) {
-            computePBXSecret();
+        // Ask for enrollment only if enabled via configuration and the
+        // confirm packet contains the enrollment flag. The enrolling user
+        // agent stores the MitM key only if the user accepts the enrollment
+        // request.
+        if (enableMitmEnrollment && confirm1.isPBXEnrollment()) {
             callback.zrtpAskEnrollment("PBXEnrollement");
         }
         return zrtpConfirm2;
+    }
+
+    /**
+     * Save the computed MitM secret to the ZID record of the peer
+     */
+    private void writeEnrollmentPBX() {
+        ZidRecord zidRec = new ZidRecord(peerZid);
+        ZidFile zidf = ZidFile.getInstance();
+
+        zidf.getRecord(zidRec);
+        if (pbxSecretTmp != null) {
+            zidRec.setMiTMData(pbxSecretTmp);
+        }
+        zidf.saveRecord(zidRec);
     }
 
     /*
@@ -1963,12 +2136,15 @@ public class ZRtp {
             // save new RS1, this inherits the verified flag from old RS1
             zidRec.setNewRs1(newRs1, -1);
             zidf.saveRecord(zidRec);
-
-            if (PBXEnrollment && confirm2.isPBXEnrollment()) {
+            
+            // Ask for enrollment only if enabled via configuration and the
+            // confirm packet contains the enrollment flag. The enrolling user
+            // agent stores the MitM key only if the user accepts the enrollment
+            // request.
+            if (enableMitmEnrollment && confirm2.isPBXEnrollment()) {
                 computePBXSecret();
                 callback.zrtpAskEnrollment("PBXEnrollement");
             }
-
             callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasVerified);
         }
         else {
@@ -2036,6 +2212,83 @@ public class ZRtp {
         zrtpPingAck.setRemoteEpHash(ppkt.getEpHash());
         zrtpPingAck.setPeerSSRC(peerSSRC);
         return zrtpPingAck;
+    }
+
+    protected ZrtpPacketRelayAck prepareRelayAck(ZrtpPacketSASRelay srly,
+            ZrtpCodes.ZrtpErrorCodes[] errMsg) {
+        if (!mitMseen)
+            return zrtpRelayAck;
+        
+        byte[] hkey, ekey;
+        // If we are responder then the PBX used it's Initiator keys
+        if (myRole == ZrtpCallback.Role.Responder) {
+            hkey = hmacKeyI;
+            ekey = zrtpKeyI;
+        }
+        else {
+            hkey = hmacKeyR;
+            ekey = zrtpKeyR;   
+        }
+        byte[] dataToSecure = srly.getDataToSecure();
+        byte[] relayMac = computeHmac(hkey, hashLength, dataToSecure,
+                dataToSecure.length);
+
+        if (ZrtpUtils.byteArrayCompare(relayMac, srly.getHmac(),
+                2 * ZrtpPacketBase.ZRTP_WORD_SIZE) != 0) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.ConfirmHMACWrong;
+            return null;    // TODO - check error handling
+        }
+        try {
+            // Decrypting here
+            cipher.cipher.init(false, new ParametersWithIV(new KeyParameter(
+                    ekey, 0, cipher.keyLength), srly.getIv()));
+            int done = cipher.cipher.processBytes(dataToSecure, 0,
+                    dataToSecure.length, dataToSecure, 0);
+            cipher.cipher.doFinal(dataToSecure, done);
+        } catch (Exception e) {
+            sendInfo(ZrtpCodes.MessageSeverity.Severe,
+                    EnumSet.of(ZrtpCodes.SevereCodes.SevereSecurityException));
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;    // TODO - check error handling
+        }
+        srly.setDataToSecure(dataToSecure);
+        
+        SupportedSASTypes render = srly.getSas();
+        byte[] newSasHash = srly.getTrustedSas();
+
+        
+        boolean sasHashNull = true;
+        for (int i = 0; i < newSasHash.length; i++) {
+            if (newSasHash[i] != 0) {
+                sasHashNull = false;
+                break;
+            }
+        }
+        // if the new SAS is not null then we need a trusted MitM. If this is not
+        // the case then don't render the new SAS - return.
+        if (!sasHashNull && !trustedMitM) {
+            return zrtpRelayAck;
+        }
+        // If other SAS schemes required - check here and use others
+        if (render == ZrtpConstants.SupportedSASTypes.B32) {
+            byte[] sasBytes = new byte[4];
+
+            if (!sasHashNull) {
+                sasBytes[0] = newSasHash[0];
+                sasBytes[1] = newSasHash[1];
+                sasBytes[2] = (byte) (newSasHash[2] & 0xf0);
+                sasBytes[3] = 0;
+            }
+            else {
+                sasBytes[0] = sasHash[0];
+                sasBytes[1] = sasHash[1];
+                sasBytes[2] = (byte) (sasHash[2] & 0xf0);
+                sasBytes[3] = 0;
+            }
+            SAS = Base32.binary2ascii(sasBytes, 20);
+        }
+        callback.srtpSecretsOn(cipher.readable + "/M/" + pubKey, SAS, srly.isSASFlag());
+        return zrtpRelayAck;
     }
 
     /**
@@ -2543,7 +2796,8 @@ public class ZRtp {
 
             // according to chapter 8 only the leftmost 20 bits of sasValue (aka
             // sasHash) are used to create the character SAS string of type SAS
-            // base 32 (5 bits per character)
+            // base 32 (5 bits per character).
+            // If other SAS schemes required - check here and use others
             byte[] sasBytes = new byte[4];
             sasBytes[0] = sasHash[0];
             sasBytes[1] = sasHash[1];
@@ -2600,10 +2854,11 @@ public class ZRtp {
 
         /***********************************************************************
          * Not yet supported: if (ZrtpUtils.byteArrayCompare(auxSecretIDr,
-         * dhPart.getAuxSecretId(), 8) == 0) { setD[matchingSecrets++] = ; } if
-         * (ZrtpUtils.byteArrayCompare(pbxSecretIDr, dhPart.getPbxSecretId(), 8)
-         * == 0) { setD[matchingSecrets++] = }
+         * dhPart.getAuxSecretId(), 8) == 0) { setD[matchingSecrets++] = ; } 
          ********************************************************************* */
+        if (ZrtpUtils.byteArrayCompare(pbxSecretIDr, dhPart.getPbxSecretId(), 8) == 0) {
+            setD[matchingSecrets++] = zidRec.getMiTMData(); 
+        }
         // Check if some retained secrets found
         if (rsFound == 0) { // no RS matches found
             if (rs1Valid || rs2Valid) { // but valid RS records in cache
@@ -2715,11 +2970,11 @@ public class ZRtp {
         }
         /***********************************************************************
          * Not yet supported if (ZrtpUtils.byteArrayCompare(auxSecretIDi,
-         * dhPart.getAuxSecretId(), 8) == 0) { setD[matchingSecrets++] = } if
-         * (ZrtpUtils.byteArrayCompare(pbxSecretIDi, dhPart.getPbxSecretId(), 8)
-         * == 0) { setD[matchingSecrets++] = }
+         * dhPart.getAuxSecretId(), 8) == 0) { setD[matchingSecrets++] = }
          **********************************************************************/
-
+        if (ZrtpUtils.byteArrayCompare(pbxSecretIDi, dhPart.getPbxSecretId(), 8) == 0) { 
+            setD[matchingSecrets++] = zidRec.getMiTMData(); 
+        }
         // Check if some retained secrets found
         if (rsFound == 0) { // no RS matches found
             if (rs1Valid || rs2Valid) { // but valid RS records in cache

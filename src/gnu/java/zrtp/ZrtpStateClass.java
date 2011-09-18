@@ -31,6 +31,8 @@ import gnu.java.zrtp.packets.ZrtpPacketHello;
 import gnu.java.zrtp.packets.ZrtpPacketHelloAck;
 import gnu.java.zrtp.packets.ZrtpPacketPing;
 import gnu.java.zrtp.packets.ZrtpPacketPingAck;
+import gnu.java.zrtp.packets.ZrtpPacketRelayAck;
+import gnu.java.zrtp.packets.ZrtpPacketSASRelay;
 
 import java.util.EnumSet;
 
@@ -87,6 +89,10 @@ public class ZrtpStateClass {
     private ZrtpStates inState;
     
     /*
+     * The secure substate
+     */
+    private SecureSubStates secSubstate = SecureSubStates.Normal;
+    /*
      * Offset to the first message type byte in ZRTP packet 
      */
     private static final int MESSAGE_OFFSET = 4; 
@@ -109,6 +115,12 @@ public class ZrtpStateClass {
         numberOfStates
     }
 
+    public enum SecureSubStates {
+        Normal,
+        WaitSasRelayAck,
+        numberofSecureSubStates
+    }
+    
     protected enum EventDataType {
         ZrtpInitial,
         ZrtpClose,
@@ -233,6 +245,12 @@ public class ZrtpStateClass {
                 ZrtpPacketPing ppkt = new ZrtpPacketPing(pkt);
                 ZrtpPacketPingAck ppktAck = parent.preparePingAck(ppkt);
                 parent.sendPacketZRTP(ppktAck);
+                return;
+            } else if (first == 's' && last == 'y') {
+                ZrtpCodes.ZrtpErrorCodes[] errorCode = new ZrtpCodes.ZrtpErrorCodes[1];
+                ZrtpPacketSASRelay srly = new ZrtpPacketSASRelay(pkt);
+                ZrtpPacketRelayAck rapkt = parent.prepareRelayAck(srly, errorCode);
+                parent.sendPacketZRTP(rapkt);
                 return;
             }
         }
@@ -1222,6 +1240,7 @@ public class ZrtpStateClass {
                 }
                 if (startTimer(t2) <= 0) {
                     timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);  // returns to state Initial
+                    // TODO - check for "return" here
                 }
                 if (!parent.srtpSecretsReady(ZrtpCallback.EnableSecurity.ForReceiver)) {
                     parent.sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
@@ -1260,6 +1279,8 @@ public class ZrtpStateClass {
      * Conf2Ack to our peer. Switch to secure mode after sending Conf2Ack, our 
      * peer switches to secure mode after receiving Conf2Ack.
      *
+     * TODO - revise documentation comments
+     * 
      * When entering this transition function
      * - Responder mode
      * - sentPacket contains Confirm1 packet, no timer active
@@ -1433,6 +1454,13 @@ public class ZrtpStateClass {
         byte[] pkt;
 
         /*
+         * Handle a possible substate. If substate handling was ok just return.
+         */
+        if (secSubstate == SecureSubStates.WaitSasRelayAck) {
+            if (subEvWaitRelayAck())
+                return; 
+        }
+        /*
          * First check the general event type, then discrimnate the real event.
          */
         switch (event.type) {
@@ -1488,6 +1516,65 @@ public class ZrtpStateClass {
                     EnumSet.of(ZrtpCodes.InfoCodes.InfoSecureStateOff));
         }
     }
+    
+    /*
+     * Secure Sub state WaitSasRelayAck.
+     *
+     * This state belongs to the secure substates and handles
+     * SAS Relay Ack. 
+     *
+     * When entering this transition function
+     * - sentPacket contains Error packet, Error timer active
+     *
+     * Possible events in this state are:
+     * - timeout for sent SAS Relay packet: causes a resend check and repeat sending
+     *   of packet
+     * - SASRelayAck: Stop timer and switch to secure substate Normal.
+     */
+    protected boolean subEvWaitRelayAck() {
+        char first, last;
+        byte[] pkt;
+
+        /*
+         * First check the general event type, then discrimnate the real event.
+         */
+        switch (event.type) {
+
+        case ZrtpPacket:
+            pkt = event.packet;
+
+            first = (char) pkt[MESSAGE_OFFSET];
+            first = Character.toLowerCase(first);
+            last = (char) pkt[MESSAGE_OFFSET + 7];
+            last = Character.toLowerCase(last);
+            /*
+             * SAS relayAck:
+             * - stop resending SASRelay,
+             * - switch to secure substate Normal
+             */
+            if (first == 'r' && last =='k') {
+                cancelTimer();
+                secSubstate = SecureSubStates.Normal;
+                sentPacket = null;
+            }
+            return true;
+        case Timer:
+            if (!parent.sendPacketZRTP(sentPacket)) {
+                sendFailed(); // returns to state Initial
+                return false;
+            }
+            if (nextTimer(t2) <= 0) {
+                // returns to state initial
+                // timerFailed(ZrtpCodes.SevereCodes.SevereTooMuchRetries);
+                return false;
+            }
+            return true;
+        default: // unknown Event type for this state (covers Error and close)
+            break;
+        }
+        return false;
+    }
+
 
     /*
      * WaitErrorAck state.
@@ -1647,6 +1734,26 @@ public class ZrtpStateClass {
         sentPacket = err;
         inState = ZrtpStates.WaitErrorAck;
         if (!parent.sendPacketZRTP(err) || (startTimer(t2) <= 0)) {
+            sendFailed();
+        }
+    }
+
+    /**
+     * Send a SAS relay packet.
+     *
+     * Get the SAS relay packet and send it. It stores the
+     * packet in the sentPacket variable to enable resending. The
+     * method switches to secure substate WaitSasRelayAck.
+     * 
+     * @param errorCode Is the sub error code of ZrtpError. The method sends
+     *   the value of this sub code to the peer.
+     */
+    protected void sendSASRelay(ZrtpPacketSASRelay relay) {
+        cancelTimer();
+        System.out.println("SAS Relay state send");
+        sentPacket = relay;
+        secSubstate = SecureSubStates.WaitSasRelayAck;
+        if (!parent.sendPacketZRTP(relay) || (startTimer(t2) <= 0)) {
             sendFailed();
         }
     }
