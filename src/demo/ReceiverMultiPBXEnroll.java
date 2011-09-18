@@ -22,7 +22,7 @@ import javax.media.rtp.event.*;
 
 /**
  */
-public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener,
+public class ReceiverMultiPBXEnroll implements ReceiveStreamListener, SessionListener,
         BufferTransferHandler {
     
     ZrtpTransformConnector transConnector = null;
@@ -71,6 +71,37 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
         public void zrtpNotSuppOther() {
             System.err.println(prefix + "Rx ZRTP not supported");
         }
+        
+        /**
+         * ZRTPQueue calls this method to inform about a PBX enrollment request.
+         *
+         * Please refer to chapter 8.3 ff to get more details about PBX enrollment
+         * and SAS relay.
+         *
+         * @param info
+         *    Give some information to the user about the PBX requesting an
+         *    enrollment.
+         *
+         */
+        public void zrtpAskEnrollment(String info) {
+            System.out.println(prefix + "ask enrollment: " + info);
+            zrtpEngine.acceptEnrollment(true);
+        }
+        /**
+         * ZRTPQueue calls this method to inform about PBX enrollment result.
+         *
+         * Informs the use about the acceptance or denial of an PBX enrollment
+         * request
+         *
+         * @param info
+         *    Give some information to the user about the result of an
+         *    enrollment.
+         *
+         */
+        public void zrtpInformEnrollment(String info) {
+            System.out.println(prefix + "inform enrollment: " + info);
+        }
+
         void setPrefix(String pre) {
             prefix = pre;
         }
@@ -90,7 +121,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
     private RTPManager mgr = null;
     private RTPManager mgrMulti = null;
 
-    public ReceiverMultiZRTP() {
+    public ReceiverMultiPBXEnroll() {
     }
 
     public void run() {
@@ -120,9 +151,11 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             zrtpEngine.setUserCallback(new MyCallback());
             ZrtpConfigure config = new ZrtpConfigure();
             config.setStandardConfig();
-//            config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
+            config.setTrustedMitM(true);
+            
+            // config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
            
-            if (!zrtpEngine.initialize("test_t.zid", config))
+            if (!zrtpEngine.initialize("test_mitm_r.zid", config))
                 System.out.println("iniatlize failed");
 
             System.out.println("Hello hash: " + zrtpEngine.getHelloHash());
@@ -136,7 +169,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
 
             transConnector.addTarget(target);
             mgr.initialize(transConnector);
-//            zrtpEngine.startZrtp();
+            // zrtpEngine.startZrtp();
         } catch (Exception e) {
             System.err.println("Cannot create the RTP Session: "
                     + e.getMessage());
@@ -163,7 +196,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             zrtpEngineMulti = transConnectorMulti.getEngine();
 
             // IMPORTANT: crypto provider must be set before initialization
-            if (!zrtpEngineMulti.initialize("test_t.zid"))
+            if (!zrtpEngineMulti.initialize("test_mitm_r.zid"))
                 System.out.println("Multi iniatlize failed");
 
             // IMPORTANT: set other data only _after_ initialization
@@ -317,7 +350,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
 
     public static void main(String[] args) {
 
-        ReceiverMultiZRTP rcv = new ReceiverMultiZRTP();
+        ReceiverMultiPBXEnroll rcv = new ReceiverMultiPBXEnroll();
         //	rcv.start();
         rcv.run();
         try {
