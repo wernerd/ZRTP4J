@@ -19,7 +19,6 @@
 
 package gnu.java.zrtp.zidfile;
 
-import gnu.java.zrtp.utils.ZrtpUtils;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -28,7 +27,6 @@ import java.io.RandomAccessFile;
 import java.io.File;
 
 import java.util.Random;
-import java.util.Arrays;
 
 
 /**
@@ -85,7 +83,8 @@ public class ZidFile {
         if (zidFile != null) {
             Random ran = new Random();
             ran.nextBytes(associatedZid);
-            ZidRecord rec = new ZidRecord(associatedZid);
+            ZidRecord rec = new ZidRecord();
+            rec.setIdentifier(associatedZid);
             rec.setOwnZIDRecord();
             try {
                 zidFile.seek(0L);
@@ -138,7 +137,7 @@ public class ZidFile {
         }
 
         if (zidFile != null) {
-            ZidRecord rec = new ZidRecord(null);
+            ZidRecord rec = new ZidRecord();
 
             try {
                 zidFile.seek(0L);
@@ -209,19 +208,17 @@ public class ZidFile {
      *            fills in data .
      * @return Currently always 1 to indicate sucess
      */
-    public synchronized int getRecord(ZidRecord zidRecord) {
+    public synchronized ZidRecord getRecord(byte[] zid) {
         long pos = 0L;
-        ZidRecord rec = new ZidRecord(null);
+        ZidRecord rec = new ZidRecord();
         boolean numRead = false;
-
-        byte[] id = zidRecord.getIdentifier();
 
         // set read pointer behind first record, then read record
         // the very first record is the "own" zid record.
         try {
             zidFile.seek(ZID_RECORD_LENGTH);
         } catch (IOException e2) {
-            return -1;
+            return null;
         }
         do {
             try {
@@ -235,7 +232,7 @@ public class ZidFile {
                     zidFile.close();
                 } catch (IOException e1) {
                     zidFile = null;
-                    return -1;
+                    return null;
                 }
             }
             if (!numRead) {
@@ -247,32 +244,23 @@ public class ZidFile {
                 continue;
             }
 
-        } while (numRead && !rec.isSameIdentifier(id));
+        } while (numRead && !rec.isSameIdentifier(zid));
 
-        // If we reached end of file, then no record with the ZID
+        // If we reached end of file, then no record with matching ZID
         // found. We need to create a new ZID record.
         if (!numRead) {
-            // create new record
-            ZidRecord rec1 = new ZidRecord(zidRecord.getIdentifier());
-            rec1.setValid();
+            rec.setIdentifier(zid);
+            rec.setValid();
             try {
                 pos = zidFile.getFilePointer();
-                zidFile.write(rec1.getBuffer());
-                System.arraycopy(rec1.getBuffer(), 0, zidRecord.getBuffer(), 0,
-                        zidRecord.getBuffer().length);
+                zidFile.write(rec.getBuffer());
             } catch (IOException e) {
-                return -1;
+                return null;
             }
-
-        } else {
-            // Copy the read data into caller's record storage
-            System.arraycopy(rec.getBuffer(), 0, zidRecord.getBuffer(), 0,
-                    zidRecord.getBuffer().length);
         }
-
         // remember position of record in file for save operation
-        zidRecord.setPosition(pos);
-        return 1;
+        rec.setPosition(pos);
+        return rec;
     }
 
     /**

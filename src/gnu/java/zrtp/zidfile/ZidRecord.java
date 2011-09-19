@@ -81,14 +81,10 @@ public class ZidRecord {
      * Record position in ZID file (in bytes)
      */
     private long position;
-    
-    public ZidRecord(byte[] zidData) {
+
+    public ZidRecord() {
         buffer = new byte[ZID_RECORD_LENGTH];
-        Arrays.fill(buffer, (byte)0);
         buffer[VERSION_OFFSET] = VERSION;
-        if (zidData != null) {
-            System.arraycopy(zidData, 0, buffer, IDENTIFIER_OFFSET, IDENTIFIER_LENGTH);
-        }
     }
 
     protected boolean isValid() {
@@ -176,6 +172,14 @@ public class ZidRecord {
      */
     public byte[] getIdentifier() {
         return ZrtpUtils.readRegion(buffer, IDENTIFIER_OFFSET, IDENTIFIER_LENGTH);        
+    }
+
+    /**
+     * Set identifier.
+     * 
+     */
+    public void setIdentifier(byte[] id) {
+        System.arraycopy(id, 0, buffer, IDENTIFIER_OFFSET, IDENTIFIER_LENGTH);        
     }
 
     /**
@@ -373,7 +377,8 @@ public class ZidRecord {
         byte[] data = {1,2,3,4,5,6,7,8,9,10,11,12};
         byte[] dataLong = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32};
         
-        ZidRecord rec = new ZidRecord(data);
+        ZidRecord rec = new ZidRecord();
+        rec.setIdentifier(data);
         rec.setNewRs1(dataLong, 10);
         rec.setMiTMData(dataLong);
         System.err.println("is rs 1 valid: " + rec.isRs1NotExpired());

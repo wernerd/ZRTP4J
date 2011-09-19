@@ -699,11 +699,6 @@ public class ZRTPTransformEngine
             zrtpEngine.setAuxSecret(data);
     }
 
-    public void setPbxSecret(byte[] data) {
-        if (zrtpEngine != null)
-            zrtpEngine.setPbxSecret(data);
-    }
-
     public void setClientId(String id) {
         clientIdString = id;
     }
