@@ -147,5 +147,14 @@ public interface ZrtpCodes {
         }
 
     }
-
+    
+    /**
+     * Information codes for the Enrollment user callbacks.
+     */
+    public static enum InfoEnrollment {
+        EnrollmentRequest,              //!< Aks user to confirm or deny an Enrollemnt request
+        EnrollmentCanceled,             //!< User did not confirm the PBX enrollement
+        EnrollmentFailed,               //!< Enrollment process failed, no PBX secret available
+        EnrollmentOk                    //!< Enrollment process for this PBX was ok
+    }
 }

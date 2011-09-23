@@ -844,7 +844,7 @@ public class ZRtp {
     public void acceptEnrollment(boolean accepted) {
 
         if (!accepted) {
-            callback.zrtpInformEnrollment("NO_PBX_ENROLLMENT");
+            callback.zrtpInformEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentCanceled);
             return;
         }
         // Get peer's zid record to store the pbx (MitM) secret
@@ -853,10 +853,10 @@ public class ZRtp {
 
         if (pbxSecretTmp != null) {
             zidRec.setMiTMData(pbxSecretTmp);
-            callback.zrtpInformEnrollment("PBX_ENROLLMENT_OK");
+            callback.zrtpInformEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentOk);
         }
         else {
-            callback.zrtpInformEnrollment("PBX_ENROLLMENT_FAIL");
+            callback.zrtpInformEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentFailed);
             return;
         }
         zidf.saveRecord(zidRec);
@@ -1914,7 +1914,7 @@ public class ZRtp {
         // agent stores the MitM key only if the user accepts the enrollment
         // request.
         if (enableMitmEnrollment && confirm1.isPBXEnrollment()) {
-            callback.zrtpAskEnrollment("PBXEnrollement");
+            callback.zrtpAskEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentRequest);
         }
         return zrtpConfirm2;
     }
@@ -2114,7 +2114,7 @@ public class ZRtp {
             // request.
             if (enableMitmEnrollment && confirm2.isPBXEnrollment()) {
                 computePBXSecret();
-                callback.zrtpAskEnrollment("PBXEnrollement");
+                callback.zrtpAskEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentRequest);
             }
             callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasVerified);
         }

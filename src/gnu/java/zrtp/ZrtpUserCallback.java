@@ -123,9 +123,9 @@ public class ZrtpUserCallback {
     }
 
     /**
-     * ZRTPQueue calls this if the negotiation failed.
+     * ZRTP core calls this if the negotiation failed.
      *
-     * ZRTPQueue calls this method in case ZRTP negotiation failed. The
+     * ZRTP core calls this method in case ZRTP negotiation failed. The
      * parameters show the severity as well as some explanatory text.
      * For the subcode refer to ZrtpUserCallback#showMessage() above.
      *
@@ -140,7 +140,7 @@ public class ZrtpUserCallback {
     }
 
     /**
-     * ZRTPQueue calls this method if the other side does not support ZRTP.
+     * ZRTP core calls this method if the other side does not support ZRTP.
      *
      * If the other side does not answer the ZRTP <em>Hello</em> packets then
      * ZRTP calls this method.
@@ -151,9 +151,9 @@ public class ZrtpUserCallback {
     }
 
     /**
-     * ZRTPQueue calls this method to inform about a PBX enrollment request.
+     * ZRTP core calls this method to inform about a PBX enrollment request.
      *
-     * Please refer to chapter 8.3 ff to get more details about PBX enrollment
+     * Please refer to chapter 7.3 ff to get more details about PBX enrollment
      * and SAS relay.
      *
      * @param info
@@ -161,12 +161,12 @@ public class ZrtpUserCallback {
      *    enrollment.
      *
      */
-    public void zrtpAskEnrollment(String info) {
+    public void zrtpAskEnrollment(ZrtpCodes.InfoEnrollment info) {
         return;
     }
 
     /**
-     * ZRTPQueue calls this method to inform about PBX enrollment result.
+     * ZRTP core calls this method to inform about PBX enrollment result.
      *
      * Informs the use about the acceptance or denial of an PBX enrollment
      * request
@@ -176,12 +176,12 @@ public class ZrtpUserCallback {
      *    enrollment.
      *
      */
-    public void zrtpInformEnrollment(String info) {
+    public void zrtpInformEnrollment(ZrtpCodes.InfoEnrollment info) {
         return;
     }
 
     /**
-     * ZRTPQueue calls this method to request a SAS signature.
+     * ZRTP core calls this method to request a SAS signature.
      *
      * After ZRTP core was able to compute the Short Authentication String
      * (SAS) it calls this method. The client may now use an approriate
@@ -200,7 +200,7 @@ public class ZrtpUserCallback {
     }
 
     /**
-     * ZRTPQueue calls this method to request a SAS signature check.
+     * ZRTP core calls this method to request a SAS signature check.
      *
      * After ZRTP received a SAS signature in one of the Confirm packets it
      * call this method. The client may use <code>getSignatureLength()</code>

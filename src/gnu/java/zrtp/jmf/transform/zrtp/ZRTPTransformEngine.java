@@ -650,13 +650,13 @@ public class ZRTPTransformEngine
         }
     }
 
-    public void zrtpAskEnrollment(String info) {
+    public void zrtpAskEnrollment(ZrtpCodes.InfoEnrollment info) {
         if (userCallback != null) {
             userCallback.zrtpAskEnrollment(info);
         }
     }
 
-    public void zrtpInformEnrollment(String info) {
+    public void zrtpInformEnrollment(ZrtpCodes.InfoEnrollment info) {
         if (userCallback != null) {
             userCallback.zrtpInformEnrollment(info);
         }

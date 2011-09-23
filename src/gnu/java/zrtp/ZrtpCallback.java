@@ -216,21 +216,18 @@ public interface ZrtpCallback {
      * @param info Give some information to the user about the PBX
      *    requesting an enrollment.
      */
-    public void zrtpAskEnrollment(String info);
+    public void zrtpAskEnrollment(ZrtpCodes.InfoEnrollment info);
 
     /**
      * Inform about PBX enrollment result.
      *
      * Informs the use about the acceptance or denial of an PBX enrollment
-     * request
-     *
-     * <b>Note:</b> PBX enrollement is not yet fully supported by GNU
-     * ZRTP.
+     * request.
      *
      * @param info Give some information to the user about the result
      *    of an enrollment.
      */
-    public void zrtpInformEnrollment(String info);
+    public void zrtpInformEnrollment(ZrtpCodes.InfoEnrollment info);
 
     /**
      * Request a SAS signature.
