@@ -425,7 +425,7 @@ public class ZRtp {
 
         secRand.nextBytes(randomIV); // IV used in ZRTP packet encryption
 
-        if (mitmMode)
+        if (mitmMode)               // this session acts for a trusted MitM (PBX)
             zrtpHello.setMitmMode();
         zrtpHello.setZid(zid);
         setClientId(id); // set id, compute HMAC and final helloHash
@@ -533,35 +533,12 @@ public class ZRtp {
     }
     
     /**
-     * Check the state of the MitM mode flag.
-     * 
-     * If true then this ZRTP session acts as MitM, usually enabled by a PBX
-     * based client (user agent)
-     * 
-     * @return state of mitmMode 
-     */
-    public boolean isMitmMode() {
-        return mitmMode;
-    }
-
-    /**
-     * Set the state of the MitM mode flag.
-     * 
-     * If MitM mode is set to true this ZRTP session acts as MitM, usually 
-     * enabled by a PBX based client (user agent).
-     * 
-     * @param mitmMode defines the new state of the mitmMode flag
-     */
-    public void setMitmMode(boolean mitmMode) {
-        this.mitmMode = mitmMode;
-    }
-
-    /**
      * Check the state of the enrollment mode.
      * 
      * If true then we will set the enrollment flag (E) in the confirm
-     * packets and performs the enrollment actions. A MitM (PBX) enrollment service sets this flagstarted this ZRTP 
-     * session. Can be set to true only if mitmMode is also true. 
+     * packets and performs the enrollment actions. A MitM (PBX) enrollment service
+     * started this ZRTP session. Can be set to true only if mitmMode is also true.
+     * 
      * @return status of the enrollmentMode flag.
      */
     public boolean isEnrollmentMode() {
@@ -1876,9 +1853,9 @@ public class ZRtp {
         if (enrollmentMode || (enableMitmEnrollment && confirm1.isPBXEnrollment())) {
             computePBXSecret();
             
-            // if this run at PBX user agent enrollment service then set flag in confirm
+            // if this runs at PBX user agent enrollment service then set flag in confirm
             // packet and store the MitM key. The PBX user agent service always stores
-            // it's MitM key.
+            // its MitM key.
             if (enrollmentMode) {
                 zrtpConfirm2.setPBXEnrollment();
                 writeEnrollmentPBX();

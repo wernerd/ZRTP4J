@@ -812,7 +812,7 @@ public class ZRTPTransformEngine
     }
 
     /**
-     * Check the state of the enrollment mode.
+     * Set the state of the enrollment mode.
      * 
      * If true then we will set the enrollment flag (E) in the confirm
      * packets and perform the enrollment actions. A MitM (PBX) enrollment 

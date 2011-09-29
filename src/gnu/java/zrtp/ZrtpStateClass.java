@@ -1750,7 +1750,6 @@ public class ZrtpStateClass {
      */
     protected void sendSASRelay(ZrtpPacketSASRelay relay) {
         cancelTimer();
-        System.out.println("SAS Relay state send");
         sentPacket = relay;
         secSubstate = SecureSubStates.WaitSasRelayAck;
         if (!parent.sendPacketZRTP(relay) || (startTimer(t2) <= 0)) {
