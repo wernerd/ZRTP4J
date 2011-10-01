@@ -116,8 +116,8 @@ public class ZrtpConfigure {
      */
     public void setStandardConfig() {
         clear();
-        hashes.addAlgo(ZrtpConstants.SupportedHashes.S256);
         hashes.addAlgo(ZrtpConstants.SupportedHashes.S384);
+        hashes.addAlgo(ZrtpConstants.SupportedHashes.S256);
 
         symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.TWO3);
         symCiphers.addAlgo(ZrtpConstants.SupportedSymCiphers.AES3);
@@ -133,8 +133,8 @@ public class ZrtpConfigure {
         sasTypes.addAlgo(ZrtpConstants.SupportedSASTypes.B32);
 
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.SK32);
-        authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.HS32);
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.SK64);
+        authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.HS32);
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.HS80);
     }
 

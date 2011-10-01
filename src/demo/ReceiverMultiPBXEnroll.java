@@ -151,7 +151,7 @@ public class ReceiverMultiPBXEnroll implements ReceiveStreamListener, SessionLis
             zrtpEngine.setUserCallback(new MyCallback());
             ZrtpConfigure config = new ZrtpConfigure();
             config.setStandardConfig();
-            config.setTrustedMitM(true);
+            config.setTrustedMitM(true);        // allow to start enrollement process 
             
             // config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
            

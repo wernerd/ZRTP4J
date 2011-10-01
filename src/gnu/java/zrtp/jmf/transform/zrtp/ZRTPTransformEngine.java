@@ -877,14 +877,7 @@ public class ZRTPTransformEngine
      *    the ZID data as byte array.
      */
     
-    public byte[] getetZid() {
-        return ((zrtpEngine != null) ? zrtpEngine.getZid() : null);
+    public byte[] getPeerZid() {
+        return ((zrtpEngine != null) ? zrtpEngine.getPeerZid() : null);
     }
-
-/*
-    public static void main(String argv[]) {
-        System.err.println(System.getenv("HOMEDRIVE"));
-        System.err.println(System.getenv("HOMEPATH"));
-    }
-*/
 }

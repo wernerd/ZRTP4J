@@ -918,7 +918,7 @@ public class ZRtp {
      * @return the ZID data as byte array.
      */
 
-    public byte[] getZid() {
+    public byte[] getPeerZid() {
         byte[] ret = new byte[ZidRecord.IDENTIFIER_LENGTH];
         System.arraycopy(peerZid, 0, ret, 0, ZidRecord.IDENTIFIER_LENGTH);
         return ret;
@@ -2235,7 +2235,7 @@ public class ZRtp {
             }
             SAS = Base32.binary2ascii(sasBytes, 20);
         }
-        callback.srtpSecretsOn(cipher.readable + "/M/" + pubKey, SAS, srly.isSASFlag());
+        callback.srtpSecretsOn(cipher.readable + "/" + pubKey + "/MitM", SAS, srly.isSASFlag());
         return zrtpRelayAck;
     }
 

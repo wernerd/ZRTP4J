@@ -143,7 +143,7 @@ public class TransmitterMultiPBXEnroll {
 //                config.setMandatoryOnly();
                 
                 // IMPORTANT: The following mode must be set _before_ intialization
-                // - MitM (PBX) mode
+                // Signal that this is a - MitM (PBX)
                 
                 zrtpEngine.setMitmMode(true);
                 if (!zrtpEngine.initialize("test_mitm_t.zid", config))
