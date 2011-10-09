@@ -80,6 +80,17 @@ public class PacketManipulator
     }
 
     /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @param pkt the source RTP packet
+     * @return RTP SSRC from source RTP packet
+     */
+    public static long GetRTCPSSRC(RawPacket pkt)
+    {
+        return pkt.readUnsignedIntAsLong(4);
+    }
+
+    /**
      * Get RTP sequence number from a RTP packet
      *
      * @param pkt the source RTP packet
@@ -90,6 +101,17 @@ public class PacketManipulator
         return pkt.readUnsignedShortAsInt(2);
     }
 
+    /**
+     * Get SRTCP sequence number from a SRTCP packet
+     *
+     * @param pkt the source SRTCP packet
+     * @return SRTCP sequence num from source packet
+     */
+    public static int getSRTCPIndex(RawPacket pkt, int authTagLen)
+    {
+        int offset = pkt.getLength() - (4 + authTagLen);
+        return pkt.readInt(offset);
+    }
     /**
      * Test whether if a RTP packet is padded
      *

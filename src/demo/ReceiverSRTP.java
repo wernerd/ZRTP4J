@@ -41,7 +41,7 @@ public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
         } catch (java.net.UnknownHostException ex) {
             System.err.println("Unkone local host: " + ex.getMessage());
         }
-        System.err.println("Internet address: " + ia);
+        System.err.println("Receiver Internet address: " + ia);
         SessionAddress sa = new SessionAddress(ia, 5002);
         SessionAddress target = new SessionAddress(ia, 5004);
         SRTPPolicy srtpPolicy = new SRTPPolicy(SRTPPolicy.AESCM_ENCRYPTION, 16,
@@ -93,11 +93,12 @@ public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
      */
     protected void close() {
 
-        // close the RTP session.
+        System.exit(0);
 
-        mgr.removeReceiveStreamListener(this);
-        mgr.dispose();
-        mgr = null;
+        // close the RTP session.
+//        mgr.removeReceiveStreamListener(this);
+//        mgr.dispose();
+//        mgr = null;
     }
 
     /**
@@ -145,8 +146,7 @@ public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
                  */
                 stream = ((NewReceiveStreamEvent) evt).getReceiveStream();
                 PushBufferDataSource ds = (PushBufferDataSource)stream.getDataSource();
-//               com.sun.media.protocol.rtp.DataSource ds = (com.sun.media.protocol.rtp.DataSource) stream
-//                        .getDataSource();
+
                 // Find out the formats.
                 RTPControl ctl = (RTPControl) ds
                         .getControl("javax.media.rtp.RTPControl");
@@ -171,10 +171,14 @@ public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
             }
 
         } else if (evt instanceof StreamMappedEvent) {
+            System.err.println("StreamMappedEvent received.");
 
         } else if (evt instanceof ByeEvent) {
 
             System.err.println("BYE from: " + participant.getCNAME());
+            PushBufferDataSource ds = (PushBufferDataSource)stream.getDataSource();
+            ds.disconnect();
+            close();
         } else {
             System.err.println("Unknown Event: " + evt);
         }
@@ -224,7 +228,7 @@ public class ReceiverSRTP implements ReceiveStreamListener, SessionListener,
         //	rcv.start();
         rcv.run();
         try {
-            Thread.sleep(600000);
+            Thread.sleep(60000);
         } catch (InterruptedException ie) {
         }
 

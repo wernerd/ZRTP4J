@@ -276,6 +276,7 @@ public class ZRTPTransformEngine
     
     private boolean mitmMode = false;
 
+    private ZRTCPTransformer zrtcpTransformer = null;
 
     /**
      * Construct a ZRTPTransformEngine.
@@ -283,6 +284,7 @@ public class ZRTPTransformEngine
      */
     public ZRTPTransformEngine() {
         senderZrtpSeqNo = 1;        // should be a random number
+        zrtcpTransformer = new ZRTCPTransformer(this);
     }
     
     /*
@@ -292,7 +294,7 @@ public class ZRTPTransformEngine
      *      TransformEngine#getRTCPTransformer()
      */
     public PacketTransformer getRTCPTransformer() {
-        return new ZRTPCTransformer(this);
+        return zrtcpTransformer;
     }
 
     /*
@@ -540,6 +542,7 @@ public class ZRTPTransformEngine
                         .getKeyInitiator(), secrets.getSaltInitiator(),
                         srtpPolicy, srtpPolicy);
                 srtpOutTransformer = engine.getRTPTransformer();
+                zrtcpTransformer.setSrtcpOut(engine.getRTCPTransformer());
             } else {
                 srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getRespKeyLen() / 8,            // key length
@@ -553,6 +556,7 @@ public class ZRTPTransformEngine
                         .getKeyResponder(), secrets.getSaltResponder(),
                         srtpPolicy, srtpPolicy);
                 srtpOutTransformer = engine.getRTPTransformer();
+                zrtcpTransformer.setSrtcpOut(engine.getRTCPTransformer());
             }
         }
         if (part == EnableSecurity.ForReceiver) {
@@ -572,6 +576,7 @@ public class ZRTPTransformEngine
                         .getKeyResponder(), secrets.getSaltResponder(),
                         srtpPolicy, srtpPolicy);
                 srtpInTransformer = engine.getRTPTransformer();
+                zrtcpTransformer.setSrtcpIn(engine.getRTCPTransformer());
             } else {
                 srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getInitKeyLen() / 8,            // key length
@@ -585,6 +590,7 @@ public class ZRTPTransformEngine
                         .getKeyInitiator(), secrets.getSaltInitiator(),
                         srtpPolicy, srtpPolicy);
                 srtpInTransformer = engine.getRTPTransformer();
+                zrtcpTransformer.setSrtcpIn(engine.getRTCPTransformer());
             }
         }
         return true;

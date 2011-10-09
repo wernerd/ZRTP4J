@@ -89,7 +89,8 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
 
     private RTPManager mgr = null;
     private RTPManager mgrMulti = null;
-
+    private PushBufferStream multiPbs = null; 
+    
     public ReceiverMultiZRTP() {
     }
 
@@ -233,6 +234,8 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
 
 //        System.err.println("RX: ReceiveStreamEvent received: " + evt);
         RTPManager mngr = (RTPManager) evt.getSource();
+        if (mngr == mgrMulti)
+            System.err.println("Update Multi mngr");
         Participant participant = evt.getParticipant(); // could be null.
         ReceiveStream stream = null;
 
@@ -261,6 +264,10 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
                 // System.err.println("Number of pbs: " + pbs.length);
                 // System.err.println("pbs format: " + pbs[0].getFormat());
                 pbs[0].setTransferHandler(this);
+                
+                if (mngr == mgrMulti)       // if this is the multi part - remember the stream
+                    multiPbs = pbs[0];
+
                 ds.start();
 
             } catch (Exception e) {
@@ -304,14 +311,20 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
         }
         Format fmt = buf.getFormat();
         Class<?> cls = fmt.getDataType();
-        //System.err.println("buf length: " + buf.getLength() + ", timestamp: "
-        //        + buf.getTimeStamp());
+        // System.err.println("buf length: " + buf.getLength() + ", timestamp: "
+        // + buf.getTimeStamp());
         // System.err.println("buffer: " + buf.getFormat().toString());
 
         if (cls == Format.byteArray) {
             byte[] data = (byte[]) buf.getData();
-            System.err.println("RX Data: '"
-                    + new String(data, buf.getOffset(), buf.getLength()) + "'");
+            if (stream != multiPbs)
+                System.err.println("RX Data: '"
+                        + new String(data, buf.getOffset(), buf.getLength())
+                        + "'");
+            else
+                System.err.println("multi - RX Data: '"
+                        + new String(data, buf.getOffset(), buf.getLength())
+                        + "'");
         }
     }
 
@@ -321,7 +334,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
         //	rcv.start();
         rcv.run();
         try {
-            Thread.sleep(6000);
+            Thread.sleep(20000);
         } catch (InterruptedException ie) {
         }
 

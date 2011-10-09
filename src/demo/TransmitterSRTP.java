@@ -20,6 +20,7 @@ public class TransmitterSRTP {
     SessionAddress target = null;
 
     TransformConnector transConnector = null;
+    SendStream sendStream = null;
 
     public TransmitterSRTP() {
         InetAddress ia = null;
@@ -29,7 +30,7 @@ public class TransmitterSRTP {
             System.err.println("Unknown local host: " + ex.getMessage());
         }
 
-        System.err.println("Internet address: " + ia);
+        System.err.println("Transmitter Internet address: " + ia);
         sa = new SessionAddress(ia, 5004);
         target = new SessionAddress(ia, 5002);
 
@@ -62,7 +63,7 @@ public class TransmitterSRTP {
             // open the connection, must be done in connector
             transConnector.addTarget(target);
 
-            SendStream sendStream = rtpManager.createSendStream(dataOutput, 0);
+            sendStream = rtpManager.createSendStream(dataOutput, 0);
             sendStream.start();
         } catch (java.io.IOException ex) {
             System.err.println("Cannot start sendStream: " + ex.getMessage());
@@ -76,8 +77,7 @@ public class TransmitterSRTP {
     public void stopIt() {
 
         // close the connection if no longer needed.
-        transConnector.removeTarget(target);
-
+        sendStream.close();
         // call dispose at the end of the life-cycle of this RTPManager so
         // it is prepared to be garbage-collected.
         rtpManager.dispose();

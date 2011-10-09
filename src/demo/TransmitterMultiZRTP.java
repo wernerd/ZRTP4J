@@ -43,6 +43,8 @@ public class TransmitterMultiZRTP {
         byte[] multiParams = null;
 
         InetAddress ia = null;
+
+        SendStream sendStream = null;
         
         protected class MyCallback extends ZrtpUserCallback {
             
@@ -163,8 +165,7 @@ public class TransmitterMultiZRTP {
                 
                 rtpManager.initialize(transConnector);
                 
-                SendStream sendStream = rtpManager.createSendStream(dataOutput,
-                        0);
+                sendStream = rtpManager.createSendStream(dataOutput, 0);
                 sendStream.start();
             } catch (java.io.IOException ex) {
                 System.err.println("Cannot start sendStream: "
@@ -180,7 +181,10 @@ public class TransmitterMultiZRTP {
         public void stopIt() {
 
             // close the connection if no longer needed.
-            transConnector.removeTarget(target);
+//            transConnector.removeTarget(target);
+            // close the connection if no longer needed.
+            sendStream.close();
+           
 
             // call dispose at the end of the life-cycle of this RTPManager so
             // it is prepared to be garbage-collected.

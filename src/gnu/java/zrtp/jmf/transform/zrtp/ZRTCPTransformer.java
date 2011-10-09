@@ -21,12 +21,23 @@ package gnu.java.zrtp.jmf.transform.zrtp;
 
 import gnu.java.zrtp.jmf.transform.PacketTransformer;
 import gnu.java.zrtp.jmf.transform.RawPacket;
+import gnu.java.zrtp.utils.ZrtpUtils;
 
 /**
  * @author Werner Dittmann <Werner.Dittmann@t-online.de>
  *
  */
-public class ZRTPCTransformer implements PacketTransformer {
+public class ZRTCPTransformer implements PacketTransformer {
+    
+    /**
+     * We support different SRTCP contexts for input and output traffic:
+     * 
+     * Transform() uses the srtcpOut to perform encryption
+     * reverseTransform() uses srtcpIn to perform decryption
+     */
+    private PacketTransformer srtcpIn = null;
+    
+    private PacketTransformer srtcpOut = null;
     /**
      * ZRTCPTransformer implements PacketTransformer.
      * It encapsulate the encryption / decryption logic for SRTCP packets
@@ -42,7 +53,7 @@ public class ZRTPCTransformer implements PacketTransformer {
      *
      * @param engine The associated ZRTPTransformEngine object
      */
-    public ZRTPCTransformer(ZRTPTransformEngine engine) {
+    public ZRTCPTransformer(ZRTPTransformEngine engine) {
         //this.engine = engine;
     }
 
@@ -56,7 +67,10 @@ public class ZRTPCTransformer implements PacketTransformer {
      * @return encrypted SRTCP packet
      */
     public RawPacket transform(RawPacket pkt) {
-        return pkt;
+        if (srtcpOut == null) {
+            return pkt;
+        }
+        return srtcpOut.transform(pkt);
     }
 
     /**
@@ -69,6 +83,24 @@ public class ZRTPCTransformer implements PacketTransformer {
      * @return decrypted SRTCP packet
      */
     public RawPacket reverseTransform(RawPacket pkt) {
-        return pkt;
+        if (srtcpIn == null) {
+            return pkt;
+        }
+        return srtcpIn.reverseTransform(pkt);
     }
+
+    /**
+     * @param srtcpIn the srtcpIn to set
+     */
+    public void setSrtcpIn(PacketTransformer srtcpIn) {
+        this.srtcpIn = srtcpIn;
+    }
+
+    /**
+     * @param srtcpOut the srtcpOut to set
+     */
+    public void setSrtcpOut(PacketTransformer srtcpOut) {
+        this.srtcpOut = srtcpOut;
+    }
+
 }

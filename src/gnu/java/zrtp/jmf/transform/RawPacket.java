@@ -195,9 +195,32 @@ public class RawPacket
         System.arraycopy(this.buffer, startOffset, outBuff, 0, len);
     }
 
+
     /**
-     * Append a byte array to then end of the packet. This will change the data
-     * buffer of this packet. 
+     * Grow the internal packet buffer. 
+     * 
+     * This will change the data buffer of this packet but not the
+     * length of the valid data. Use this to grow the internal buffer
+     * to avoid buffer re-allocations when appending data.  
+     *
+     * @param howMuch number of bytes to grow
+     */
+    public void grow(int howMuch) {
+        if (howMuch == 0) {
+            return;
+        }
+        byte[] newBuffer = new byte[this.length + howMuch];
+        System.arraycopy(this.buffer, this.offset, newBuffer, 0, this.length);
+        offset = 0;
+        buffer = newBuffer;
+    }
+    
+    /**
+     * Append a byte array to then end of the packet. 
+     * 
+     * This may re-allocate the data buffer of this packet if the internal
+     * buffer is too small to hold all the data. Otherwise the method just
+     * appends the data.
      *
      * @param data byte array to append
      * @param len the number of bytes to append
@@ -206,16 +229,21 @@ public class RawPacket
         if (data == null || len == 0)  {
             return;
         }
-        byte[] newBuffer = new byte[this.length + len];
-        System.arraycopy(this.buffer, this.offset, newBuffer, 0, this.length);
-        System.arraycopy(data, 0, newBuffer, this.length, len);
-        this.offset = 0;
+        
+        // re-allocate internal buffer if it is too small
+        if ((this.length + len) > (buffer.length - this.offset)) {
+            byte[] newBuffer = new byte[this.length + len];
+            System.arraycopy(this.buffer, this.offset, newBuffer, 0, this.length);
+            this.offset = 0;
+            this.buffer = newBuffer;
+        }
+        // append data
+        System.arraycopy(data, 0, this.buffer, this.length, len);
         this.length = this.length + len;
-        this.buffer = newBuffer;
        
     }
     /**
-     * Shrink the buffer of this packet by specified length
+     * Shrink the data length of this packet.
      *
      * @param len length to shrink
      */
