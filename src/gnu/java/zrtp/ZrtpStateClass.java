@@ -278,7 +278,7 @@ public class ZrtpStateClass {
     }
 
     protected void dispatchEvent() {
-
+ 
         switch (inState) {
         case Initial:
             evInitial();
