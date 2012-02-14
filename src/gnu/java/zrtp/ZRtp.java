@@ -2235,7 +2235,7 @@ public class ZRtp {
             }
             SAS = Base32.binary2ascii(sasBytes, 20);
         }
-        callback.srtpSecretsOn(cipher.readable + "/" + pubKey + "/MitM", SAS, srly.isSASFlag());
+        callback.srtpSecretsOn(cipher.readable + "/" + pubKey + "/MitM", SAS, false);
         return zrtpRelayAck;
     }
 
