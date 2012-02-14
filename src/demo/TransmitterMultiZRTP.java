@@ -202,7 +202,7 @@ public class TransmitterMultiZRTP {
                 SendStream ss = evt.getSendStream();
                 // System.err.println("My SSRC is: " + ss.getSSRC());
                 zrtpEngine.setOwnSSRC(ss.getSSRC());
-                zrtpEngine.startZrtp();
+//                zrtpEngine.startZrtp();
             }
         }
 

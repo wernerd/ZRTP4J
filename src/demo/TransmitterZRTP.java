@@ -133,7 +133,6 @@ public class TransmitterZRTP implements SendStreamListener {
         if (evt instanceof NewSendStreamEvent) {
             SendStream ss = evt.getSendStream();
             System.err.println("My SSRC is: " + ss.getSSRC());
-            zrtpEngine.startZrtp();
         }
     }
     
