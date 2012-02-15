@@ -444,7 +444,7 @@ public class ZRtp {
      * and to process them.
      */
     public void startZrtpEngine() {
-        if (stateEngine != null) {
+        if (stateEngine != null && stateEngine.isInState(ZrtpStateClass.ZrtpStates.Initial)) {
             ZrtpStateClass.Event ev = stateEngine.new Event(
                     ZrtpStateClass.EventDataType.ZrtpInitial, null);
 
