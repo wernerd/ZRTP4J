@@ -26,6 +26,8 @@
 */
 package gnu.java.zrtp.jmf.transform.srtp;
 
+import java.util.Arrays;
+
 import gnu.java.zrtp.jmf.transform.RawPacket;
 import gnu.java.zrtp.utils.ZrtpUtils;
 
@@ -208,22 +210,22 @@ public class SRTCPCryptoContext
             saltKey = null;
             break;
 
+        case SRTPPolicy.AESF8_ENCRYPTION:
+            cipherF8 = new AESFastEngine();
+
         case SRTPPolicy.AESCM_ENCRYPTION:
             cipher = new AESFastEngine();
             encKey = new byte[this.policy.getEncKeyLength()];
             saltKey = new byte[this.policy.getSaltKeyLength()];
-            
-        case SRTPPolicy.AESF8_ENCRYPTION:
-            cipherF8 = new AESFastEngine();
             break;
+
+        case SRTPPolicy.TWOFISHF8_ENCRYPTION:
+            cipherF8 = new TwofishEngine();
 
         case SRTPPolicy.TWOFISH_ENCRYPTION:
             cipher = new TwofishEngine();
             encKey = new byte[this.policy.getEncKeyLength()];
             saltKey = new byte[this.policy.getSaltKeyLength()];
-            
-        case SRTPPolicy.TWOFISHF8_ENCRYPTION:
-            cipherF8 = new TwofishEngine();
             break;
         }
         
@@ -485,7 +487,7 @@ public class SRTCPCryptoContext
         final int payloadLength = pkt.getLength() - (4 + policy.getAuthTagLength());
 
         SRTPCipherF8.process(cipher, pkt.getBuffer(), pkt.getOffset() + payloadOffset,
-                payloadLength, ivStore, encKey, saltKey, cipherF8);
+                payloadLength, ivStore, cipherF8);
     }
 
     /**
@@ -570,6 +572,8 @@ public class SRTCPCryptoContext
 
         KeyParameter encryptionKey = new KeyParameter(masterKey);
         cipher.init(true, encryptionKey);
+        Arrays.fill(masterKey, (byte)0);
+
         cipherCtr.getCipherStream(cipher, encKey, policy.getEncKeyLength(), ivStore);
 
         if (authKey != null) {
@@ -591,14 +595,20 @@ public class SRTCPCryptoContext
                 break;
             }
         }
+        Arrays.fill(authKey, (byte)0);
+
         // compute the session salt
         label = 5;
         computeIv(label);
         cipherCtr.getCipherStream(cipher, saltKey, policy.getSaltKeyLength(), ivStore);
+        Arrays.fill(masterSalt, (byte)0);
         
         // As last step: initialize cipher with derived encryption key.
+        if (cipherF8 != null)
+            SRTPCipherF8.deriveForIV(cipherF8, encKey, saltKey);
         encryptionKey = new KeyParameter(encKey);
         cipher.init(true, encryptionKey);
+        Arrays.fill(encKey, (byte)0);
     }
 
 

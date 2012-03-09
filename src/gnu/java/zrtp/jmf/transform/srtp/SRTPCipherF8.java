@@ -74,19 +74,8 @@ public class SRTPCipherF8
         long J;
     }
 
-    /* (non-Javadoc)
-     * @see net.java.sip.communicator.impl.media.transform.srtp.
-     * SRTPCipher#process(byte[], int, int, byte[])
-     */
-    public static void process(BlockCipher cipher, byte[] data, int off, int len,
-            byte[] iv, byte[] key, byte[] salt, BlockCipher f8Cipher) {
-        F8Context f8ctx = new SRTPCipherF8().new F8Context();
-
-        /*
-         * Get memory for the derived IV (IV')
-         */
-        f8ctx.ivAccent = new byte[BLKLEN];
-
+    public static void deriveForIV(BlockCipher f8Cipher, byte[] key, byte[] salt)
+    {
         /*
          * Get memory for the special key. This is the key to compute the
          * derived IV (IV').
@@ -99,29 +88,39 @@ public class SRTPCipherF8
          * full key.
          */
         System.arraycopy(salt, 0, saltMask, 0, salt.length);
-        for (int i = salt.length; i < saltMask.length; ++i) {
+        for (int i = salt.length; i < saltMask.length; ++i)
             saltMask[i] = 0x55;
-        }
 
         /*
          * XOR the original key with the above created mask to get the special
          * key.
          */
-        for (int i = 0; i < key.length; i++) {
+        for (int i = 0; i < key.length; i++)
             maskedKey[i] = (byte) (key[i] ^ saltMask[i]);
-        }
 
         /*
          * Prepare the f8Cipher with the special key to compute IV'
          */
         KeyParameter encryptionKey = new KeyParameter(maskedKey);
         f8Cipher.init(true, encryptionKey);
-        /*
-         * Use the masked key to encrypt the original IV to produce IV'.
-         */
-        f8Cipher.processBlock(iv, 0, f8ctx.ivAccent, 0);
         saltMask = null;
         maskedKey = null;
+    }
+
+    public static void process(BlockCipher cipher, byte[] data, int off, int len,
+            byte[] iv, BlockCipher f8Cipher)
+    {
+        F8Context f8ctx = new SRTPCipherF8().new F8Context();
+
+        /*
+         * Get memory for the derived IV (IV')
+         */
+        f8ctx.ivAccent = new byte[BLKLEN];
+
+        /*
+         * Use the derived IV encryption setup to encrypt the original IV to produce IV'.
+         */
+        f8Cipher.processBlock(iv, 0, f8ctx.ivAccent, 0);
 
         f8ctx.J = 0; // initialize the counter
         f8ctx.S = new byte[BLKLEN]; // get the key stream buffer
@@ -130,13 +129,15 @@ public class SRTPCipherF8
 
         int inLen = len;
 
-        while (inLen >= BLKLEN) {
+        while (inLen >= BLKLEN)
+        {
             processBlock(cipher, f8ctx, data, off, data, off, BLKLEN);
             inLen -= BLKLEN;
             off += BLKLEN;
         }
 
-        if (inLen > 0) {
+        if (inLen > 0)
+        {
             processBlock(cipher, f8ctx, data, off, data, off, inLen);
         }
     }
@@ -159,15 +160,14 @@ public class SRTPCipherF8
      *            length of the input data
      */
     private static void processBlock(BlockCipher cipher, F8Context f8ctx,
-            byte[] in, int inOff, byte[] out, int outOff, int len) {
-
+            byte[] in, int inOff, byte[] out, int outOff, int len) 
+    {
         /*
          * XOR the previous key stream with IV'
          * ( S(-1) xor IV' )
          */
-        for (int i = 0; i < BLKLEN; i++) {
+        for (int i = 0; i < BLKLEN; i++)
             f8ctx.S[i] ^= f8ctx.ivAccent[i];
-        }
 
         /*
          * Now XOR (S(n-1) xor IV') with the current counter, then increment 
@@ -188,8 +188,7 @@ public class SRTPCipherF8
          * As the last step XOR the plain text with the key stream to produce
          * the cipher text.
          */
-        for (int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++)
             out[outOff + i] = (byte) (in[inOff + i] ^ f8ctx.S[i]);
-        }
     }
 }
