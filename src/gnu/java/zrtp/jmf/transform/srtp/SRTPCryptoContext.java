@@ -228,12 +228,10 @@ public class SRTPCryptoContext
         policy = policyIn;
 
         masterKey = new byte[policy.getEncKeyLength()];
-        System.arraycopy(masterK, 0, masterKey, 0, policy
-                .getEncKeyLength());
+        System.arraycopy(masterK, 0, masterKey, 0, policy.getEncKeyLength());
 
         masterSalt = new byte[policy.getSaltKeyLength()];
-        System.arraycopy(masterS, 0, masterSalt, 0, policy
-                .getSaltKeyLength());
+        System.arraycopy(masterS, 0, masterSalt, 0, policy.getSaltKeyLength());
 
         switch (policy.getEncType()) {
         case SRTPPolicy.NULL_ENCRYPTION:

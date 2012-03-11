@@ -533,28 +533,26 @@ public class ZRTPTransformEngine
             if (secrets.getRole() == Role.Initiator) {
                 srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getInitKeyLen() / 8,            // key length
-                        authn, authKeyLen,                      // auth key
-                                                                // length
+                        authn, authKeyLen,                      // auth algo and key length
                         secrets.getSrtpAuthTagLen() / 8,        // auth tag length
                         secrets.getInitSaltLen() / 8            // salt length
                 );
                 SRTPTransformEngine engine = new SRTPTransformEngine(secrets
-                        .getKeyInitiator(), secrets.getSaltInitiator(),
-                        srtpPolicy, srtpPolicy);
+                        .getKeyInitiator(), secrets.getSaltInitiator(), srtpPolicy, srtpPolicy);
+
                 srtpOutTransformer = engine.getRTPTransformer();
                 zrtcpTransformer.setSrtcpOut(engine.getRTCPTransformer());
             } else {
                 srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getRespKeyLen() / 8,            // key length
-                        authn, authKeyLen,                      // auth key
-                                                                // length
+                        authn, authKeyLen,                      // auth algo and key length
                         secrets.getSrtpAuthTagLen() / 8,        // auth taglength
                         secrets.getRespSaltLen() / 8            // salt length
                 );
 
                 SRTPTransformEngine engine = new SRTPTransformEngine(secrets
-                        .getKeyResponder(), secrets.getSaltResponder(),
-                        srtpPolicy, srtpPolicy);
+                        .getKeyResponder(), secrets.getSaltResponder(), srtpPolicy, srtpPolicy);
+
                 srtpOutTransformer = engine.getRTPTransformer();
                 zrtcpTransformer.setSrtcpOut(engine.getRTCPTransformer());
             }
@@ -566,29 +564,27 @@ public class ZRTPTransformEngine
             if (secrets.getRole() == Role.Initiator) {
                 srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getRespKeyLen() / 8,            // key length
-                        authn, authKeyLen,                      // auth key
-                                                                // length
+                        authn, authKeyLen,                      // auth algo and key length
                         secrets.getSrtpAuthTagLen() / 8,        // auth tag length
                         secrets.getRespSaltLen() / 8            // salt length
                 );
 
                 SRTPTransformEngine engine = new SRTPTransformEngine(secrets
-                        .getKeyResponder(), secrets.getSaltResponder(),
-                        srtpPolicy, srtpPolicy);
+                        .getKeyResponder(), secrets.getSaltResponder(), srtpPolicy, srtpPolicy);
+
                 srtpInTransformer = engine.getRTPTransformer();
                 zrtcpTransformer.setSrtcpIn(engine.getRTCPTransformer());
             } else {
                 srtpPolicy = new SRTPPolicy(cipher,
                         secrets.getInitKeyLen() / 8,            // key length
-                        authn, authKeyLen,                      // auth key
-                                                                // length
+                        authn, authKeyLen,                      // auth algo and key length
                         secrets.getSrtpAuthTagLen() / 8,        // auth tag length
                         secrets.getInitSaltLen() / 8            // salt length
                 );
 
                 SRTPTransformEngine engine = new SRTPTransformEngine(secrets
-                        .getKeyInitiator(), secrets.getSaltInitiator(),
-                        srtpPolicy, srtpPolicy);
+                        .getKeyInitiator(), secrets.getSaltInitiator(), srtpPolicy, srtpPolicy);
+
                 srtpInTransformer = engine.getRTPTransformer();
                 zrtcpTransformer.setSrtcpIn(engine.getRTCPTransformer());
             }
