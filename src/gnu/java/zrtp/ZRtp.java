@@ -332,12 +332,6 @@ public class ZRtp {
     private byte[] pbxSecretTmp = null;
 
     /**
-     * If true then this ZRTP session acts as MitM, usually enabled by a PBX
-     * based client (user agent)
-     */
-    private boolean mitmMode = false;
-    
-    /**
      * If true then we will set the enrollment flag (E) in the confirm
      * packets. Set to true if the PBX enrollment service started this ZRTP 
      * session. Can be set to true only if mitmMode is also true. 
@@ -2154,8 +2148,8 @@ public class ZRtp {
 
         // Because we do not support ZRTP proxy mode use the truncated ZID.
         // If this code shall be used in ZRTP proxy implementation the
-        // computation
-        // of the endpoint hash must be enhanced (see chaps 5.15ff and 5.16)
+        // computation of the endpoint hash must be enhanced (see 
+        // chapters 5.15 and 5.16)
         zrtpPingAck.setLocalEpHash(zid);
         zrtpPingAck.setRemoteEpHash(ppkt.getEpHash());
         zrtpPingAck.setPeerSSRC(peerSSRC);
@@ -2323,8 +2317,15 @@ public class ZRtp {
      *            The subcode identifying the reason.
      * @see ZrtpCodes#MessageSeverity
      */
-    protected void sendInfo(ZrtpCodes.MessageSeverity severity,
-            EnumSet<?> subCode) {
+    protected void sendInfo(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
+
+        // We've reached secure state: overwrite the SRTP master key and master salt.
+        if (severity == ZrtpCodes.MessageSeverity.Info && subCode == EnumSet.of(ZrtpCodes.InfoCodes.InfoSecureStateOn)) {
+            Arrays.fill(srtpKeyI, (byte) 0);
+            Arrays.fill(srtpSaltI, (byte) 0);
+            Arrays.fill(srtpKeyR, (byte) 0);
+            Arrays.fill(srtpSaltR, (byte) 0);
+        }
         callback.sendInfo(severity, subCode);
     }
 
@@ -2668,6 +2669,7 @@ public class ZRtp {
 
         s0 = KDF(zrtpSession, ZrtpConstants.zrtpMsk, KDFcontext, hashLength * 8);
         computeSRTPKeys();
+        Arrays.fill(s0, (byte) 0);
     }
 
     /*
@@ -2719,9 +2721,7 @@ public class ZRtp {
 
         // The HMAC keys
         hmacKeyI = KDF(s0, ZrtpConstants.iniHmacKey, KDFcontext, hashLength * 8);
-
-        hmacKeyR = KDF(s0, ZrtpConstants.respHmacKey, KDFcontext,
-                hashLength * 8);
+        hmacKeyR = KDF(s0, ZrtpConstants.respHmacKey, KDFcontext, hashLength * 8);
 
         // The keys for Confirm messages
         zrtpKeyI = KDF(s0, ZrtpConstants.iniZrtpKey, KDFcontext, keyLen);
@@ -2865,7 +2865,6 @@ public class ZRtp {
          */
         // prepare 32 bit big-endian number
         byte[] secretHashLen = ZrtpUtils.int32ToArray(ZidRecord.RS_LENGTH);
-        ;
         byte[] nullinger = new byte[4];
         Arrays.fill(nullinger, (byte) 0);
 
