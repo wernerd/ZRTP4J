@@ -1239,8 +1239,8 @@ public class ZrtpStateClass {
                     return;
                 }
                 if (startTimer(t2) <= 0) {
-                    timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);  // returns to state Initial
-                    // TODO - check for "return" here
+                    timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);  // sets state to Initial
+                    return;
                 }
                 if (!parent.srtpSecretsReady(ZrtpCallback.EnableSecurity.ForReceiver)) {
                     parent.sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet
