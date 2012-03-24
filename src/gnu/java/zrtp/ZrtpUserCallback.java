@@ -190,12 +190,12 @@ public class ZrtpUserCallback {
      * data an enable signature transmission to the other peer. Refer
      * to chapter 8.2 of ZRTP specification.
      *
-     * @param sas
-     *    The SAS string to sign.
+     * @param sasHash
+     *    The SAS hash to sign.
      * @see gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine#setSignatureData
      *
      */
-    public void signSAS(String sas) {
+    public void signSAS(byte[] sasHash) {
         return;
     }
 
@@ -212,13 +212,13 @@ public class ZrtpUserCallback {
      * this case ZRTP signals an error to the other peer and terminates
      * the ZRTP handshake.
      *
-     * @param sas
-     *    The SAS string that was signed by the other peer.
+     * @param sasHash
+     *    The sasHash that was signed by the other peer.
      * @return
      *    true if the signature was ok, false otherwise.
      *
      */
-    public boolean checkSASSignature(String sas) {
+    public boolean checkSASSignature(byte[] sasHash) {
         return true;
     }
     

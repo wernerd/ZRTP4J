@@ -53,6 +53,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     
 //    private static final byte HELLO_PASSIVE = 0x10;
     private static final byte HELLO_MITM_FLAG = 0x20;
+    private static final byte SAS_SIGN_FLAG   = 0x40;
     /*
      * The length of the Hello specific ZRTP packet part in words
      */
@@ -231,6 +232,14 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
 
     public final boolean isMitmMode() {
         return ((helloFlags & HELLO_MITM_FLAG) == HELLO_MITM_FLAG); 
+    }
+
+    public final void setSasSign() {
+        packetBuffer[FLAG_LENGTH_OFFSET] |= SAS_SIGN_FLAG; 
+    }
+
+    public final boolean isSasSign() {
+        return ((helloFlags & SAS_SIGN_FLAG) == SAS_SIGN_FLAG); 
     }
 
     /**

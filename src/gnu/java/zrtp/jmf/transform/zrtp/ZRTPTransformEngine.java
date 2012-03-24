@@ -276,6 +276,8 @@ public class ZRTPTransformEngine
     
     private boolean mitmMode = false;
 
+    private boolean signSas = false;
+    
     private ZRTCPTransformer zrtcpTransformer = null;
 
     /**
@@ -346,7 +348,7 @@ public class ZRTPTransformEngine
             }
         }
         enableZrtp = autoEnable;
-        zrtpEngine = new ZRtp(zf.getZid(), this, clientIdString, config, mitmMode);
+        zrtpEngine = new ZRtp(zf.getZid(), this, clientIdString, config, mitmMode, signSas);
         return true;
     }
 
@@ -692,14 +694,14 @@ public class ZRTPTransformEngine
         }
     }
 
-    public void signSAS(String sas) {
+    public void signSAS(byte[] sasHash) {
         if (userCallback != null) {
-            userCallback.signSAS(sas);
+            userCallback.signSAS(sasHash);
         }
     }
 
-    public boolean checkSASSignature(String sas) {
-        return ((userCallback != null) ? userCallback.checkSASSignature(sas) : false);
+    public boolean checkSASSignature(byte[] sasHash) {
+        return ((userCallback != null) ? userCallback.checkSASSignature(sasHash) : false);
     }
 
     public void setEnableZrtp(boolean onOff)   {
@@ -871,6 +873,14 @@ public class ZRTPTransformEngine
 
     public int getSignatureLength() {
         return ((zrtpEngine != null) ? zrtpEngine.getSignatureLength() : 0);
+    }
+
+    public void setSignSas(boolean signSasMode) {
+        signSas = signSasMode;
+    }
+
+    public boolean isSignSas() {
+        return signSas;
     }
 
     public void handleGoClear() {

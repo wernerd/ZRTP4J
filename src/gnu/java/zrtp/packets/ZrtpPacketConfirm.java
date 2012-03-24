@@ -59,9 +59,9 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
         setSignatureLength(sl);
     }
 
-    public final void setSignatureLength(final int sl) {
+    public final boolean setSignatureLength(final int sl) {
         if (sl > 512) {
-            return;                     // TODO throw exception here ?
+            return false;
         }
         signatureLength = sl;
         // compute total length inlcuding space for signature and CRC
@@ -83,14 +83,11 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
         }
         setLength((length-CRC_SIZE) / 4);
         setZrtpId();
+        return true;
     }
 
     public ZrtpPacketConfirm(final byte[] data) {
         super(data);
-        signatureLength = packetBuffer[SIG_LENGTH_OFFSET] & 0xff;
-        if (packetBuffer[FILLER_OFFSET+1] == 1) {  // if we have a 9th bit - set it
-            signatureLength |= 0x100;
-        }
     }
     
     public final boolean isSASFlag() {
@@ -124,10 +121,14 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
     }
 
     public final byte[] getSignatureData() {
-        return ZrtpUtils.readRegion(packetBuffer, SIG_DATA_OFFSET, signatureLength);
+        return ZrtpUtils.readRegion(packetBuffer, SIG_DATA_OFFSET, signatureLength*4);
     }
     
     public final int getSignatureLength() {
+        signatureLength = packetBuffer[SIG_LENGTH_OFFSET] & 0xff;
+        if (packetBuffer[FILLER_OFFSET+1] == 1) {  // if we have a 9th bit - set it
+            signatureLength |= 0x100;
+        }
         return signatureLength;
     }
     /*
@@ -163,11 +164,12 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
         System.arraycopy(data, 0, packetBuffer, HASH_H0_OFFSET, 8*ZRTP_WORD_SIZE);
     }
 
-    public final void setSignatureData(final byte[] data) {
-        if (data.length > signatureLength) {
-            return;                                 // TODO throw exception here?
+    public final boolean setSignatureData(final byte[] data) {
+        if ((data.length / 4) > signatureLength) {
+            return false;
         }
-        System.arraycopy(data, 0, packetBuffer, SIG_DATA_OFFSET, data.length);       
+        System.arraycopy(data, 0, packetBuffer, SIG_DATA_OFFSET, data.length);
+        return true;
     }
     
     /* ***

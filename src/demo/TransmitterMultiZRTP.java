@@ -90,6 +90,32 @@ public class TransmitterMultiZRTP {
                 System.err.println(prefix + "Tx ZRTP not supported");
             }
 
+            public void signSAS(byte[] sasHash) {
+                System.err.println("Transmitter: SAS to sign: ");
+                byte[] sign = new byte[12];
+                sign[0] = sasHash[0];
+                sign[1] = sasHash[1];
+                sign[2] = sasHash[2];
+                sign[3] = sasHash[3];
+                sign[4] = (byte)'T';
+                sign[5] = (byte)'R';
+                sign[6] = (byte)'A';
+                sign[7] = (byte)'N';
+                sign[8] = (byte)'S';
+                sign[9] = (byte)'M';
+                sign[10] = (byte)'I';
+                sign[11] = (byte)'T';
+                System.err.println("Transmitter set signature data result: " + zrtpEngine.setSignatureData(sign));
+            }
+
+            public boolean checkSASSignature(byte[] sasHash) {
+                System.err.print("Transmitter: check signature: ");
+                byte[] sign = zrtpEngine.getSignatureData();
+                String signStrng = new String(sign);
+                System.err.println(signStrng);
+                return true;
+            }
+
             void setPrefix(String pre) {
                 prefix = pre;
             }
@@ -144,20 +170,23 @@ public class TransmitterMultiZRTP {
 //                config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
 //                config.setMandatoryOnly();
                 // IMPORTANT: crypto provider must be set before initialization
-                if (!zrtpEngine.initialize("test_r.zid", config))
-                    System.err.println("TX: Initialize failed, multi: "
-                            + multiStream);
-
-                System.out.println("Hello hash: " + zrtpEngine.getHelloHash());
                 // IMPORTANT: set other data only _after_ initialization
                 if (multiStream) {
                     MyCallbackMulti mcb = new MyCallbackMulti();
                     mcb.setPrefix("multi - ");
                     zrtpEngine.setUserCallback(mcb);
+                    if (!zrtpEngine.initialize("test_r.zid", config))
+                        System.err.println("TX: Initialize failed, multi: "
+                                + multiStream);
                     zrtpEngine.setMultiStrParams(multiParams);
                 } else {
+                    zrtpEngine.setSignSas(true);
                     zrtpEngine.setUserCallback(new MyCallback());
+                    if (!zrtpEngine.initialize("test_r.zid", config))
+                        System.err.println("TX: Initialize failed, multi: "
+                                + multiStream);
                 }
+                System.out.println("Hello hash: " + zrtpEngine.getHelloHash());
                 // initialize the RTPManager using the SRTP connector
                 rtpManager.addSendStreamListener(this);
                 // Add a transmit target, must be done in connector

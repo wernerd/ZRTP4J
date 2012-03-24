@@ -326,6 +326,11 @@ public class ZRtp {
     private boolean mitmSeen = false;
     
     /**
+     * Set to true if the Hello packet contained the S-flag (sign SAS flag).
+     */
+    private boolean signSasSeen = false;
+
+    /**
      * Temporarily store computed pbxSecret, if user accepts enrollment then
      * it will copied to our ZID record of the PBX (MitM)  
      */
@@ -388,10 +393,17 @@ public class ZRtp {
 
     private ZrtpConfigure configureAlgos;
 
+    public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config) {
+        this(myZid, cb, id, config, false, false);
+    }
+    public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config, boolean mitmMode) {
+        this(myZid, cb, id, config, mitmMode, false);
+    }
     /**
      * Constructor initializes all relevant data but does not start the engine.
      */
-    public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config, boolean mitmMode) {
+    public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config, 
+                    boolean mitmMode, boolean sasSignSupport) {
 
         secRand = ZrtpFortuna.getInstance();
         configureAlgos = config;
@@ -401,7 +413,7 @@ public class ZRtp {
         callback = cb;
         /*
          * Generate H0 as a random number (256 bits, 32 bytes) and then the hash
-         * chain, refer to chapter 10
+         * chain, refer to chapter 9
          */
         secRand.nextBytes(H0);
         // hash H0 and generate H1
@@ -421,6 +433,9 @@ public class ZRtp {
 
         if (mitmMode)               // this session acts for a trusted MitM (PBX)
             zrtpHello.setMitmMode();
+        if (sasSignSupport)
+            zrtpHello.setSasSign();
+
         zrtpHello.setZid(zid);
         setClientId(id); // set id, compute HMAC and final helloHash
 
@@ -838,10 +853,7 @@ public class ZRtp {
      * 
      * This functions stores signature data and transmitts it during ZRTP
      * processing to the other party as part of the Confirm packets. Refer to
-     * chapters 6.7 and 8.2.
-     * 
-     * The signature data must be set before ZRTP the application calls
-     * <code>start()</code>.
+     * chapters 7.2ff.
      * 
      * @param data
      *            The signature data including the signature type block. The
@@ -851,17 +863,19 @@ public class ZRtp {
      * @return True if the method stored the data, false otherwise.
      */
     public boolean setSignatureData(byte[] data) {
-        return false;
+        if ((data.length % 4) != 0)
+            return false;
+        ZrtpPacketConfirm conf = (myRole == ZrtpCallback.Role.Responder) ? zrtpConfirm1 : zrtpConfirm2;
+
+        conf.setSignatureLength(data.length / 4);
+        return conf.setSignatureData(data);
     }
 
     /**
      * Get signature data
      * 
      * This functions returns signature data that was receivied during ZRTP
-     * processing. Refer to chapters 6.7 and 8.2.
-     * 
-     * The signature data can be retrieved after ZRTP enters secure state.
-     * <code>start()</code>.
+     * processing. Refer to chapters 7.2ff.
      * 
      * @return Signature data in a byte array.
      */
@@ -879,7 +893,7 @@ public class ZRtp {
      *         returns zero if no signature data avilable.
      */
     public int getSignatureLength() {
-        return signatureLength;
+        return signatureLength * 4;
     }
 
     /**
@@ -1076,6 +1090,8 @@ public class ZRtp {
             mitmSeen = true;
             trustedMitM = zidRec.isMITMKeyAvailable();
         }
+        // Check for sign SAS flag and remember it.
+        signSasSeen = hello.isSasSign();
         // Construct a DHPart2 message (Initiator's DH message). This packet
         // is required to compute the HVI (Hash Value Initiator), refer to
         // chapter 5.4.1.1.
@@ -1460,7 +1476,8 @@ public class ZRtp {
         ZidFile zidf = ZidFile.getInstance();
         ZidRecord zidRec = zidf.getRecord(peerZid);
 
-        // Now compute the S0, all dependend keys and the new RS1
+        // Now compute the S0, all dependend keys and the new RS1. The functions 
+        // also performs sign SAS callback if it's active.
         generateKeysInitiator(dhPart1, zidRec);
         zidf.saveRecord(zidRec);
 
@@ -1581,14 +1598,14 @@ public class ZRtp {
         /*
          * The expected shared secret Ids were already computed when we built
          * the DHPart1 packet. Generate s0, all depended keys, and the new RS1
-         * value for the ZID record.
+         * value for the ZID record. The functions also performs sign SAS callback
+         * if it's active.
          */
         generateKeysResponder(dhPart2, zidRec);
         zidf.saveRecord(zidRec);
 
         // Fill in Confirm1 packet.
         zrtpConfirm1.setMessageType(ZrtpConstants.Confirm1Msg);
-        zrtpConfirm1.setSignatureLength(0);
 
         // Check if user verfied the SAS in a previous call and thus verfied
         // the retained secret.
@@ -1724,7 +1741,6 @@ public class ZRtp {
 
         // Fill in Confirm1 packet.
         zrtpConfirm1.setMessageType(ZrtpConstants.Confirm1Msg);
-        zrtpConfirm1.setSignatureLength(0);
         zrtpConfirm1.setExpTime(0xFFFFFFFF);
         zrtpConfirm1.setIv(randomIV);
         zrtpConfirm1.setHashH0(H0);
@@ -1796,12 +1812,17 @@ public class ZRtp {
 
         // Check HMAC of DHPart1 packet stored in temporary buffer. The
         // HMAC key of the DHPart1 packet is peer's H0 that is contained in
-        // Confirm1. Refer to chapter 9.1 and chapter 10.
+        // Confirm1. Refer to chapter 9
         if (!checkMsgHmac(confirm1.getHashH0())) {
             sendInfo(ZrtpCodes.MessageSeverity.Severe,
                     EnumSet.of(ZrtpCodes.SevereCodes.SevereDH1HMACFailed));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
+        }
+        signatureLength = confirm1.getSignatureLength();
+        if (signSasSeen && signatureLength > 0) {
+            signatureData = confirm1.getSignatureData();
+            callback.checkSASSignature(sasHash);
         }
         /*
          * The Confirm1 is ok, handle the Retained secret stuff and inform GUI
@@ -1833,7 +1854,6 @@ public class ZRtp {
 
         // now generate my Confirm2 message
         zrtpConfirm2.setMessageType(ZrtpConstants.Confirm2Msg);
-        zrtpConfirm2.setSignatureLength(0);
         zrtpConfirm2.setHashH0(H0);
 
         if (sasFlag) {
@@ -1977,7 +1997,6 @@ public class ZRtp {
         }
         // now generate my Confirm2 message
         zrtpConfirm2.setMessageType(ZrtpConstants.Confirm2Msg);
-        zrtpConfirm2.setSignatureLength(0);
         zrtpConfirm2.setHashH0(H0);
         zrtpConfirm2.setExpTime(0xFFFFFFFF);
         zrtpConfirm2.setIv(randomIV);
@@ -2056,6 +2075,11 @@ public class ZRtp {
                         EnumSet.of(ZrtpCodes.SevereCodes.SevereDH2HMACFailed));
                 errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
                 return null;
+            }
+            signatureLength = confirm2.getSignatureLength();
+            if (signSasSeen && signatureLength > 0) {
+                signatureData = confirm2.getSignatureData();
+                callback.checkSASSignature(sasHash);
             }
             /*
              * The Confirm2 is ok, handle the Retained secret stuff and inform
@@ -2752,6 +2776,8 @@ public class ZRtp {
             sasBytes[2] = (byte) (sasHash[2] & 0xf0);
             sasBytes[3] = 0;
             SAS = Base32.binary2ascii(sasBytes, 20);
+            if (signSasSeen)
+                callback.signSAS(sasHash);
         }
     }
 

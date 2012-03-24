@@ -71,6 +71,33 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
         public void zrtpNotSuppOther() {
             System.err.println(prefix + "Rx ZRTP not supported");
         }
+
+        public void signSAS(byte[] sasHash) {
+            System.err.println("Receiver: SAS to sign: ");
+            byte[] sign = new byte[12];
+            sign[0] = sasHash[0];
+            sign[1] = sasHash[1];
+            sign[2] = sasHash[2];
+            sign[3] = sasHash[3];
+            sign[4] = (byte)'R';
+            sign[5] = (byte)'E';
+            sign[6] = (byte)'C';
+            sign[7] = (byte)'E';
+            sign[8] = (byte)'I';
+            sign[9] = (byte)'V';
+            sign[10] = (byte)'E';
+            sign[11] = (byte)'R';
+            System.err.println("Receiver set signature data result: " + zrtpEngine.setSignatureData(sign));
+        }
+
+        public boolean checkSASSignature(byte[] sasHash) {
+            System.err.print("Receiver: check signature: ");
+            byte[] sign = zrtpEngine.getSignatureData();
+            String signStrng = new String(sign);
+            System.err.println(signStrng);
+            return true;
+        }
+        
         void setPrefix(String pre) {
             prefix = pre;
         }
@@ -118,6 +145,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             transConnector = (ZrtpTransformConnector) TransformManager
                     .createZRTPConnector(sa);
             zrtpEngine = transConnector.getEngine();
+            zrtpEngine.setSignSas(true);
             zrtpEngine.setUserCallback(new MyCallback());
             ZrtpConfigure config = new ZrtpConfigure();
             config.setStandardConfig();

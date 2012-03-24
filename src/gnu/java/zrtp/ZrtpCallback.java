@@ -242,11 +242,11 @@ public interface ZrtpCallback {
      * <b>Note:</b> SAS signing is not yet fully supported by GNU
      * ZRTP.
      *
-     * @param sas
-     *    The SAS string to sign.
+     * @param sasHash
+     *    The SAS hash to sign.
      *
      */
-    public void signSAS(String sas);
+    public void signSAS(byte[] sasHash);
 
     /**
      * ZRTPQueue calls this method to request a SAS signature check.
@@ -264,12 +264,12 @@ public interface ZrtpCallback {
      * <b>Note:</b> SAS signing is not yet fully supported by GNU
      * ZRTP.
      *
-     * @param sas
-     *    The SAS string that was signed by the other peer.
+     * @param sasHash
+     *    The SAS hash that was signed by the other peer.
      * @return
      *    true if the signature was ok, false otherwise.
      *
      */
-    public boolean checkSASSignature(String sas);
+    public boolean checkSASSignature(byte[] sasHash);
 
 }
