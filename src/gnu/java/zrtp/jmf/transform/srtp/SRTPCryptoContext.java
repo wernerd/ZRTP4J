@@ -75,7 +75,7 @@ public class SRTPCryptoContext
     /**
      * RTP SSRC of this cryptographic context
      */
-    private long ssrc;
+    private long ssrcCtx;
     
     /**
      * Master key identifier
@@ -173,7 +173,7 @@ public class SRTPCryptoContext
      */
     public SRTPCryptoContext(long ssrcIn)
     {
-        ssrc = ssrcIn;
+        ssrcCtx = ssrcIn;
         mki = null;
         roc = 0;
         guessedROC = 0;
@@ -217,7 +217,7 @@ public class SRTPCryptoContext
     public SRTPCryptoContext(long ssrcIn, int rocIn, long kdr,
             byte[] masterK, byte[] masterS, SRTPPolicy policyIn) 
     {
-        ssrc = ssrcIn;
+        ssrcCtx = ssrcIn;
         mki = null;
         roc = rocIn;
         guessedROC = 0;
@@ -282,6 +282,23 @@ public class SRTPCryptoContext
     }
 
     /**
+     * Close the crypto context.
+     * 
+     * The close functions deletes key data and performs a cleanup of the 
+     * crypto context.
+     * 
+     * Clean up key data, maybe this is the second time however, sometimes
+     * we cannot know if the CryptoCOntext was used and the application called
+     * deriveSrtpKeys(...) .
+     * 
+     */
+    public void close()
+    {
+        Arrays.fill(masterKey, (byte)0);
+        Arrays.fill(masterSalt, (byte)0);        
+    }
+
+    /**
      * Get the authentication tag length of this SRTP cryptographic context
      * 
      * @return the authentication tag length of this SRTP cryptographic context
@@ -309,7 +326,7 @@ public class SRTPCryptoContext
      * @return the SSRC of this SRTP cryptographic context
      */
     public long getSSRC() {
-        return ssrc;
+        return ssrcCtx;
     }
 
     /**

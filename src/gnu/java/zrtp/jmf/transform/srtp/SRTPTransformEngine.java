@@ -52,11 +52,28 @@ public class SRTPTransformEngine
          * Don't store secret key material here, it's not required.
          * The SRT(C)P crypto contexts store them internally until not longer needed. 
          */
-        this.defaultContext = new SRTPCryptoContext(0, 0, 0, masterKey, masterSalt, srtpPolicy);
+        defaultContext = new SRTPCryptoContext(0, 0, 0, masterKey, masterSalt, srtpPolicy);
 
-        this.defaultContextControl = new SRTCPCryptoContext(0, masterKey, masterSalt, srtcpPolicy);
+        defaultContextControl = new SRTCPCryptoContext(0, masterKey, masterSalt, srtcpPolicy);
     }
-    
+
+    /**
+     * Close the transformer engine.
+     * 
+     * The close functions closes all stored default crypto contexts. This deletes key data
+     * and forces a cleanup of the crypto contexts.
+     */
+    public void close()
+    {
+        if (defaultContext != null)
+            defaultContext.close();
+        if (defaultContextControl != null)
+            defaultContextControl.close();
+
+        defaultContext = null;
+        defaultContextControl = null;
+    }
+
     /*
      * (non-Javadoc)
      * 
@@ -85,6 +102,7 @@ public class SRTPTransformEngine
     public SRTPCryptoContext getDefaultContext() {
         return this.defaultContext;
     }
+
     /**
      * Get the default SRTPCryptoContext
      *

@@ -63,7 +63,7 @@ public class SRTPTransformer
     public SRTPTransformer(SRTPTransformEngine engine)
     {
         this.engine = engine;
-        this.contexts = new Hashtable<Long,SRTPCryptoContext>();
+        contexts = new Hashtable<Long,SRTPCryptoContext>();
     }
 
     /* (non-Javadoc)
@@ -73,19 +73,14 @@ public class SRTPTransformer
     public RawPacket transform(RawPacket pkt) {
         long ssrc = PacketManipulator.GetRTPSSRC(pkt);
 
-        SRTPCryptoContext context = this.contexts
-                .get(new Long(ssrc));
+        SRTPCryptoContext context = contexts.get(ssrc);
 
         if (context == null) {
-            context = this.engine.getDefaultContext().deriveContext(ssrc, 0, 0);
-            if (context != null) {
-                context.deriveSrtpKeys(0);
-                contexts.put(new Long(ssrc), context);
-            }
+            context = engine.getDefaultContext().deriveContext(ssrc, 0, 0);
+            context.deriveSrtpKeys(0);
+            contexts.put(ssrc, context);
         }
-        if (context != null) {
-            context.transformPacket(pkt);
-        }
+        context.transformPacket(pkt);
 
         return pkt;
     }
@@ -99,22 +94,35 @@ public class SRTPTransformer
     public RawPacket reverseTransform(RawPacket pkt) {
         long ssrc = PacketManipulator.GetRTPSSRC(pkt);
         int seqNum = PacketManipulator.GetRTPSequenceNumber(pkt);
-        SRTPCryptoContext context = this.contexts.get(new Long(ssrc));
+        SRTPCryptoContext context = contexts.get(ssrc);
 
         if (context == null) {
-            context = this.engine.getDefaultContext().deriveContext(ssrc, 0, 0);
-            if (context != null) {
-                context.deriveSrtpKeys(seqNum);
-                this.contexts.put(new Long(ssrc), context);
-            }
+            context = engine.getDefaultContext().deriveContext(ssrc, 0, 0);
+            context.deriveSrtpKeys(seqNum);
+            contexts.put(ssrc, context);
         }
 
-        if (context != null) {
-            boolean validPacket = context.reverseTransformPacket(pkt);
-            if (!validPacket) {
-                return null;
-            }
+        boolean validPacket = context.reverseTransformPacket(pkt);
+        if (!validPacket) {
+            return null;
         }
         return pkt;
+    }
+
+    /**
+     * Close the transformer and underlying transform engine.
+     * 
+     * The close functions closes all stored crypto contexts. This deletes key data 
+     * and forces a cleanup of the crypto contexts.
+     */
+    public void close() {
+        engine.close();
+        for(Long ssrc : contexts.keySet()) {
+            SRTPCryptoContext context = contexts.get(ssrc);
+            if (context != null) {
+                context.close();
+                contexts.remove(ssrc);
+            }
+        }
     }
 }

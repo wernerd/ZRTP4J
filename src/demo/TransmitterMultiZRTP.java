@@ -184,6 +184,7 @@ public class TransmitterMultiZRTP {
 //            transConnector.removeTarget(target);
             // close the connection if no longer needed.
             sendStream.close();
+            zrtpEngine.close();
            
 
             // call dispose at the end of the life-cycle of this RTPManager so

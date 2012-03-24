@@ -19,75 +19,84 @@ import gnu.java.zrtp.jmf.transform.RawPacket;
  * @author Bing SU (nova.su@gmail.com)
  * @author Werner Dittmann (Werner.Dittmann@t-online.de)
  */
-public class SRTCPTransformer
-    implements PacketTransformer
-{
+public class SRTCPTransformer implements PacketTransformer {
     private SRTPTransformEngine engine;
 
     /**
      * All the known SSRC's corresponding SRTCPCryptoContexts
      */
-    private Hashtable<Long,SRTCPCryptoContext> contexts;
+    private Hashtable<Long, SRTCPCryptoContext> contexts;
 
     /**
      * Constructs a SRTCPTransformer object
-     *
-     * @param engine The associated SRTPTransformEngine object
+     * 
+     * @param engine
+     *            The associated SRTPTransformEngine object
      */
     public SRTCPTransformer(SRTPTransformEngine engine) {
         this.engine = engine;
-        this.contexts = new Hashtable<Long,SRTCPCryptoContext>();
+        contexts = new Hashtable<Long, SRTCPCryptoContext>();
     }
 
     /**
      * Encrypt a SRTCP packet
      * 
-     * @param pkt plain SRTCP packet to be encrypted
+     * @param pkt
+     *            plain SRTCP packet to be encrypted
      * @return encrypted SRTCP packet
      */
     public RawPacket transform(RawPacket pkt) {
         long ssrc = PacketManipulator.GetRTCPSSRC(pkt);
 
-        SRTCPCryptoContext context = this.contexts
-                .get(new Long(ssrc));
+        SRTCPCryptoContext context = contexts.get(ssrc);
 
         if (context == null) {
-            context = this.engine.getDefaultContextControl().deriveContext(ssrc);
-            if (context != null) {
-                context.deriveSrtcpKeys();
-                contexts.put(new Long(ssrc), context);
-            }
+            context = engine.getDefaultContextControl().deriveContext(ssrc);
+            context.deriveSrtcpKeys();
+            contexts.put(ssrc, context);
         }
-        if (context != null) {
-            context.transformPacket(pkt);
-        }
+        context.transformPacket(pkt);
         return pkt;
     }
 
     /**
      * Decrypt a SRTCP packet
      * 
-     * @param pkt encrypted SRTCP packet to be decrypted
+     * @param pkt
+     *            encrypted SRTCP packet to be decrypted
      * @return decrypted SRTCP packet
      */
     public RawPacket reverseTransform(RawPacket pkt) {
         long ssrc = PacketManipulator.GetRTCPSSRC(pkt);
-        SRTCPCryptoContext context = this.contexts.get(new Long(ssrc));
+        SRTCPCryptoContext context = this.contexts.get(ssrc);
 
         if (context == null) {
-            context = this.engine.getDefaultContextControl().deriveContext(ssrc);
-            if (context != null) {
-                context.deriveSrtcpKeys();
-                this.contexts.put(new Long(ssrc), context);
-            }
+            context = engine.getDefaultContextControl().deriveContext(ssrc);
+            context.deriveSrtcpKeys();
+            contexts.put(ssrc, context);
         }
 
-        if (context != null) {
-            boolean validPacket = context.reverseTransformPacket(pkt);
-            if (!validPacket) {
-                return null;
-            }
+        boolean validPacket = context.reverseTransformPacket(pkt);
+        if (!validPacket) {
+            return null;
         }
         return pkt;
+    }
+
+    /**
+     * Close the transformer and underlying transform engine.
+     * 
+     * The close functions closes all stored crypto contexts. This deletes key data 
+     * and forces a cleanup of the crypto contexts.
+     */
+    public void close() {
+        engine.close();
+        for(Long ssrc : contexts.keySet()) {
+            SRTCPCryptoContext context = contexts.get(ssrc);
+            if (context != null) {
+                context.close();
+                contexts.remove(ssrc);
+            }
+        }
     }
 }

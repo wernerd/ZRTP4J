@@ -290,6 +290,11 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             else {
                 System.err.println("RX: BYE");
             }
+            if (mngr == mgrMulti)
+                zrtpEngineMulti.close();
+            else
+                zrtpEngine.close();
+            
             mngr.removeReceiveStreamListener(this);
             mngr.dispose();
         } else {
