@@ -105,6 +105,12 @@ public class TransmitterMultiZRTP {
                 sign[9] = (byte)'M';
                 sign[10] = (byte)'I';
                 sign[11] = (byte)'T';
+                try {
+                    Thread.sleep(150);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
                 System.err.println("Transmitter set signature data result: " + zrtpEngine.setSignatureData(sign));
             }
 
@@ -113,6 +119,12 @@ public class TransmitterMultiZRTP {
                 byte[] sign = zrtpEngine.getSignatureData();
                 String signStrng = new String(sign);
                 System.err.println(signStrng);
+                try {
+                    Thread.sleep(150);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
                 return true;
             }
 

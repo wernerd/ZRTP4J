@@ -87,6 +87,12 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             sign[9] = (byte)'V';
             sign[10] = (byte)'E';
             sign[11] = (byte)'R';
+            try {
+                Thread.sleep(150);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
             System.err.println("Receiver set signature data result: " + zrtpEngine.setSignatureData(sign));
         }
 
@@ -95,6 +101,12 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             byte[] sign = zrtpEngine.getSignatureData();
             String signStrng = new String(sign);
             System.err.println(signStrng);
+            try {
+                Thread.sleep(150);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
             return true;
         }
         
