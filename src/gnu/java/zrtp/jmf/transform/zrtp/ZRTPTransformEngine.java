@@ -742,6 +742,13 @@ public class ZRTPTransformEngine
             return new String();
     }
 
+    public String getPeerHelloHash() {
+        if (zrtpEngine != null)
+            return zrtpEngine.getPeerHelloHash();
+        else
+            return new String();
+    }
+
     public byte[] getMultiStrParams() {
         if (zrtpEngine != null)
             return zrtpEngine.getMultiStrParams();

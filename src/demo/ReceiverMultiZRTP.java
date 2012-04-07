@@ -39,10 +39,14 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
         
         public void secureOn(String cipher) {
             System.err.println(prefix + "Rx Cipher: " + cipher);
+            if (zrtpEngineMulti == null)
+                System.err.println(prefix + "Rx peer hello hash: " + zrtpEngine.getPeerHelloHash());
+            else
+                System.err.println(prefix + "Rx peer hello hash: " + zrtpEngineMulti.getPeerHelloHash());
         }
 
         public void showSAS(String sas, boolean verified) {
-            System.err.println(prefix + "Rx SAS: " + sas);
+            System.err.println(prefix + "Rx SAS: " + sas);               
         }
 
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
@@ -166,7 +170,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             if (!zrtpEngine.initialize("test_t.zid", config))
                 System.out.println("iniatlize failed");
 
-            System.out.println("Hello hash: " + zrtpEngine.getHelloHash());
+            System.out.println("Rx Hello hash: " + zrtpEngine.getHelloHash());
             zrtpEngine.setOwnSSRC(1);
             // initialize the RTPManager using the ZRTP connector
 
@@ -214,6 +218,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             
             byte[] multiParams = zrtpEngine.getMultiStrParams();
             zrtpEngineMulti.setMultiStrParams(multiParams);
+            System.out.println("multi - Rx Hello hash: " + zrtpEngineMulti.getHelloHash());
             zrtpEngineMulti.setOwnSSRC(2);
 
             // initialize the RTPManager using the ZRTP connector

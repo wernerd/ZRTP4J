@@ -202,6 +202,10 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         System.arraycopy(data, 0, packetBuffer, VERSION_OFFSET, ZRTP_WORD_SIZE);
     }
 
+    public final byte[] getVersion() {
+        return ZrtpUtils.readRegion(packetBuffer, VERSION_OFFSET, ZRTP_WORD_SIZE);
+    }
+
     public final void setHashType(final int n, final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, oHash+(n*ZRTP_WORD_SIZE), ZRTP_WORD_SIZE);
     }

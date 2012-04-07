@@ -54,6 +54,7 @@ public class TransmitterMultiZRTP {
 
             public void secureOn(String cipher) {
                 System.err.println(prefix + "Tx Cipher: " + cipher);
+                System.err.println(prefix + "Tx peer hello hash: " + zrtpEngine.getPeerHelloHash());
             }
 
             public void showSAS(String sas, boolean verified) {
@@ -191,14 +192,15 @@ public class TransmitterMultiZRTP {
                         System.err.println("TX: Initialize failed, multi: "
                                 + multiStream);
                     zrtpEngine.setMultiStrParams(multiParams);
+                    System.out.println("multi - Tx Hello hash: " + zrtpEngine.getHelloHash());
                 } else {
                     zrtpEngine.setSignSas(true);
                     zrtpEngine.setUserCallback(new MyCallback());
                     if (!zrtpEngine.initialize("test_r.zid", config))
                         System.err.println("TX: Initialize failed, multi: "
                                 + multiStream);
+                    System.out.println("Tx Hello hash: " + zrtpEngine.getHelloHash());
                 }
-                System.out.println("Hello hash: " + zrtpEngine.getHelloHash());
                 // initialize the RTPManager using the SRTP connector
                 rtpManager.addSendStreamListener(this);
                 // Add a transmit target, must be done in connector

@@ -99,8 +99,8 @@ public interface ZrtpCallback {
      *
      * The ZRTP implementation uses this method to send information
      * messages to the host. Along with the message ZRTP provides a
-     * severity indicator that defines: Info, Warning, Error,
-     * Alert. Refer to the <code>MessageSeverity</code> enum above.
+     * severity indicator that defines: Info, Warning, Severe, Error.
+     * Alert.
      *
      * @param severity
      *     This defines the message's severity
@@ -210,9 +210,6 @@ public interface ZrtpCallback {
      * Please refer to chapter 8.3 ff to get more details about PBX
      * enrollment and SAS relay.
      *
-     * <b>Note:</b> PBX enrollement is not yet fully supported by GNU
-     * ZRTP.
-     *
      * @param info Give some information to the user about the PBX
      *    requesting an enrollment.
      */
@@ -221,7 +218,7 @@ public interface ZrtpCallback {
     /**
      * Inform about PBX enrollment result.
      *
-     * Informs the use about the acceptance or denial of an PBX enrollment
+     * Informs the use about the acceptance or denial of a PBX enrollment
      * request.
      *
      * @param info Give some information to the user about the result
@@ -234,41 +231,46 @@ public interface ZrtpCallback {
      *
      * After ZRTP was able to compute the Short Authentication String
      * (SAS) it calls this method. The client may now use an
-     * approriate method to sign the SAS. The client may use
-     * ZrtpQueue#setSignatureData() to store the signature data an
-     * enable signature transmission to the other peer. Refer to
-     * chapter 8.2 of ZRTP specification.
-     *
-     * <b>Note:</b> SAS signing is not yet fully supported by GNU
-     * ZRTP.
+     * approriate method to sign the SAS hash.
+     * 
+     * <b>NOTE</b><br/>: 
+     * The application must use the first 32 bytes of the SAS hash array
+     * only, even if the array is longer (sasHash.length >32). Refer to 
+     * chapter 4.5.3 of RFC 6189 (ZRTP specification).
+     * 
+     * The client calls <code>setSignatureData()</code> to set the resulting 
+     * signature in the ZRTP protocol. Refer to chapter 7.2 of RFC 6189.
      *
      * @param sasHash
      *    The SAS hash to sign.
      *
+     * @see gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine#setSignatureData
      */
     public void signSAS(byte[] sasHash);
 
     /**
-     * ZRTPQueue calls this method to request a SAS signature check.
+     * ZRTP calls this method to request a SAS signature check.
      *
      * After ZRTP received a SAS signature in one of the Confirm packets it
-     * call this method. The client may use <code>getSignatureLength()</code>
-     * and <code>getSignatureData()</code>of ZrtpQueue to get the signature
-     * data and perform the signature check. Refer to chapter 8.2 of ZRTP 
-     * specification.
+     * call this method. The client uses <code>getSignatureData()</code>of 
+     * ZrtpQueue to get the signature data and to perform the signature check. 
+     * Refer to chapter 7.2 of RFC 6189 (ZRTP specification).
      *
-     * If the signature check fails the client may return false to ZRTP. In
+     * <b>NOTE</b><br/>: 
+     * The application must use the first 32 bytes of the SAS hash array
+     * only, even if the array is longer (sasHash.length >32). Refer to 
+     * chapter 4.5.3 of RFC 6189 (ZRTP specification).
+     * 
+     * If the signature check fails the client returns false. In
      * this case ZRTP signals an error to the other peer and terminates
      * the ZRTP handshake.
-     *
-     * <b>Note:</b> SAS signing is not yet fully supported by GNU
-     * ZRTP.
      *
      * @param sasHash
      *    The SAS hash that was signed by the other peer.
      * @return
-     *    true if the signature was ok, false otherwise.
+     *    <code>true</code> if the signature was ok, false otherwise.
      *
+     * @see gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine#getSignatureData
      */
     public boolean checkSASSignature(byte[] sasHash);
 

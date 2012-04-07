@@ -239,6 +239,9 @@ public class ZRtp {
 
     private byte[] helloHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
 
+    private byte[] peerHelloHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
+    private byte[] peerHelloVersion = null;
+
     // need 128 bits only to store peer's values
     private byte[] peerH2 = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
 
@@ -714,6 +717,49 @@ public class ZRtp {
     }
 
     /**
+     * Get the peer's Hello Hash data.
+     * 
+     * Use this method to get the peer's Hello Hash data. The method returns the
+     * data as a string.
+     * 
+     * @return a String containing the Hello hash value as hex-digits. 
+     *         Peer Hello hash is available after we received a Hello packet 
+     *         from our peer. If peer's hello hash is not available return null.
+     */
+    public String getPeerHelloHash() {
+        if (peerHelloVersion == null)
+            return null;
+
+        String pv = new String(peerHelloVersion);
+        String hs = new String(ZrtpUtils.bytesToHexString(peerHelloHash,
+                hashLengthImpl));
+        return pv + " " + hs;
+    }
+
+    /**
+     * Get the peer's Hello Hash data - separate strings.
+     * 
+     * Use this method to get the peer's Hello Hash data. The method returns the
+     * data as separate strings.
+     * 
+     * @return String array containing the version string at offset 0, the Hello
+     *         hash value as hex-digits at offset 1. Peer Hello hash is available
+     *         after we received a Hello packet from our peer. If peer's hello
+     *         hash is not available return null.
+     */
+    public String[] getPeerHelloHashSep() {
+        String ret[] = new String[2];
+
+        if (peerHelloVersion == null)
+            return null;
+
+        ret[0] = new String(peerHelloVersion);
+        ret[1] = new String(ZrtpUtils.bytesToHexString(peerHelloHash,
+                hashLengthImpl));
+        return ret;
+    }
+
+    /**
      * Get Multi-stream parameters.
      * 
      * Use this method to get the Multi-stream that were computed during the
@@ -949,8 +995,7 @@ public class ZRtp {
     protected boolean sendPacketZRTP(ZrtpPacketBase packet) {
         // the packetBuffer reflects the real size of the data including the CRC
         // field.
-        return ((packet == null) ? false : callback.sendDataZRTP(packet
-                .getHeaderBase() /* , (packet.getLength() * 4) + 4) */));
+        return ((packet == null) ? false : callback.sendDataZRTP(packet.getHeaderBase()));
     }
 
     /**
@@ -1008,10 +1053,8 @@ public class ZRtp {
      *            Points to the received Hello packet
      * @return A pointer to the prepared Commit packet
      */
-    protected ZrtpPacketCommit prepareCommit(ZrtpPacketHello hello,
-            ZrtpCodes.ZrtpErrorCodes[] errMsg) {
-        sendInfo(ZrtpCodes.MessageSeverity.Info,
-                EnumSet.of(ZrtpCodes.InfoCodes.InfoHelloReceived));
+    protected ZrtpPacketCommit prepareCommit(ZrtpPacketHello hello, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
+        sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoHelloReceived));
 
         if (!hello.isSameVersion(ZrtpConstants.zrtpVersion)) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppZRTPVersion;
@@ -1020,13 +1063,11 @@ public class ZRtp {
         // Save our peer's ZRTP id
         peerZid = hello.getZid();
         // peers have the same ZID?
-        if (ZrtpUtils.byteArrayCompare(peerZid, zid,
-                ZidRecord.IDENTIFIER_LENGTH) == 0) {
+        if (ZrtpUtils.byteArrayCompare(peerZid, zid, ZidRecord.IDENTIFIER_LENGTH) == 0) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.EqualZIDHello;
             return null;
         }
-        System.arraycopy(hello.getH3(), 0, peerH3, 0,
-                ZrtpPacketBase.HASH_IMAGE_SIZE);
+        System.arraycopy(hello.getH3(), 0, peerH3, 0, ZrtpPacketBase.HASH_IMAGE_SIZE);
 
         /*
          * The Following section extracts the algorithm from the Hello packet.
@@ -1067,8 +1108,7 @@ public class ZRtp {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
-        sendInfo(ZrtpCodes.MessageSeverity.Info,
-                EnumSet.of(ZrtpCodes.InfoCodes.InfoCommitDHGenerated));
+        sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoCommitDHGenerated));
 
         /*
          * Prepare our DHPart2 packet here. Required to compute HVI. If we stay
@@ -1143,6 +1183,18 @@ public class ZRtp {
         // Commit as
         // Responder or DHPart1 as Initiator
         storeMsgTemp(hello);
+
+        // calculate hash over the received Hello packet - is peer's hello hash.
+        //
+        // getHeaderBase() returns the full packetBuffer array. The length of
+        // this array includes the CRC which is not part of the helloHash.
+        // Thus compute digest only for the real message length.
+        // Use implicit hash algo
+        int helloLen = hello.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
+        hashFunctionImpl.update(hello.getHeaderBase(), 0, helloLen);
+        hashFunctionImpl.doFinal(peerHelloHash, 0);
+        peerHelloVersion = hello.getVersion();
+        
         return zrtpCommit;
     }
 
@@ -1150,12 +1202,10 @@ public class ZRtp {
         // Generate the standard DH data and keys according to the selected
         // DH algorithm
 
-        if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K
-                || pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
+        if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K || pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
 
             dhKeyPair = pubKey.dhKeyPairGen.generateKeyPair();
-            pubKeyBytes = ((DHPublicKeyParameters) dhKeyPair.getPublic())
-                    .getY().toByteArray();
+            pubKeyBytes = ((DHPublicKeyParameters) dhKeyPair.getPublic()).getY().toByteArray();
 
             if (pubKeyBytes.length != pubKey.pubKeySize) {
                 if ((pubKeyBytes = adjustBigBytes(pubKeyBytes, pubKey.pubKeySize)) == null)
@@ -1163,12 +1213,10 @@ public class ZRtp {
             }
         }
         // Here produce the ECDH stuff
-        else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25
-                || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
+        else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25 || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
 
             ecKeyPair = pubKey.ecKeyPairGen.generateKeyPair();
-            byte[] encoded = ((ECPublicKeyParameters) ecKeyPair.getPublic())
-                    .getQ().getEncoded();
+            byte[] encoded = ((ECPublicKeyParameters) ecKeyPair.getPublic()).getQ().getEncoded();
             pubKeyBytes = new byte[pubKey.pubKeySize];
             System.arraycopy(encoded, 1, pubKeyBytes, 0, pubKey.pubKeySize);
         }
@@ -1209,6 +1257,18 @@ public class ZRtp {
         // store Hello data temporarily until we can check HMAC after receiving
         // Commit as Responder or DHPart1 as Initiator
         storeMsgTemp(hello);
+        
+        // calculate hash over the received Hello packet - is peer's hello hash.
+        //
+        // getHeaderBase() returns the full packetBuffer array. The length of
+        // this array includes the CRC which is not part of the helloHash.
+        // Thus compute digest only for the real message length.
+        // Use implicit hash algo
+        int helloLen = hello.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
+        hashFunctionImpl.update(hello.getHeaderBase(), 0, helloLen);
+        hashFunctionImpl.doFinal(peerHelloHash, 0);
+        peerHelloVersion = hello.getVersion();
+
         return zrtpCommit;
     }
 
@@ -1402,8 +1462,7 @@ public class ZRtp {
         // HMAC key of the Hello packet is peer's H2 that was computed above.
         // Refer to chapter 9.1 and chapter 10.
         if (!checkMsgHmac(peerH2)) {
-            sendInfo(ZrtpCodes.MessageSeverity.Severe,
-                    EnumSet.of(ZrtpCodes.SevereCodes.SevereHelloHMACFailed));
+            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet.of(ZrtpCodes.SevereCodes.SevereHelloHMACFailed));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
@@ -1411,8 +1470,7 @@ public class ZRtp {
         byte[] pvrBytes = dhPart1.getPv();
         int dhSize = 0;
         
-        if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K
-                || pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
+        if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K || pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
 
             // generate the resonpder's public key from the pvr data and the key
             // specs, then compute the shared secret.
@@ -1422,17 +1480,15 @@ public class ZRtp {
                 return null;
             }
             pubKey.dhContext.init(dhKeyPair.getPrivate());
-            DHPublicKeyParameters pvr = new DHPublicKeyParameters(pvrBigInt,
-                    pubKey.specDh);
+            DHPublicKeyParameters pvr = new DHPublicKeyParameters(pvrBigInt, pubKey.specDh);
             dhSize = pubKey.pubKeySize;
             BigIntegerCrypto bi = pubKey.dhContext.calculateAgreement(pvr);
             DHss = bi.toByteArray();
             pubKey.dhContext.clear();
-            bi.zeroize();   // clear secret big integer data
+            bi.zeroize(); // clear secret big integer data
         }
         // Here produce the ECDH stuff
-        else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25
-                || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
+        else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25 || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
 
             byte[] encoded = new byte[pvrBytes.length + 1];
             encoded[0] = 0x04; // uncompressed
@@ -1440,11 +1496,10 @@ public class ZRtp {
             ECPoint point = pubKey.curve.decodePoint(encoded);
             dhSize = pubKey.pubKeySize / 2;
             pubKey.ecdhContext.init(ecKeyPair.getPrivate());
-            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(
-                    new ECPublicKeyParameters(point, null));
+            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(new ECPublicKeyParameters(point, null));
             DHss = bi.toByteArray();
             pubKey.ecdhContext.clear();
-            bi.zeroize();   // clear secret big integer data
+            bi.zeroize(); // clear secret big integer data
         }
         else {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
@@ -1462,10 +1517,8 @@ public class ZRtp {
         // Commit are already hashed in the context. Now hash the
         // Responder's DH1 and then the Initiator's (our) DH2 in that order.
         // Use negotiated hash algo.
-        hashCtxFunction.update(dhPart1.getHeaderBase(), 0, dhPart1.getLength()
-                * ZrtpPacketBase.ZRTP_WORD_SIZE);
-        hashCtxFunction.update(zrtpDH2.getHeaderBase(), 0, zrtpDH2.getLength()
-                * ZrtpPacketBase.ZRTP_WORD_SIZE);
+        hashCtxFunction.update(dhPart1.getHeaderBase(), 0, dhPart1.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
+        hashCtxFunction.update(zrtpDH2.getHeaderBase(), 0, zrtpDH2.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
 
         // Compute the message Hash
         hashCtxFunction.doFinal(messageHash, 0);
@@ -1498,20 +1551,17 @@ public class ZRtp {
      * secrets. 
      * 
      */
-    protected ZrtpPacketConfirm prepareConfirm1(ZrtpPacketDHPart dhPart2,
-            ZrtpCodes.ZrtpErrorCodes[] errMsg) {
-        sendInfo(ZrtpCodes.MessageSeverity.Info,
-                EnumSet.of(ZrtpCodes.InfoCodes.InfoRespDH2Received));
+    protected ZrtpPacketConfirm prepareConfirm1(ZrtpPacketDHPart dhPart2, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
+
+        sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoRespDH2Received));
 
         // Because we are responder we received a Commit and stored its H2.
         // Now re-compute H2 from received H1 and compare with stored peer's H2.
         byte[] tmpHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
-        hashFunctionImpl.update(dhPart2.getH1(), 0,
-                ZrtpPacketBase.HASH_IMAGE_SIZE);
+        hashFunctionImpl.update(dhPart2.getH1(), 0, ZrtpPacketBase.HASH_IMAGE_SIZE);
         hashFunctionImpl.doFinal(tmpHash, 0);
 
-        if (ZrtpUtils.byteArrayCompare(tmpHash, peerH2,
-                ZrtpPacketBase.HASH_IMAGE_SIZE) != 0) {
+        if (ZrtpUtils.byteArrayCompare(tmpHash, peerH2, ZrtpPacketBase.HASH_IMAGE_SIZE) != 0) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.IgnorePacket;
             return null;
         }
@@ -1528,8 +1578,7 @@ public class ZRtp {
         // HMAC key of the Commit packet is peer's H1 that is contained in.
         // DHPart2. Refer to chapter 9.1 and chapter 10.
         if (!checkMsgHmac(dhPart2.getH1())) {
-            sendInfo(ZrtpCodes.MessageSeverity.Severe,
-                    EnumSet.of(ZrtpCodes.SevereCodes.SevereCommitHMACFailed));
+            sendInfo(ZrtpCodes.MessageSeverity.Severe, EnumSet.of(ZrtpCodes.SevereCodes.SevereCommitHMACFailed));
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
             return null;
         }
@@ -1608,7 +1657,7 @@ public class ZRtp {
         zrtpConfirm1.setMessageType(ZrtpConstants.Confirm1Msg);
 
         // Check if user verfied the SAS in a previous call and thus verfied
-        // the retained secret.
+        // the retained secret. Forward this information to our peer.
         if (zidRec.isSasVerified()) {
             zrtpConfirm1.setSASFlag();
         }
@@ -1658,11 +1707,11 @@ public class ZRtp {
             System.arraycopy(in, 1, tmp, 0, tmp.length);
             return tmp;
         }
-        // Fill with zeros if too short
+        // Fill with zeros if too short.
         if (in.length < size) {
-            int prepend = size - in.length;
+            int fill = size - in.length;
             tmp = new byte[size];
-            System.arraycopy(DHss, 0, tmp, prepend, size - prepend);
+            System.arraycopy(in, 0, tmp, fill, size - fill);
             return tmp;
         }
         return null;
@@ -1828,24 +1877,23 @@ public class ZRtp {
          * The Confirm1 is ok, handle the Retained secret stuff and inform GUI
          * about state.
          */
+        // Did our peer verified the SAS during last session? Get its SAS verified flag.
         boolean sasFlag = confirm1.isSASFlag();
 
-        // Get peer's retained secrets
+        // Get peer's retained secrets record and stored flags
         ZidFile zidf = ZidFile.getInstance();
         ZidRecord zidRec = zidf.getRecord(peerZid);
 
         // Our peer did not confirm the SAS in last session, thus reset
-        // our SAS flag too.
+        // our stored SAS flag too.
         if (!sasFlag) {
             zidRec.resetSasVerified();
         }
 
-        // get verified flag from current RS1 before set a new RS1. This
-        // may not be set even if peer's flag is set in confirm1 message.
-        sasFlag = zidRec.isSasVerified() ? true : false;
-
-        // Inform GUI about security state and SAS state
-        boolean sasVerified = zidRec.isSasVerified();
+        // Now get the resulting SAS verified flag from current RS1 before setting a new RS1.
+        // It's a combination of our SAS verfied flag and peer's verified flag. Only if both
+        // were set (true) then sasFlag is also true.
+        sasFlag = zidRec.isSasVerified();
 
         // now we are ready to save the new RS1 which inherits the verified
         // flag from old RS1
@@ -1898,7 +1946,7 @@ public class ZRtp {
         zrtpConfirm2.setDataToSecure(dataToSecure);
         zrtpConfirm2.setHmac(confMac);
         
-        callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasVerified);
+        callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasFlag);
         
         // Ask for enrollment only if enabled via configuration and the
         // confirm packet contains the enrollment flag. The enrolling user
@@ -2065,7 +2113,6 @@ public class ZRtp {
         }
         confirm2.setDataToSecure(dataToSecure);
 
-        boolean sasVerified = false;
         if (!multiStream) {
             // Check HMAC of DHPart2 packet stored in temporary buffer. The
             // HMAC key of the DHPart2 packet is peer's H0 that is contained in
@@ -2085,20 +2132,20 @@ public class ZRtp {
              * The Confirm2 is ok, handle the Retained secret stuff and inform
              * GUI about state.
              */
+            // Did our peer verify the SAS during last session? Get its SAS verified flag.
             boolean sasFlag = confirm2.isSASFlag();
 
-            // Get peer's retained secrets
+            // Get peer's retained secrets record and stored flags
             ZidFile zidf = ZidFile.getInstance();
             ZidRecord zidRec = zidf.getRecord(peerZid);
 
-            // Our peer did not confirm the SAS in last session, thus reset
-            // our SAS flag too.
+            // Now get the resulting SAS verified flag from current RS1 before setting a new RS1.
+            // It's a combination of our SAS verfied flag and peer's verified flag. Only if both
+            // were set (true) then sasFlag is also true.
             if (!sasFlag) {
                 zidRec.resetSasVerified();
             }
 
-            // Inform GUI about security state and SAS state
-            sasVerified = zidRec.isSasVerified();
             // save new RS1, this inherits the verified flag from old RS1
             zidRec.setNewRs1(newRs1, -1);
             zidf.saveRecord(zidRec);
@@ -2111,7 +2158,7 @@ public class ZRtp {
                 computePBXSecret();
                 callback.zrtpAskEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentRequest);
             }
-            callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasVerified);
+            callback.srtpSecretsOn(cipher.readable + "/" + pubKey, SAS, sasFlag);
         }
         else {
             byte[] tmpHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
@@ -2525,7 +2572,7 @@ public class ZRtp {
         // stored HMAC, refer to chap 9.1 how to use this hash in SIP/SDP.
         //
         // getHeaderBase() returns the full packetBuffer array. The length of
-        // this array includes the CRC which are not part of the helloHash.
+        // this array includes the CRC which is not part of the helloHash.
         // Thus compute digest only for the real message length.
         // Use implicit hash algo
         hashFunctionImpl.update(zrtpHello.getHeaderBase(), 0, len);
@@ -2761,7 +2808,7 @@ public class ZRtp {
                     hashLength * 8);
 
             // perform SAS generation according to chapter 5.5 and 8.
-            // we don't need a speciai sasValue filed. sasValue are the first
+            // we don't need a speciai sasValue field. sasValue are the first
             // (leftmost) 32 bits (4 bytes) of sasHash
             sasHash = KDF(s0, ZrtpConstants.sasString, KDFcontext,
                     ZrtpConstants.SHA256_DIGEST_LENGTH * 8);
@@ -2851,8 +2898,8 @@ public class ZRtp {
                     EnumSet.of(ZrtpCodes.InfoCodes.InfoRSMatchFound));
         }
         /*
-         * Ready to generate s0 here. The formular to compute S0 (Refer to ZRTP
-         * specification 5.4.4):
+         * Ready to generate s0 here. The formular to compute S0 (Refer to RFC 6189
+         * chapter 4.4.1.4):
          * 
          * s0 = hash( counter | DHResult | "ZRTP-HMAC-KDF" | ZIDi | ZIDr | \
          * total_hash | len(s1) | s1 | len(s2) | s2 | len(s3) | s3)
@@ -2966,8 +3013,8 @@ public class ZRtp {
                     EnumSet.of(ZrtpCodes.InfoCodes.InfoRSMatchFound));
         }
         /*
-         * ready to generate s0 here. The formular to compute S0 (Refer to ZRTP
-         * specification 5.4.4):
+         * ready to generate s0 here. The formular to compute S0 (Refer to RFC 6189
+         * chapter 4.4.1.4):
          * 
          * s0 = hash( counter | DHResult | "ZRTP-HMAC-KDF" | ZIDi | ZIDr | \
          * total_hash | len(s1) | s1 | len(s2) | s2 | len(s3) | s3)
