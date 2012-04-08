@@ -971,6 +971,22 @@ public class ZRtp {
         return ret;
     }
 
+    /**
+     * Get remaining time before a "ZRTP not supported by other party" is reported.
+     * 
+     * This function calls the protocol state engine to determine how many time is left
+     * in ZRTP's discovery phase (Hello phase).
+     * 
+     * @return Time left in milliseconds.
+     */
+    public long getTimeoutValue() {
+        if(stateEngine != null) {
+            return stateEngine.getTimeoutValue();
+        }
+
+        return -1;
+    }
+
     /*
      * The following methods are helper functions for ZrtpStateClass.
      * ZrtpStateClass calls them to prepare packets, send data, report problems,

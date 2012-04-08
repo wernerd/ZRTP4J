@@ -208,6 +208,22 @@ public class ZrtpStateClass {
 
     }
 
+    public long getTimeoutValue() {
+        long res = 0;
+        int counter = 0;
+        int time = t1.start;
+
+        do {
+            res += time;
+            time += time;
+            time = (time > t1.capping)? t1.capping : time;
+            counter++;
+        }
+        while(counter < t1.maxResend);
+
+        return res;
+    }
+
     protected synchronized void processEvent(Event ev) {
 
         char first, middle, last;
