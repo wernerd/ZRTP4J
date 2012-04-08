@@ -316,12 +316,9 @@ public class ZRtp {
     private boolean enableMitmEnrollment = false;
     
     /**
-     * True if the Hello packet was sent by a trusted PBX. This is true only
-     * if the Hello packet has the M-flag set and the according ZIDRecord contains
-     * a valid MitM key. 
+     * True if a valid trusted MitM key of the other peer is available, i.e. enrolled.
      */
-    private boolean trustedMitM = false;
-
+    private boolean peerIsEnrolled;
     /**
      * Set to true if the Hello packet contained the M-flag (MitM flag).
      * We use this later to check some stuff for SAS Relay processing
@@ -570,6 +567,19 @@ public class ZRtp {
      */
     public void setEnrollmentMode(boolean enrollmentMode) {
         this.enrollmentMode = enrollmentMode;
+    }
+
+    /**
+     * Check if a peer's cache entry has a vaild MitM key.
+     *
+     * If true then the other peer ha a valid MtiM key, i.e. the peer has performed
+     * the enrollment procedure. A PBX ZRTP Back-2-Back application can use this function
+     * to check which of the peers is enrolled.
+     *
+     * @return True if the other peer has a valid Mitm key (is enrolled).
+     */
+    public boolean isPeerEnrolled() {
+        return peerIsEnrolled;
     }
 
     /**
@@ -1123,13 +1133,13 @@ public class ZRtp {
         // Compute the Initator's and Responder's retained secret ids.
         computeSharedSecretSet(zidRec);
 
-        // Check for PBX and if we have a MitM Key available. This would
-        // qualify the PBX as trusted MitM and that this client enrolled to
-        // the trusted PBX
+        // Check if a PBX application set the MitM flag.
         if (hello.isMitmMode()) {
             mitmSeen = true;
-            trustedMitM = zidRec.isMITMKeyAvailable();
         }
+        // Flag to record that fact that we have a MitM key of the other peer.
+        peerIsEnrolled = zidRec.isMITMKeyAvailable();
+
         // Check for sign SAS flag and remember it.
         signSasSeen = hello.isSasSign();
         // Construct a DHPart2 message (Initiator's DH message). This packet
@@ -1925,7 +1935,6 @@ public class ZRtp {
         }
 
         // Encrypt and HMAC with Initiator's key - we are Initiator here
-        // see ZRTP specification chapter xYxY
         dataToSecure = zrtpConfirm2.getDataToSecure();
 
         try {
@@ -2268,7 +2277,6 @@ public class ZRtp {
         
         SupportedSASTypes render = srly.getSas();
         byte[] newSasHash = srly.getTrustedSas();
-
         
         boolean sasHashNull = true;
         for (int i = 0; i < newSasHash.length; i++) {
@@ -2277,27 +2285,20 @@ public class ZRtp {
                 break;
             }
         }
-        // if the new SAS is not null then we need a trusted MitM. If this is not
-        // the case then don't render the new SAS - return.
-        if (!sasHashNull && !trustedMitM) {
-            return zrtpRelayAck;
+        // Check if new SAS is null or a trusted MitM relationship doesn't exist.
+        // If this is the case then don't render and don't show the new SAS - use
+        // the computed SAS hash but we may use a different SAS rendering algorithm to
+        // render the computed SAS.
+        if (sasHashNull || !peerIsEnrolled) {
+            newSasHash = sasHash;
         }
         // If other SAS schemes required - check here and use others
         if (render == ZrtpConstants.SupportedSASTypes.B32) {
             byte[] sasBytes = new byte[4];
-
-            if (!sasHashNull) {
-                sasBytes[0] = newSasHash[0];
-                sasBytes[1] = newSasHash[1];
-                sasBytes[2] = (byte) (newSasHash[2] & 0xf0);
-                sasBytes[3] = 0;
-            }
-            else {
-                sasBytes[0] = sasHash[0];
-                sasBytes[1] = sasHash[1];
-                sasBytes[2] = (byte) (sasHash[2] & 0xf0);
-                sasBytes[3] = 0;
-            }
+            sasBytes[0] = newSasHash[0];
+            sasBytes[1] = newSasHash[1];
+            sasBytes[2] = (byte) (newSasHash[2] & 0xf0);
+            sasBytes[3] = 0;
             SAS = Base32.binary2ascii(sasBytes, 20);
         }
         callback.srtpSecretsOn(cipher.readable + "/" + pubKey + "/MitM", SAS, false);

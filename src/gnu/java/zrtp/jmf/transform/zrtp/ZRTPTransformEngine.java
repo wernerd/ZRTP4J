@@ -866,6 +866,22 @@ public class ZRTPTransformEngine
             zrtpEngine.setEnrollmentMode(enrollmentMode);
     }
 
+    /**
+     * Check if a peer's cache entry has a vaild MitM key.
+     *
+     * If true then the other peer ha a valid MtiM key, i.e. the peer has performed
+     * the enrollment procedure. A PBX ZRTP Back-2-Back application can use this function
+     * to check which of the peers is enrolled.
+     *
+     * @return True if the other peer has a valid Mitm key (is enrolled).
+     */
+    public boolean isPeerEnrolled() {
+        if (zrtpEngine != null)
+            return zrtpEngine.isPeerEnrolled();
+        else
+            return false;
+    }
+
     public boolean setSignatureData(byte[] data) {
         return ((zrtpEngine != null) ? zrtpEngine.setSignatureData(data)
                 : false);
