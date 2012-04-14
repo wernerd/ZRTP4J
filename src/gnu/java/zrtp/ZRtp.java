@@ -391,11 +391,43 @@ public class ZRtp {
 
     private int peerSSRC = 0; // the partner's ssrc
 
+    /**
+     * Enable or disable paranoid mode.
+     * 
+     * The Paranoid mode controls the behaviour and handling of the SAS verify flag. If
+     * Panaoid mode is set to flase then ZRtp applies the normal handling. If Paranoid
+     * mode is set to true then the handling is:
+     * 
+     * <ul>
+     * <li> Force the SAS verify flag to be false at srtpSecretsOn() callback. This gives
+     *      the user interface (UI) the indication to handle the SAS as <b>not verified</b>. 
+     *      See implementation note below.</li>
+     * <li> Don't set the SAS verify flag in the <code>Confirm</code> packets, thus the other
+     *      also must report the SAS as <b>not verified</b>.</li>
+     * <li> ignore the <code>SASVerified()</code> function, thus do not set the SAS to verified
+     *      in the ZRTP cache. </li>
+     * <li> Disable the <b>Trusted PBX MitM</b> feature. Just send the <code>SASRelay</code> packet
+     *      but do not process the relayed data. This protects the user from a malicious 
+     *      "trusted PBX".</li>
+     * </ul>
+     * ZRtp performs alls other steps during the ZRTP negotiations as usual, in particular it 
+     * computes, compares, uses, and stores the retained secrets. This avoids unnecessary warning
+     * messages. The user may enable or disable the Paranoid mode on a call-by-call basis without
+     * breaking the key continuity data.
+     * 
+     * <b>Implementation note:</b></br>
+     * An application shall always display the SAS code if the SAS verify flag is <code>false</code>.
+     * The application shall also use mechanisms to remind the user to compare the SAS code, for
+     * example useing larger fonts, different colours and other display features.
+     */
+    private boolean paranoidMode = false;
+    
     private ZrtpConfigure configureAlgos;
 
     public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config) {
         this(myZid, cb, id, config, false, false);
     }
+
     public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config, boolean mitmMode) {
         this(myZid, cb, id, config, mitmMode, false);
     }
@@ -662,6 +694,9 @@ public class ZRtp {
      * this together with the retained secrets data.
      */
     public void SASVerified() {
+        if (paranoidMode)
+            return;
+
         // get peer's ZID record and set SAS verified flag
         ZidFile zidf = ZidFile.getInstance();
         ZidRecord zidRec = zidf.getRecord(peerZid);
@@ -670,9 +705,7 @@ public class ZRtp {
     }
 
     /**
-     * Reset the SAS verfied flag for the current active user's retained
-     * secrets.
-     * 
+     * Reset the SAS verfied flag for the current active user's retained secrets.
      */
     public void resetSASVerified() {
         // get peer's ZID record and reset SAS verified flag
@@ -1643,8 +1676,9 @@ public class ZRtp {
         zrtpConfirm1.setMessageType(ZrtpConstants.Confirm1Msg);
 
         // Check if user verfied the SAS in a previous call and thus verfied
-        // the retained secret. Forward this information to our peer.
-        if (zidRec.isSasVerified()) {
+        // the retained secret. Forward this information to our peer. Don't set
+        // the verified flag if paranoidMode is true.
+        if (zidRec.isSasVerified() && !paranoidMode) {
             zrtpConfirm1.setSASFlag();
         }
         zrtpConfirm1.setExpTime(0xFFFFFFFF);
@@ -1847,15 +1881,15 @@ public class ZRtp {
         ZidFile zidf = ZidFile.getInstance();
         ZidRecord zidRec = zidf.getRecord(peerZid);
 
-        // Our peer did not confirm the SAS in last session, thus reset
-        // our stored SAS flag too.
-        if (!sasFlag) {
+        // Our peer did not confirm the SAS in last session, thus reset our stored SAS 
+        // flag too. Reset the flag also if paranoidMode is true.
+        if (!sasFlag || paranoidMode) {
             zidRec.resetSasVerified();
         }
 
         // Now get the resulting SAS verified flag from current RS1 before setting a new RS1.
         // It's a combination of our SAS verfied flag and peer's verified flag. Only if both
-        // were set (true) then sasFlag is also true.
+        // were set (true) then sasFlag becomes true.
         sasFlag = zidRec.isSasVerified();
 
         // now we are ready to save the new RS1 which inherits the verified
@@ -1886,7 +1920,6 @@ public class ZRtp {
                 writeEnrollmentPBX();
             }
         }
-
         // Encrypt and HMAC with Initiator's key - we are Initiator here
         dataToSecure = zrtpConfirm2.getDataToSecure();
 
@@ -2078,12 +2111,15 @@ public class ZRtp {
             ZidFile zidf = ZidFile.getInstance();
             ZidRecord zidRec = zidf.getRecord(peerZid);
 
-            // Now get the resulting SAS verified flag from current RS1 before setting a new RS1.
-            // It's a combination of our SAS verfied flag and peer's verified flag. Only if both
-            // were set (true) then sasFlag is also true.
-            if (!sasFlag) {
+            // Our peer did not confirm the SAS in last session, thus reset our stored SAS 
+            // flag too. Reset the flag also if paranoidMode is true.
+            if (!sasFlag || paranoidMode) {
                 zidRec.resetSasVerified();
             }
+            // Now get the resulting SAS verified flag from current RS1 before setting a new RS1.
+            // It's a combination of our SAS verfied flag and peer's verified flag. Only if both
+            // were set (true) then sasFlag becomes true.
+            sasFlag = zidRec.isSasVerified();
 
             // save new RS1, this inherits the verified flag from old RS1
             zidRec.setNewRs1(newRs1, -1);
@@ -2164,7 +2200,9 @@ public class ZRtp {
     }
 
     protected ZrtpPacketRelayAck prepareRelayAck(ZrtpPacketSASRelay srly, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
-        if (!mitmSeen)
+        // handle and render SAS relay data only if the peer announced that it is a trusted
+        // PBX. Don't handle SAS relay in paranoidMode.
+        if (!mitmSeen || paranoidMode)
             return zrtpRelayAck;
 
         byte[] hkey, ekey;

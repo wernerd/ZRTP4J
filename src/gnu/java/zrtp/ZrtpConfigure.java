@@ -101,6 +101,7 @@ public class ZrtpConfigure {
     
     private boolean enableTrustedMitM = false;
     private boolean enableSasSignature = false;
+    private boolean enableParanoidMode = false;
     
     /**
      * Convenience function that sets a pre-defined standard configuration.
@@ -243,6 +244,29 @@ public class ZrtpConfigure {
      */
     public boolean isSasSignature() {
         return enableSasSignature;
+    }
+
+    /**
+     * Enables or disables paranoid mode.
+     *
+     * For further explanation of paranoid mode refer to the documentation
+     * of ZRtp class.
+     * 
+     * @param yesNo
+     *    If set to true then paranoid mode is enabled.
+     */
+    public void setParanoidMode(boolean yesNo) {
+        enableParanoidMode = yesNo;
+    }
+    
+    /**
+     * Check status of paranoid mode.
+     * 
+     * @return
+     *    Returns true if paranoid mode is enabled.
+     */
+    public boolean isParanoidMode() {
+        return enableParanoidMode;
     }
 
     /*

@@ -279,6 +279,37 @@ public class ZRTPTransformEngine
     private boolean signSas = false;
     
     private ZRTCPTransformer zrtcpTransformer = null;
+    
+    /**
+     * Enable or disable paranoid mode.
+     * 
+     * The Paranoid mode controls the behaviour and handling of the SAS verify flag. If
+     * Panaoid mode is set to flase then ZRtp applies the normal handling. If Paranoid
+     * mode is set to true then the handling is:
+     * 
+     * <ul>
+     * <li> Force the SAS verify flag to be false at srtpSecretsOn() callback. This gives
+     *      the user interface (UI) the indication to handle the SAS as <b>not verified</b>. 
+     *      See implementation note below.</li>
+     * <li> Don't set the SAS verify flag in the <code>Confirm</code> packets, thus the other
+     *      also must report the SAS as <b>not verified</b>.</li>
+     * <li> ignore the <code>SASVerified()</code> function, thus do not set the SAS to verified
+     *      in the ZRTP cache. </li>
+     * <li> Disable the <b>Trusted PBX MitM</b> feature. Just send the <code>SASRelay</code> packet
+     *      but do not process the relayed data. This protects the user from a malicious 
+     *      "trusted PBX".</li>
+     * </ul>
+     * ZRtp performs alls other steps during the ZRTP negotiations as usual, in particular it 
+     * computes, compares, uses, and stores the retained secrets. This avoids unnecessary warning
+     * messages. The user may enable or disable the Paranoid mode on a call-by-call basis without
+     * breaking the key continuity data.
+     * 
+     * <b>Implementation note:</b></br>
+     * An application shall always display the SAS code if the SAS verify flag is <code>false</code>.
+     * The application shall also use mechanisms to remind the user to compare the SAS code, for
+     * example useing larger fonts, different colours and other display features.
+     */
+    private boolean enableParanoidMode = false;
 
     /**
      * Construct a ZRTPTransformEngine.
@@ -333,6 +364,9 @@ public class ZRTPTransformEngine
             timeoutProvider.start();
         }
 
+        if (enableParanoidMode) {
+            config.setParanoidMode(enableParanoidMode);
+        }
         ZidFile zf = ZidFile.getInstance();
         if (!zf.isOpen()) {
             String fname;
@@ -836,11 +870,35 @@ public class ZRTPTransformEngine
     }
 
     /**
+     * Enables or disables paranoid mode.
+     *
+     * For further explanation of paranoid mode refer to the documentation
+     * of ZRtp class.
+     * 
+     * @param yesNo
+     *    If set to true then paranoid mode is enabled.
+     */
+    public void setParanoidMode(boolean yesNo) {
+        enableParanoidMode = yesNo;
+    }
+    
+    /**
+     * Check status of paranoid mode.
+     * 
+     * @return
+     *    Returns true if paranoid mode is enabled.
+     */
+    public boolean isParanoidMode() {
+        return enableParanoidMode;
+    }
+
+    /**
      * Check the state of the enrollment mode.
      * 
      * If true then we will set the enrollment flag (E) in the confirm
-     * packets and performs the enrollment actions. A MitM (PBX) enrollment service sets this flagstarted this ZRTP 
-     * session. Can be set to true only if mitmMode is also true. 
+     * packets and performs the enrollment actions. A MitM (PBX) enrollment 
+     * service sets this flag.
+     *  
      * @return status of the enrollmentMode flag.
      */
     public boolean isEnrollmentMode() {
@@ -939,7 +997,6 @@ public class ZRTPTransformEngine
      * @return
      *    the ZID data as byte array.
      */
-    
     public byte[] getPeerZid() {
         return ((zrtpEngine != null) ? zrtpEngine.getPeerZid() : null);
     }
