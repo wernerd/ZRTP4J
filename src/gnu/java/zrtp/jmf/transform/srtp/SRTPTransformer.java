@@ -77,8 +77,12 @@ public class SRTPTransformer
 
         if (context == null) {
             context = engine.getDefaultContext().deriveContext(ssrc, 0, 0);
-            context.deriveSrtpKeys(0);
-            contexts.put(ssrc, context);
+            if (context != null) {
+                context.deriveSrtpKeys(0);
+                contexts.put(ssrc, context);
+            }
+            else
+                return pkt;
         }
         context.transformPacket(pkt);
 
@@ -98,8 +102,12 @@ public class SRTPTransformer
 
         if (context == null) {
             context = engine.getDefaultContext().deriveContext(ssrc, 0, 0);
-            context.deriveSrtpKeys(seqNum);
-            contexts.put(ssrc, context);
+            if (context != null) {
+                context.deriveSrtpKeys(seqNum);
+                contexts.put(ssrc, context);
+            }
+            else
+                return pkt;
         }
 
         boolean validPacket = context.reverseTransformPacket(pkt);

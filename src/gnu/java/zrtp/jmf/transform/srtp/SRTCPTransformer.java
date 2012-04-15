@@ -52,8 +52,12 @@ public class SRTCPTransformer implements PacketTransformer {
 
         if (context == null) {
             context = engine.getDefaultContextControl().deriveContext(ssrc);
-            context.deriveSrtcpKeys();
-            contexts.put(ssrc, context);
+            if (context != null) {
+                context.deriveSrtcpKeys();
+                contexts.put(ssrc, context);
+            }
+            else 
+                return pkt;
         }
         context.transformPacket(pkt);
         return pkt;
@@ -72,8 +76,12 @@ public class SRTCPTransformer implements PacketTransformer {
 
         if (context == null) {
             context = engine.getDefaultContextControl().deriveContext(ssrc);
-            context.deriveSrtcpKeys();
-            contexts.put(ssrc, context);
+            if (context != null) {
+                context.deriveSrtcpKeys();
+                contexts.put(ssrc, context);
+            }
+            else 
+                return pkt;
         }
 
         boolean validPacket = context.reverseTransformPacket(pkt);
