@@ -2,7 +2,6 @@ package demo;
 
 import gnu.java.zrtp.ZrtpCodes;
 import gnu.java.zrtp.ZrtpConfigure;
-import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.ZrtpUserCallback;
 import gnu.java.zrtp.jmf.transform.TransformManager;
 import gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine;
@@ -46,7 +45,7 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
         }
 
         public void showSAS(String sas, boolean verified) {
-            System.err.println(prefix + "Rx SAS: " + sas);               
+            System.err.println(prefix + "Rx SAS: " + sas + ", verified: " + verified);               
         }
 
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
@@ -163,6 +162,8 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             zrtpEngine = transConnector.getEngine();
             zrtpEngine.setSignSas(true);
             zrtpEngine.setUserCallback(new MyCallback());
+            zrtpEngine.setParanoidMode(true);
+
             ZrtpConfigure config = new ZrtpConfigure();
             config.setStandardConfig();
 //            config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);

@@ -437,8 +437,10 @@ public class ZRtp {
     public ZRtp(byte[] myZid, ZrtpCallback cb, String id, ZrtpConfigure config, boolean mitmMode, boolean sasSignSupport) {
 
         secRand = ZrtpFortuna.getInstance();
+
         configureAlgos = config;
         enableMitmEnrollment = config.isTrustedMitM();
+        paranoidMode = config.isParanoidMode();
 
         System.arraycopy(myZid, 0, zid, 0, ZidRecord.IDENTIFIER_LENGTH);
         callback = cb;

@@ -2,7 +2,6 @@
 package demo;
 
 import gnu.java.zrtp.ZrtpCodes;
-import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.ZrtpUserCallback;
 import gnu.java.zrtp.ZrtpConfigure;
 import gnu.java.zrtp.jmf.transform.TransformManager;
@@ -58,7 +57,7 @@ public class TransmitterMultiZRTP {
             }
 
             public void showSAS(String sas, boolean verified) {
-                System.err.println(prefix + "Tx SAS: " + sas);
+                System.err.println(prefix + "Tx SAS: " + sas + ", verified: " + verified);
             }
 
             public void showMessage(ZrtpCodes.MessageSeverity sev,
@@ -195,6 +194,7 @@ public class TransmitterMultiZRTP {
                     System.out.println("multi - Tx Hello hash: " + zrtpEngine.getHelloHash());
                 } else {
                     zrtpEngine.setSignSas(true);
+                    zrtpEngine.setParanoidMode(true);
                     zrtpEngine.setUserCallback(new MyCallback());
                     if (!zrtpEngine.initialize("test_r.zid", config))
                         System.err.println("TX: Initialize failed, multi: "
