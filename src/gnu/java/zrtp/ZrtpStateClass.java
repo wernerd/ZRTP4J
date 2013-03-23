@@ -1579,6 +1579,11 @@ public class ZrtpStateClass {
             break;
 
         default: // unknown Event type for this state (covers Error and ZrtpClose)
+
+            // If in secure state ingnore error events to avoid Error packet injection
+            // attack - found by Dmitry Monakhov (dmonakhov@openvz.org)
+            if (event.type == EventDataType.ErrorPkt)
+                return;
             sentPacket = null;
             inState = ZrtpStates.Initial;
             parent.srtpSecretsOff(ZrtpCallback.EnableSecurity.ForSender);
