@@ -53,7 +53,7 @@ public class ZrtpPacketPing extends ZrtpPacketBase {
     protected ZrtpPacketPing() {
         super(new byte[PING_LENGTH]);
         setZrtpId();
-        setVersion(ZrtpConstants.zrtpVersion);
+        setVersion(ZrtpConstants.zrtpVersion_11);
         
         // The length field of a ZRTP packet does not include the CRC field.
         // the length is given in number of ZRTP words.

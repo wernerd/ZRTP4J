@@ -56,7 +56,7 @@ public class ZrtpPacketPingAck extends ZrtpPacketBase {
     public ZrtpPacketPingAck() {
         super(new byte[PING_ACK_LENGTH]);
         setZrtpId();
-        setVersion(ZrtpConstants.zrtpVersion);
+        setVersion(ZrtpConstants.zrtpVersion_11);
         
         // The length field of a ZRTP packet does not include the CRC field.
         // the length is given in number of ZRTP words.

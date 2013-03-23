@@ -53,11 +53,15 @@ public class ZrtpConstants {
     // The following string must contain ASCII characters only
     //                                               1
     //                                     0123456789012345
-    public static final String clientId = "GNU ZRTP4J 2.1.0"  ;
+    public static final String clientId = "GNU ZRTP4J 3.1.0"  ;
  
 //  "1.10"
-    public static final byte[] zrtpVersion = {
+    public static final byte[] zrtpVersion_11 = {
         (byte)0x31, (byte)0x2e, (byte)0x31, (byte)0x30};
+
+//  "1.20"
+    public static final byte[] zrtpVersion_12 = {
+        (byte)0x31, (byte)0x2e, (byte)0x32, (byte)0x30};
 
     // Human readable names of encryption algorithms
     public static final String AES_128 = "AES-CM-128";

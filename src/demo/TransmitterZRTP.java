@@ -33,11 +33,14 @@ public class TransmitterZRTP implements SendStreamListener {
 
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
             Iterator<?> ii = subCode.iterator();
+            ZrtpCodes.InfoCodes inf = (ZrtpCodes.InfoCodes)ii.next();
             System.err.println("Tx show message sub code: " + ii.next());
+            if (inf == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
+                System.err.println("Tx peer hello hash: " + zrtpEngine.getPeerHelloHash());
+            }
         }
 
-        public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity,
-                    EnumSet<?> subCode) {
+        public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
             Iterator<?> ii = subCode.iterator();
             System.err.println("Tx negotiation failed sub code: " + ii.next());
         }
@@ -92,8 +95,11 @@ public class TransmitterZRTP implements SendStreamListener {
             
             if (!zrtpEngine.initialize("test_r.zid"))
                 System.err.println("Initialize failed");
+
             // initialize the RTPManager using the SRTP connector
-            System.err.println("Hello hash: " + zrtpEngine.getHelloHash());
+            int versions = zrtpEngine.getNumberSupportedVersions();
+            for (int idx = 0; idx < versions; idx++)
+                System.err.println("Hello hash: " + zrtpEngine.getHelloHash(idx));
             rtpManager.initialize(transConnector);
             rtpManager.addSendStreamListener(this);
 

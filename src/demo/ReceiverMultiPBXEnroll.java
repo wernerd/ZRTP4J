@@ -158,7 +158,9 @@ public class ReceiverMultiPBXEnroll implements ReceiveStreamListener, SessionLis
             if (!zrtpEngine.initialize("test_mitm_r.zid", config))
                 System.out.println("iniatlize failed");
 
-            System.out.println("Hello hash: " + zrtpEngine.getHelloHash());
+            int versions = zrtpEngine.getNumberSupportedVersions();
+            for (int idx = 0; idx < versions; idx++)
+                System.out.println("Hello hash: " + zrtpEngine.getHelloHash(idx));
             zrtpEngine.setOwnSSRC(1);
             // initialize the RTPManager using the ZRTP connector
 

@@ -113,8 +113,6 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         setLength((helloLength / ZRTP_WORD_SIZE) - 1);
         setMessageType(ZrtpConstants.HelloMsg);
 
-        setVersion(ZrtpConstants.zrtpVersion);
-
         packetBuffer[FLAG_LENGTH_OFFSET] = helloFlags;  // Passive flag if required
         
         packetBuffer[FLAG_LENGTH_OFFSET+1] = (byte)(nHash);
@@ -204,6 +202,19 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
 
     public final byte[] getVersion() {
         return ZrtpUtils.readRegion(packetBuffer, VERSION_OFFSET, ZRTP_WORD_SIZE);
+    }
+
+    public final int getVersionInt() {
+        String version = new String(getVersion());
+        int intVersion = 0;
+        
+        char c = version.charAt(0);
+        if (Character.isDigit(c)) 
+            intVersion = Character.digit(c, 10) * 10;
+        c = version.charAt(2);
+        if (Character.isDigit(c)) 
+            intVersion += Character.digit(c, 10);
+        return intVersion;
     }
 
     public final void setHashType(final int n, final byte[] data) {

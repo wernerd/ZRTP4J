@@ -97,6 +97,22 @@ import org.bouncycastle.mathzrtp.ec.ECPoint;
 
 public class ZRtp {
 
+    // max. number of parallel supported ZRTP protocol versions.
+    static final int MAX_ZRTP_VERSIONS = 2;
+
+    // Integer representation of highest supported ZRTP protocol version
+    static final int HIGHEST_ZRTP_VERION = 12;
+
+    /**
+     * Faster access to Hello packets with different versions.
+     */
+    static class HelloPacketVersion {
+        int version;
+        ZrtpPacketHello packet;
+        byte[] helloHash;
+    };
+
+
     /**
      * The state engine takes care of protocol processing.
      */
@@ -237,8 +253,6 @@ public class ZRtp {
 
     private byte[] H3 = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
 
-    private byte[] helloHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
-
     private byte[] peerHelloHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
     private byte[] peerHelloVersion = null;
 
@@ -346,7 +360,8 @@ public class ZRtp {
     /**
      * Pre-initialized packets.
      */
-    private ZrtpPacketHello zrtpHello = new ZrtpPacketHello();
+    private ZrtpPacketHello zrtpHello_11 = new ZrtpPacketHello();
+    private ZrtpPacketHello zrtpHello_12 = new ZrtpPacketHello();
 
     private ZrtpPacketHelloAck zrtpHelloAck = new ZrtpPacketHelloAck();
 
@@ -373,6 +388,13 @@ public class ZRtp {
     private ZrtpPacketSASRelay zrtpSasRelay = new ZrtpPacketSASRelay();
 
     private ZrtpPacketRelayAck zrtpRelayAck = new ZrtpPacketRelayAck();
+
+    HelloPacketVersion helloPackets[] = new HelloPacketVersion[MAX_ZRTP_VERSIONS];
+    int highestZrtpVersion;
+
+    // Pointer to Hello packet sent to partner, initialized in ZRtp, modified by ZrtpStateClass
+    ZrtpPacketHello currentHelloPacket;
+
     /**
      * Random IV data to encrypt the confirm data, 128 bit for AES
      */
@@ -444,6 +466,8 @@ public class ZRtp {
 
         System.arraycopy(myZid, 0, zid, 0, ZidRecord.IDENTIFIER_LENGTH);
         callback = cb;
+        secRand.nextBytes(randomIV); // IV used in ZRTP packet encryption
+
         /*
          * Generate H0 as a random number (256 bits, 32 bytes) and then the hash chain, refer to chapter 9
          */
@@ -458,18 +482,39 @@ public class ZRtp {
         hashFunctionImpl.update(H2, 0, ZrtpPacketBase.HASH_IMAGE_SIZE); // H3
         hashFunctionImpl.doFinal(H3, 0);
 
-        zrtpHello.configureHello(config);
-        zrtpHello.setH3(H3); // set H3 in Hello, included in helloHash
+        zrtpHello_11.configureHello(config);
+        zrtpHello_11.setH3(H3); // set H3 in Hello, included in helloHash
+        zrtpHello_11.setZid(zid);
+        zrtpHello_11.setVersion(ZrtpConstants.zrtpVersion_11);
 
-        secRand.nextBytes(randomIV); // IV used in ZRTP packet encryption
+        zrtpHello_12.configureHello(config);
+        zrtpHello_12.setH3(H3); // set H3 in Hello, included in helloHash
+        zrtpHello_12.setZid(zid);
+        zrtpHello_12.setVersion(ZrtpConstants.zrtpVersion_12);
 
-        if (mitmMode) // this session acts for a trusted MitM (PBX)
-            zrtpHello.setMitmMode();
-        if (sasSignSupport)
-            zrtpHello.setSasSign();
+        if (mitmMode) {                 // this session acts for a trusted MitM (PBX)
+            zrtpHello_11.setMitmMode();
+            zrtpHello_12.setMitmMode();
+        }
+        if (sasSignSupport) {
+            zrtpHello_11.setSasSign();
+            zrtpHello_12.setSasSign();
+        }
 
-        zrtpHello.setZid(zid);
-        setClientId(id); // set id, compute HMAC and final helloHash
+        // Keep array in ascending order (greater index -> greater version)
+        helloPackets[0] = new HelloPacketVersion();
+        helloPackets[0].helloHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
+        helloPackets[0].packet = zrtpHello_11;
+        helloPackets[0].version = zrtpHello_11.getVersionInt();
+        setClientId(id, helloPackets[0]);      // set id, compute HMAC and final helloHash
+
+        helloPackets[1] = new HelloPacketVersion();
+        helloPackets[1].helloHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
+        helloPackets[1].packet = zrtpHello_12;
+        helloPackets[1].version = zrtpHello_12.getVersionInt();
+        setClientId(id, helloPackets[1]);      // set id, compute HMAC and final helloHash
+     
+        currentHelloPacket = helloPackets[MAX_ZRTP_VERSIONS-1].packet;  // start with highest available version
 
         stateEngine = new ZrtpStateClass(this);
     }
@@ -723,12 +768,15 @@ public class ZRtp {
      * Use this method to get the ZRTP Hello Hash data. The method returns the
      * data as a string.
      * 
+     * @param  index 
+     *         Hello hash of the Hello packet identfied by index. Index must be 0 <= index < MAX_ZRTP_VERSIONS.
+     *
      * @return a std:string containing the Hello hash value as hex-digits. The
      *         hello hash is available immediately after class instantiation.
      */
-    public String getHelloHash() {
-        String pv = new String(ZrtpConstants.zrtpVersion);
-        String hs = new String(ZrtpUtils.bytesToHexString(helloHash, hashLengthImpl));
+    public String getHelloHash(int index) {
+        String pv = new String(helloPackets[index].packet.getVersion());
+        String hs = new String(ZrtpUtils.bytesToHexString(helloPackets[index].helloHash, hashLengthImpl));
         return pv + " " + hs;
     }
 
@@ -738,14 +786,17 @@ public class ZRtp {
      * Use this method to get the ZRTP Hello Hash data. The method returns the
      * data as separate strings.
      * 
+     * @param  index 
+     *         Hello hash of the Hello packet identfied by index. Index must be 0 <= index < MAX_ZRTP_VERSIONS.
+     *
      * @return String array containing the version string at offset 0, the Hello
      *         hash value as hex-digits at offset 1. Hello hash is available
      *         immediately after class instantiation.
      */
-    public String[] getHelloHashSep() {
+    public String[] getHelloHashSep(int index) {
         String ret[] = new String[2];
-        ret[0] = new String(ZrtpConstants.zrtpVersion);
-        ret[1] = new String(ZrtpUtils.bytesToHexString(helloHash, hashLengthImpl));
+        ret[0] = new String(helloPackets[index].packet.getVersion());
+        ret[1] = new String(ZrtpUtils.bytesToHexString(helloPackets[index].helloHash, hashLengthImpl));
         return ret;
     }
 
@@ -1022,6 +1073,24 @@ public class ZRtp {
         return -1;
     }
 
+    /**
+     * Get number of supported ZRTP protocol versions.
+     *
+     * @return the number of supported ZRTP protocol versions.
+     */
+    public int getNumberSupportedVersions() {
+        return MAX_ZRTP_VERSIONS;
+    }
+
+    /**
+     * Get negotiated ZRTP protocol version.
+     *
+     * @return the integer representation of the negotiated ZRTP protocol version.
+     */
+    public int getCurrentProtocolVersion() {
+        return currentHelloPacket.getVersionInt();
+    }
+
     /*
      * The following methods are helper functions for ZrtpStateClass.
      * ZrtpStateClass calls them to prepare packets, send data, report problems,
@@ -1071,7 +1140,7 @@ public class ZRtp {
      * @return A pointer to the initialized Hello packet.
      */
     protected ZrtpPacketHello prepareHello() {
-        return zrtpHello;
+        return currentHelloPacket;
     }
 
     /**
@@ -1100,10 +1169,6 @@ public class ZRtp {
     protected ZrtpPacketCommit prepareCommit(ZrtpPacketHello hello, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoHelloReceived));
 
-        if (!hello.isSameVersion(ZrtpConstants.zrtpVersion)) {
-            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppZRTPVersion;
-            return null;
-        }
         // Save our peer's ZRTP id
         peerZid = hello.getZid();
         // peers have the same ZID?
@@ -1441,7 +1506,7 @@ public class ZRtp {
         // First the Responder's (my) Hello message, second the Commit
         // (always Initator's), then the DH1 message (which is always a
         // Responder's message)
-        hashCtxFunction.update(zrtpHello.getHeaderBase(), 0, zrtpHello.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
+        hashCtxFunction.update(currentHelloPacket.getHeaderBase(), 0, currentHelloPacket.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
         hashCtxFunction.update(commit.getHeaderBase(), 0, commit.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
         hashCtxFunction.update(zrtpDH1.getHeaderBase(), 0, zrtpDH1.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
 
@@ -1596,7 +1661,7 @@ public class ZRtp {
         // hvi using my Hello packet and the Initiator's DHPart2 and compare
         // with hvi sent in commit packet. If it doesn't macht then a MitM
         // attack may have occured.
-        computeHvi(dhPart2, zrtpHello);
+        computeHvi(dhPart2, currentHelloPacket);
         if (ZrtpUtils.byteArrayCompare(hvi, peerHvi, ZrtpPacketBase.HVI_SIZE) != 0) {
             errMsg[0] = ZrtpCodes.ZrtpErrorCodes.DHErrorWrongHVI;
             return null;
@@ -1792,7 +1857,7 @@ public class ZRtp {
         // Hash messages to produce overall message hash:
         // First the Responder's (my) Hello message, second the Commit
         // (always Initator's)
-        hashCtxFunction.update(zrtpHello.getHeaderBase(), 0, zrtpHello.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
+        hashCtxFunction.update(currentHelloPacket.getHeaderBase(), 0, currentHelloPacket.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
         hashCtxFunction.update(commit.getHeaderBase(), 0, commit.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
         hashCtxFunction.doFinal(messageHash, 0);
         hashCtxFunction = null;
@@ -2504,22 +2569,26 @@ public class ZRtp {
      * The identifier is set in the Hello packet of ZRTP. Thus only after
      * setting the identifier ZRTP can compute the HMAC and the final helloHash.
      * 
+     * @param hpv
+     *        Hello packet version class that holds info about the Hello packet for a
+     *        specific protocol version
+     *
      * @param id
      *            The client's id
      */
-    private void setClientId(String id) {
+    private void setClientId(String id, HelloPacketVersion hpv) {
         String tmp = "                ";
         if (id.length() < 4 * ZrtpPacketBase.ZRTP_WORD_SIZE) {
-            zrtpHello.setClientId(tmp);
+            hpv.packet.setClientId(tmp);
         }
-        zrtpHello.setClientId(id);
-        int len = zrtpHello.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
+        hpv.packet.setClientId(id);
+        int len = hpv.packet.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
 
         // Hello packet is ready now, compute its HMAC with key H2
         // (excluding the HMAC field (2*ZTP_WORD_SIZE)) and store in Hello
-        byte data[] = computeHmacImpl(H2, hashLengthImpl, zrtpHello.getHeaderBase(), len
+        byte data[] = computeHmacImpl(H2, hashLengthImpl, hpv.packet.getHeaderBase(), len
                         - (2 * ZrtpPacketBase.ZRTP_WORD_SIZE));
-        zrtpHello.setHMAC(data);
+        hpv.packet.setHMAC(data);
 
         // calculate hash over the final Hello packet including the computed and
         // stored HMAC, refer to chap 9.1 how to use this hash in SIP/SDP.
@@ -2528,8 +2597,8 @@ public class ZRtp {
         // this array includes the CRC which is not part of the helloHash.
         // Thus compute digest only for the real message length.
         // Use implicit hash algo
-        hashFunctionImpl.update(zrtpHello.getHeaderBase(), 0, len);
-        hashFunctionImpl.doFinal(helloHash, 0);
+        hashFunctionImpl.update(hpv.packet.getHeaderBase(), 0, len);
+        hashFunctionImpl.doFinal(hpv.helloHash, 0);
     }
 
     /**
@@ -2796,30 +2865,29 @@ public class ZRtp {
         /*
          * Select the real secrets into setD
          */
-        int matchingSecrets = 0;
         if (ZrtpUtils.byteArrayCompare(rs1IDr, dhPart.getRs1Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs1();
+            setD[0] = zidRec.getRs1();
             rsFound = 0x1;
         }
         else if (ZrtpUtils.byteArrayCompare(rs1IDr, dhPart.getRs2Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs1();
+            setD[0] = zidRec.getRs1();
             rsFound = 0x2;
         }
         else if (ZrtpUtils.byteArrayCompare(rs2IDr, dhPart.getRs1Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs2();
+            setD[0] = zidRec.getRs2();
             rsFound = 0x4;
         }
         else if (ZrtpUtils.byteArrayCompare(rs2IDr, dhPart.getRs2Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs2();
+            setD[0] = zidRec.getRs2();
             rsFound = 0x8;
         }
 
         /***********************************************************************
          * Not yet supported: if (ZrtpUtils.byteArrayCompare(auxSecretIDr,
-         * dhPart.getAuxSecretId(), 8) == 0) { setD[matchingSecrets++] = ; } 
+         * dhPart.getAuxSecretId(), 8) == 0) { setD[1] = ; } 
          ********************************************************************* */
         if (ZrtpUtils.byteArrayCompare(pbxSecretIDr, dhPart.getPbxSecretId(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getMiTMData(); 
+            setD[2] = zidRec.getMiTMData(); 
         }
         // Check if some retained secrets found
         if (rsFound == 0) { // no RS matches found
@@ -2906,29 +2974,28 @@ public class ZRtp {
         /*
          * Select the real secrets into setD
          */
-        int matchingSecrets = 0;
         if (ZrtpUtils.byteArrayCompare(rs1IDi, dhPart.getRs1Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs1();
+            setD[0] = zidRec.getRs1();
             rsFound = 0x1;
         }
         else if (ZrtpUtils.byteArrayCompare(rs1IDi, dhPart.getRs2Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs1();
+            setD[0] = zidRec.getRs1();
             rsFound = 0x2;
         }
         else if (ZrtpUtils.byteArrayCompare(rs2IDi, dhPart.getRs1Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs2();
+            setD[0] = zidRec.getRs2();
             rsFound = 0x4;
         }
         else if (ZrtpUtils.byteArrayCompare(rs2IDi, dhPart.getRs2Id(), 8) == 0) {
-            setD[matchingSecrets++] = zidRec.getRs2();
+            setD[0] = zidRec.getRs2();
             rsFound = 0x8;
         }
         /***********************************************************************
          * Not yet supported if (ZrtpUtils.byteArrayCompare(auxSecretIDi,
-         * dhPart.getAuxSecretId(), 8) == 0) { setD[matchingSecrets++] = }
+         * dhPart.getAuxSecretId(), 8) == 0) { setD[1] = }
          **********************************************************************/
         if (ZrtpUtils.byteArrayCompare(pbxSecretIDi, dhPart.getPbxSecretId(), 8) == 0) { 
-            setD[matchingSecrets++] = zidRec.getMiTMData(); 
+            setD[2] = zidRec.getMiTMData(); 
         }
         // Check if some retained secrets found
         if (rsFound == 0) { // no RS matches found

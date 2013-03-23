@@ -60,13 +60,13 @@ public class TransmitterMultiZRTP {
                 System.err.println(prefix + "Tx SAS: " + sas + ", verified: " + verified);
             }
 
-            public void showMessage(ZrtpCodes.MessageSeverity sev,
-                    EnumSet<?> subCode) {
+            public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
                 Iterator<?> ii = subCode.iterator();
                 if (sev == ZrtpCodes.MessageSeverity.Info) {
                     ZrtpCodes.InfoCodes inf = (ZrtpCodes.InfoCodes)ii.next();
                     System.err.println(prefix + "Tx show message sub code: " + inf);
                     if (inf == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
+                        System.err.println(prefix + "Tx peer hello hash: " + senderFirst.zrtpEngine.getPeerHelloHash());
                         senderSecond.setMultiStreamParams(senderFirst.getMultiStreamParams());
                         multiSenderThread.start();
                     }
@@ -75,11 +75,9 @@ public class TransmitterMultiZRTP {
                 System.err.println(prefix + "Tx show message sub code: " + ii.next());
             }
 
-            public void zrtpNegotiationFailed(
-                    ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
+            public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
                 Iterator<?> ii = subCode.iterator();
-                System.err.println(prefix + "Tx negotiation failed sub code: "
-                        + ii.next());
+                System.err.println(prefix + "Tx negotiation failed sub code: " + ii.next());
             }
 
             public void secureOff() {
@@ -191,7 +189,9 @@ public class TransmitterMultiZRTP {
                         System.err.println("TX: Initialize failed, multi: "
                                 + multiStream);
                     zrtpEngine.setMultiStrParams(multiParams);
-                    System.out.println("multi - Tx Hello hash: " + zrtpEngine.getHelloHash());
+                    int versions = zrtpEngine.getNumberSupportedVersions();
+                    for (int idx = 0; idx < versions; idx++)
+                        System.out.println("multi - Tx Hello hash: " + zrtpEngine.getHelloHash(idx));
                 } else {
                     zrtpEngine.setSignSas(true);
                     zrtpEngine.setParanoidMode(true);
@@ -199,7 +199,9 @@ public class TransmitterMultiZRTP {
                     if (!zrtpEngine.initialize("test_r.zid", config))
                         System.err.println("TX: Initialize failed, multi: "
                                 + multiStream);
-                    System.out.println("Tx Hello hash: " + zrtpEngine.getHelloHash());
+                    int versions = zrtpEngine.getNumberSupportedVersions();
+                    for (int idx = 0; idx < versions; idx++)
+                        System.out.println("Tx Hello hash: " + zrtpEngine.getHelloHash(idx));
                 }
                 // initialize the RTPManager using the SRTP connector
                 rtpManager.addSendStreamListener(this);

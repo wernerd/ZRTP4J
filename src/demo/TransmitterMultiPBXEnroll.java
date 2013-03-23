@@ -150,7 +150,9 @@ public class TransmitterMultiPBXEnroll {
                     System.err.println("TX: Initialize failed, multi: "
                             + multiStream);
 
-                System.out.println("Hello hash: " + zrtpEngine.getHelloHash());
+                int versions = zrtpEngine.getNumberSupportedVersions();
+                for (int idx = 0; idx < versions; idx++)
+                    System.out.println("Hello hash: " + zrtpEngine.getHelloHash(idx));
                 
                 // IMPORTANT: set other data only _after_ initialization
                 if (multiStream) {

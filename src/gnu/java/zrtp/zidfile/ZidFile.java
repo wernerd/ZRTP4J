@@ -203,10 +203,11 @@ public class ZidFile {
      * If no matching record exists in the ZID file the method creates it and
      * fills it with default values.
      * 
-     * @param zidRecord
-     *            The ZID record that contains the identifier data. The method
-     *            fills in data .
-     * @return Currently always 1 to indicate sucess
+     * @param zid
+     *            contains the identifier data. The method
+     *            returns the record.
+     * @return The existing or created ZID record or null in case of I/O
+     *         problems.
      */
     public synchronized ZidRecord getRecord(byte[] zid) {
         long pos = 0L;

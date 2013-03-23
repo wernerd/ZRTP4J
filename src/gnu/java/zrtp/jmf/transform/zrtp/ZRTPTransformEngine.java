@@ -769,9 +769,9 @@ public class ZRTPTransformEngine
         clientIdString = id;
     }
 
-    public String getHelloHash() {
+    public String getHelloHash(int index) {
         if (zrtpEngine != null)
-            return zrtpEngine.getHelloHash();
+            return zrtpEngine.getHelloHash(index);
         else
             return new String();
     }
@@ -941,8 +941,7 @@ public class ZRTPTransformEngine
     }
 
     public boolean setSignatureData(byte[] data) {
-        return ((zrtpEngine != null) ? zrtpEngine.setSignatureData(data)
-                : false);
+        return ((zrtpEngine != null) ? zrtpEngine.setSignatureData(data) : false);
     }
 
     public byte[] getSignatureData() {
@@ -999,5 +998,22 @@ public class ZRTPTransformEngine
      */
     public byte[] getPeerZid() {
         return ((zrtpEngine != null) ? zrtpEngine.getPeerZid() : null);
+    }
+    /**
+     * Get number of supported ZRTP protocol versions.
+     *
+     * @return the number of supported ZRTP protocol versions.
+     */
+    public int getNumberSupportedVersions() {
+        return ((zrtpEngine != null) ? zrtpEngine.getNumberSupportedVersions(): 0);
+    }
+
+    /**
+     * Get negotiated ZRTP protocol version.
+     *
+     * @return the integer representation of the negotiated ZRTP protocol version.
+     */
+    public int getCurrentProtocolVersion() {
+        return ((zrtpEngine != null) ? zrtpEngine.getCurrentProtocolVersion() : 0);
     }
 }

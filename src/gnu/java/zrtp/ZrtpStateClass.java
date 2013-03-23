@@ -20,6 +20,7 @@
 package gnu.java.zrtp;
 
 
+import gnu.java.zrtp.ZRtp.HelloPacketVersion;
 import gnu.java.zrtp.packets.ZrtpPacketBase;
 import gnu.java.zrtp.packets.ZrtpPacketCommit;
 import gnu.java.zrtp.packets.ZrtpPacketConf2Ack;
@@ -96,6 +97,11 @@ public class ZrtpStateClass {
      * Offset to the first message type byte in ZRTP packet 
      */
     private static final int MESSAGE_OFFSET = 4; 
+
+    /**
+     * Hello packet version sent to other partner
+     */
+    private int sentVersion;
 
     //  The ZRTP states
     public enum ZrtpStates {
@@ -358,6 +364,7 @@ public class ZrtpStateClass {
 
         if (event.type == EventDataType.ZrtpInitial) {
             ZrtpPacketHello hello = parent.prepareHello();
+            sentVersion = hello.getVersionInt();
 
             // remember packet for easy resend in case timer triggers
             sentPacket = hello;
@@ -459,7 +466,59 @@ public class ZrtpStateClass {
              * - Don't clear sentPacket, points to Hello
              */
             if (first == 'h' && last == ' ') {
+                // Use peer's Hello packet to create my commit packet, store it
+                // for possible later usage in state AckSent
+                ZrtpPacketHello hpkt = new ZrtpPacketHello(pkt);
                 cancelTimer();
+
+                /*
+                 * Check and negotiate the ZRTP protocol version first.
+                 *
+                 * This selection mechanism relies on the fact that we sent the highest supported protocol version in
+                 * the initial Hello packet with as stated in RFC6189, section 4.1.1
+                 */
+                int recvVersion = hpkt.getVersionInt();
+                if (recvVersion > sentVersion) {   // We don't support this version, stay in state with timer active
+                    if (startTimer(t1) <= 0) {
+                        timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);      // returns to state Initial
+                    }
+                    return;
+                }
+
+                /*
+                 * The versions don't match. Start negotiating versions. This negotiation stays in the Detect state.
+                 * Only if the received version matches our own sent version we start to send a HelloAck.
+                 */
+                if (recvVersion != sentVersion) {
+                    HelloPacketVersion hpv[] = parent.helloPackets;
+
+                    int index;
+                    for (index = 0; index < ZRtp.MAX_ZRTP_VERSIONS && hpv[index].packet != parent.currentHelloPacket; index++)   // Find current sent Hello
+                        ;
+
+                    for(; index >= 0 && hpv[index].version > recvVersion; index--)   // find a supported version less-equal to received version
+                        ;
+
+                    if (index < 0) {
+                        sendErrorPacket(ZrtpCodes.ZrtpErrorCodes.UnsuppZRTPVersion);
+                        return;
+                    }
+                    parent.currentHelloPacket = hpv[index].packet;
+                    sentVersion = parent.currentHelloPacket.getVersionInt();
+
+                    // remember packet for easy resend in case timer triggers
+                    sentPacket = parent.currentHelloPacket;
+
+                    if (!parent.sendPacketZRTP(sentPacket)) {
+                        sendFailed();                 // returns to state Initial
+                        return;
+                    }
+                    if (startTimer(t1) <= 0) {
+                        timerFailed(ZrtpCodes.SevereCodes.SevereNoTimer);      // returns to state Initial
+                        return;
+                    }
+                    return;
+                }                
                 ZrtpPacketHelloAck helloAck = parent.prepareHelloAck();
 
                 if (!parent.sendPacketZRTP(helloAck)) {
@@ -468,9 +527,6 @@ public class ZrtpStateClass {
                             EnumSet.of(ZrtpCodes.SevereCodes.SevereCannotSend));
                     return;
                 }
-                // Use peer's Hello packet to create my commit packet, store it
-                // for possible later usage in state AckSent
-                ZrtpPacketHello hpkt = new ZrtpPacketHello(pkt);
                 commitPkt = parent.prepareCommit(hpkt, errorCode);
 
                 inState = ZrtpStates.AckSent;
@@ -1517,6 +1573,9 @@ public class ZrtpStateClass {
                 }
             }
             */
+            break;
+
+        case Timer: 
             break;
 
         default: // unknown Event type for this state (covers Error and ZrtpClose)

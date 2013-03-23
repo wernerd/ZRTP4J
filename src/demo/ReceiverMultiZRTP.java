@@ -171,7 +171,9 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             if (!zrtpEngine.initialize("test_t.zid", config))
                 System.out.println("iniatlize failed");
 
-            System.out.println("Rx Hello hash: " + zrtpEngine.getHelloHash());
+            int versions = zrtpEngine.getNumberSupportedVersions();
+            for (int idx = 0; idx < versions; idx++)
+                System.out.println("Rx Hello hash: " + zrtpEngine.getHelloHash(idx));
             zrtpEngine.setOwnSSRC(1);
             // initialize the RTPManager using the ZRTP connector
 
@@ -219,7 +221,10 @@ public class ReceiverMultiZRTP implements ReceiveStreamListener, SessionListener
             
             byte[] multiParams = zrtpEngine.getMultiStrParams();
             zrtpEngineMulti.setMultiStrParams(multiParams);
-            System.out.println("multi - Rx Hello hash: " + zrtpEngineMulti.getHelloHash());
+
+            int versions = zrtpEngine.getNumberSupportedVersions();
+            for (int idx = 0; idx < versions; idx++)
+                System.out.println("multi - Rx Hello hash: " + zrtpEngineMulti.getHelloHash(idx));
             zrtpEngineMulti.setOwnSSRC(2);
 
             // initialize the RTPManager using the ZRTP connector
