@@ -111,8 +111,7 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
 
     public ZrtpConstants.SupportedSASTypes getSas() {
 
-        for (ZrtpConstants.SupportedSASTypes sh : ZrtpConstants.SupportedSASTypes
-                .values()) {
+        for (ZrtpConstants.SupportedSASTypes sh : ZrtpConstants.SupportedSASTypes.values()) {
             byte[] s = sh.name;
             if (s[0] == packetBuffer[SAS_OFFSET] && s[1] == packetBuffer[SAS_OFFSET + 1]
                     && s[2] == packetBuffer[SAS_OFFSET + 2]

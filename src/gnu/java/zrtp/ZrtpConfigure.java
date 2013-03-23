@@ -132,6 +132,7 @@ public class ZrtpConfigure {
         publicKeyAlgos.addAlgo(ZrtpConstants.SupportedPubKeys.MULT);
 
         sasTypes.addAlgo(ZrtpConstants.SupportedSASTypes.B32);
+        sasTypes.addAlgo(ZrtpConstants.SupportedSASTypes.B256);
 
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.SK32);
         authLengths.addAlgo(ZrtpConstants.SupportedAuthLengths.SK64);

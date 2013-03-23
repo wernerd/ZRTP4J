@@ -2,6 +2,7 @@
 package demo;
 
 import gnu.java.zrtp.ZrtpCodes;
+import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.ZrtpUserCallback;
 import gnu.java.zrtp.ZrtpConfigure;
 import gnu.java.zrtp.jmf.transform.TransformManager;
@@ -179,6 +180,7 @@ public class TransmitterMultiZRTP {
                 config.setStandardConfig();
 //                config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
 //                config.setMandatoryOnly();
+//                config.addSasTypeAlgo(ZrtpConstants.SupportedSASTypes.B256);
                 // IMPORTANT: crypto provider must be set before initialization
                 // IMPORTANT: set other data only _after_ initialization
                 if (multiStream) {

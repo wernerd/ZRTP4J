@@ -2315,8 +2315,10 @@ public class ZRtp {
         // If this is the case then don't render and don't show the new SAS - use
         // the computed SAS hash but we may use a different SAS rendering algorithm to
         // render the computed SAS.
+        String mitm = "/SASviaMitM";
         if (sasHashNull || !peerIsEnrolled) {
             newSasHash = sasHash;
+            mitm = "/MitM";
         }
         // If other SAS schemes required - check here and use others
         if (render == ZrtpConstants.SupportedSASTypes.B32) {
@@ -2327,7 +2329,10 @@ public class ZRtp {
             sasBytes[3] = 0;
             SAS = Base32.binary2ascii(sasBytes, 20);
         }
-        callback.srtpSecretsOn(cipher.readable + "/" + pubKey + "/MitM", SAS, false);
+        else {
+            SAS = ZrtpConstants.sas256WordsEven[newSasHash[0]] + ":" + ZrtpConstants.sas256WordsOdd[newSasHash[1]];
+        }
+        callback.srtpSecretsOn(cipher.readable + "/" + pubKey + mitm, SAS, false);
         return zrtpRelayAck;
     }
 
@@ -2827,12 +2832,18 @@ public class ZRtp {
             // sasHash) are used to create the character SAS string of type SAS
             // base 32 (5 bits per character).
             // If other SAS schemes required - check here and use others
-            byte[] sasBytes = new byte[4];
-            sasBytes[0] = sasHash[0];
-            sasBytes[1] = sasHash[1];
-            sasBytes[2] = (byte) (sasHash[2] & 0xf0);
-            sasBytes[3] = 0;
-            SAS = Base32.binary2ascii(sasBytes, 20);
+            if (sasType == ZrtpConstants.SupportedSASTypes.B32) {
+                byte[] sasBytes = new byte[4];
+                sasBytes[0] = sasHash[0];
+                sasBytes[1] = sasHash[1];
+                sasBytes[2] = (byte) (sasHash[2] & 0xf0);
+                sasBytes[3] = 0;
+                SAS = Base32.binary2ascii(sasBytes, 20);
+            }
+            else {
+                SAS = ZrtpConstants.sas256WordsEven[sasHash[0]&0xff] + ":" 
+                                + ZrtpConstants.sas256WordsOdd[sasHash[1]&0xff]; 
+            }
             if (signSasSeen)
                 callback.signSAS(sasHash);
         }
