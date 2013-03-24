@@ -21,6 +21,7 @@ package gnu.java.zrtp.packets;
 
 import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.ZrtpConfigure;
+import gnu.java.zrtp.ZrtpConstants.SupportedPubKeys;
 import gnu.java.zrtp.utils.ZrtpUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -303,11 +304,11 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         
         int numAlgosOffered = nHash;
         ArrayList<ZrtpConstants.SupportedHashes> algosOffered = 
-            new ArrayList<ZrtpConstants.SupportedHashes>(numAlgosOffered+1);
+                        new ArrayList<ZrtpConstants.SupportedHashes>(numAlgosOffered+1);
 
         int numAlgosConf = config.getNumConfiguredHashes();
         ArrayList<ZrtpConstants.SupportedHashes> algosConf = 
-            new ArrayList<ZrtpConstants.SupportedHashes>(numAlgosConf+1);
+                        new ArrayList<ZrtpConstants.SupportedHashes>(numAlgosConf+1);
 
         // Build a list of configured hashes, appending a mandatory algo if 
         // necessary
@@ -339,7 +340,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
                 }
             }
         }
-       if (!mandatoryFound) {
+        if (!mandatoryFound) {
             algosOffered.add(ZrtpConstants.SupportedHashes.S256);
         }
         for (ZrtpConstants.SupportedHashes sho: algosOffered) {
@@ -410,64 +411,142 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return ZrtpConstants.SupportedSymCiphers.AES1;
     }
     
+    private ZrtpConstants.SupportedHashes selectedHash;
+    private ZrtpConstants.SupportedSymCiphers selectedCipher;
+
+    public ZrtpConstants.SupportedHashes getSelectedHash() {
+        return selectedHash;
+    }
+
+    public ZrtpConstants.SupportedSymCiphers getSelectedCipher() {
+        return selectedCipher;
+    }
+    
     public final ZrtpConstants.SupportedPubKeys findBestPubkey(ZrtpConfigure config) {
-        if (nPubkey == 0)
+        if (nPubkey == 0) {
+            selectedHash = ZrtpConstants.SupportedHashes.S256;
             return ZrtpConstants.SupportedPubKeys.DH3K;
-        
-        boolean mandatoryFound = false;
-        
-        int numAlgosOffered = nPubkey;
-        ArrayList<ZrtpConstants.SupportedPubKeys> algosOffered = 
-            new ArrayList<ZrtpConstants.SupportedPubKeys>(numAlgosOffered+1);
+        }
+
+        // Build list of own pubkey algorithm names, must follow the order
+        // defined in RFC 6189, chapter 4.1.2.
+        final ZrtpConstants.SupportedPubKeys orderedAlgos[] = {
+            ZrtpConstants.SupportedPubKeys.DH2K, 
+            ZrtpConstants.SupportedPubKeys.EC25, 
+            ZrtpConstants.SupportedPubKeys.DH3K,
+            ZrtpConstants.SupportedPubKeys.EC38 };
 
         int numAlgosConf = config.getNumConfiguredPubKeys();
-        ArrayList<ZrtpConstants.SupportedPubKeys> algosConf = 
-            new ArrayList<ZrtpConstants.SupportedPubKeys>(numAlgosConf+1);
+        ArrayList<ZrtpConstants.SupportedPubKeys> algosPeerIntersect = 
+                        new ArrayList<ZrtpConstants.SupportedPubKeys>(numAlgosConf+1);
 
-        // Build a list of configured hashes, appending a mandatory algo if 
-        // necessary
+        ArrayList<ZrtpConstants.SupportedPubKeys> algosOwnIntersect = 
+                        new ArrayList<ZrtpConstants.SupportedPubKeys>(numAlgosConf+1);
+
+        // Build our own intersection list ordered according to our sequence
+        // The list must include real public key algorithms only, so skip
+        // mult-stream mode, preshared and alike.
         for (ZrtpConstants.SupportedPubKeys sh: config.publicKeyAlgos()) {
             if (sh == ZrtpConstants.SupportedPubKeys.MULT) {
                 continue;
             }
-            if (sh == ZrtpConstants.SupportedPubKeys.DH3K) {
-                mandatoryFound = true;
+            byte[] s = sh.name;
+            for (int i = 0; i < nPubkey; i++) {
+                int o = oPubkey + (i * ZRTP_WORD_SIZE);
+                if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o + 1] && s[2] == packetBuffer[o + 2] &&
+                                s[3] == packetBuffer[o + 3]) {
+                    algosOwnIntersect.add(sh);
+                }
             }
-            algosConf.add(sh);
-        }
-        if (!mandatoryFound) {
-            algosConf.add(ZrtpConstants.SupportedPubKeys.DH3K);
         }
 
-        // Build a list of offered hashes, appending a mandatory algo if 
-        // necessary
-        mandatoryFound = false;
-        for (int ii = 0; ii < nPubkey; ii++) {
-            int o = oPubkey + (ii * ZRTP_WORD_SIZE);
-            for (ZrtpConstants.SupportedPubKeys sh : ZrtpConstants.SupportedPubKeys
-                    .values()) {
+        // Build list of intersectiong algos in peer's order. As input use own intersection list, just
+        // order the algorithms as sent by peer.
+        for (int i = 0; i < nPubkey; i++) {
+            int o = oPubkey + (i * ZRTP_WORD_SIZE);
+            for (ZrtpConstants.SupportedPubKeys sh : algosOwnIntersect) {
                 byte[] s = sh.name;
-                if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o + 1]
-                        && s[2] == packetBuffer[o + 2]
-                        && s[3] == packetBuffer[o + 3]) {
-                    algosOffered.add(sh);
-                    if (sh == ZrtpConstants.SupportedPubKeys.DH3K) {
-                        mandatoryFound = true;
-                    }
+                if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o + 1] && s[2] == packetBuffer[o + 2] &&
+                                s[3] == packetBuffer[o + 3]) {
+                    algosPeerIntersect.add(sh);
+                    break;
                 }
             }
         }
-        if (!mandatoryFound) {
-            algosOffered.add(ZrtpConstants.SupportedPubKeys.DH3K);
+        if (algosPeerIntersect.size() == 0) {   // If we don't find a common algorithm use the mandatory algorithms
+            selectedHash = ZrtpConstants.SupportedHashes.S256;
+            return ZrtpConstants.SupportedPubKeys.DH3K;
         }
-        for (ZrtpConstants.SupportedPubKeys sho: algosOffered) {
-            for (ZrtpConstants.SupportedPubKeys shc: algosConf) {
-                if(sho == shc) {
-                    return shc;
-                }
+        
+        ZrtpConstants.SupportedPubKeys useAlgo;
+        if (algosPeerIntersect.size() > 1 && algosPeerIntersect.get(0) != algosOwnIntersect.get(0)) {
+            
+            // Get own and peer's algorithm which are first on the repective lists
+            ZrtpConstants.SupportedPubKeys ownTopAlgo = algosOwnIntersect.get(0);
+            ZrtpConstants.SupportedPubKeys peerTopAlgo = algosPeerIntersect.get(0);
+
+            int own = 0, peer = 0;
+            
+            // Now check which algorithm is first on the list of ordered algorithms, lookup own first
+            for (ZrtpConstants.SupportedPubKeys sh : orderedAlgos) {
+                if (sh == ownTopAlgo)
+                    break;
+                own++;
             }
-        }        
-        return ZrtpConstants.SupportedPubKeys.DH3K;
+            for (ZrtpConstants.SupportedPubKeys sh : orderedAlgos) {
+                if (sh == peerTopAlgo)
+                    break;
+                peer++;
+            }
+            if (own < peer)             // our algorithm is faster
+                useAlgo = algosOwnIntersect.get(0);
+            else
+                useAlgo = algosPeerIntersect.get(0);
+        }
+        else {
+            useAlgo = algosPeerIntersect.get(0);
+        }
+        
+        // select a corresponding strong hash if necessary.
+        if (useAlgo == ZrtpConstants.SupportedPubKeys.EC38) {
+            selectedHash = getStrongHashOffered();
+            selectedCipher = getStrongCipherOffered();
+        }
+        else {
+            selectedHash = findBestHash(config);
+        }
+        return useAlgo;        
+    }
+
+    private final ZrtpConstants.SupportedHashes getStrongHashOffered() {
+        byte[] s = ZrtpConstants.SupportedHashes.S384.name;
+        for (int i = 0; i < nHash; i++) {
+            int o = oHash + (i * ZRTP_WORD_SIZE);
+            if (s[0] == packetBuffer[o] && s[1] == packetBuffer[o + 1] && s[2] == packetBuffer[o + 2] &&
+                            s[3] == packetBuffer[o + 3]) {
+                return ZrtpConstants.SupportedHashes.S384;                    
+            }
+        }
+        return null;
+    }
+
+    private final ZrtpConstants.SupportedSymCiphers getStrongCipherOffered() {
+
+        byte[] aes3 = ZrtpConstants.SupportedSymCiphers.AES3.name;
+        byte[] two3 = ZrtpConstants.SupportedSymCiphers.TWO3.name;
+
+        for (int i = 0; i < nCipher; i++) {
+            int o = oCipher + (i * ZRTP_WORD_SIZE);
+            if (aes3[0] == packetBuffer[o] && aes3[1] == packetBuffer[o + 1] && aes3[2] == packetBuffer[o + 2] &&
+                            aes3[3] == packetBuffer[o + 3]) {
+                return ZrtpConstants.SupportedSymCiphers.AES3;
+            }
+            if (two3[0] == packetBuffer[o] && two3[1] == packetBuffer[o + 1] && two3[2] == packetBuffer[o + 2] &&
+                            two3[3] == packetBuffer[o + 3]) {
+                return ZrtpConstants.SupportedSymCiphers.TWO3;
+            }
+        }
+        return null;
     }
 
     public final ZrtpConstants.SupportedSASTypes findBestSASType(ZrtpConfigure config) {

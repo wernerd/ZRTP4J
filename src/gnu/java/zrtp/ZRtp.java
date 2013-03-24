@@ -100,8 +100,8 @@ public class ZRtp {
     // max. number of parallel supported ZRTP protocol versions.
     static final int MAX_ZRTP_VERSIONS = 2;
 
-    // Integer representation of highest supported ZRTP protocol version
-    static final int HIGHEST_ZRTP_VERION = 12;
+    // max. number of parallel supported ZRTP protocol versions.
+    static final int SUPPORTED_ZRTP_VERSIONS = 1;
 
     /**
      * Faster access to Hello packets with different versions.
@@ -514,7 +514,7 @@ public class ZRtp {
         helloPackets[1].version = zrtpHello_12.getVersionInt();
         setClientId(id, helloPackets[1]);      // set id, compute HMAC and final helloHash
      
-        currentHelloPacket = helloPackets[MAX_ZRTP_VERSIONS-1].packet;  // start with highest available version
+        currentHelloPacket = helloPackets[SUPPORTED_ZRTP_VERSIONS-1].packet;  // start with supported available version
 
         stateEngine = new ZrtpStateClass(this);
     }
@@ -1167,7 +1167,6 @@ public class ZRtp {
      * @return A pointer to the prepared Commit packet
      */
     protected ZrtpPacketCommit prepareCommit(ZrtpPacketHello hello, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
-        sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoHelloReceived));
 
         // Save our peer's ZRTP id
         peerZid = hello.getZid();
@@ -1178,6 +1177,19 @@ public class ZRtp {
         }
         System.arraycopy(hello.getH3(), 0, peerH3, 0, ZrtpPacketBase.HASH_IMAGE_SIZE);
 
+        // calculate hash over the received Hello packet, it's the peer's hello hash.
+        //
+        // getHeaderBase() returns the full packetBuffer array. The length of
+        // this array includes the CRC which is not part of the helloHash.
+        // Thus compute digest only for the real message length.
+        // Use implicit hash algo
+        int helloLen = hello.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
+        hashFunctionImpl.update(hello.getHeaderBase(), 0, helloLen);
+        hashFunctionImpl.doFinal(peerHelloHash, 0);
+        peerHelloVersion = hello.getVersion();
+
+        sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoHelloReceived));
+
         /*
          * The Following section extracts the algorithm from the Hello packet. Always the best possible (offered)
          * algorithms are used. If the received Hello does not contain algo specifiers or offers only unsupported
@@ -1187,14 +1199,16 @@ public class ZRtp {
         sasType = hello.findBestSASType(configureAlgos);
 
         if (!multiStream) {
-            hash = hello.findBestHash(configureAlgos);
-            authLength = hello.findBestAuthLen(configureAlgos);
             pubKey = hello.findBestPubkey(configureAlgos);
-            // Force hash to S384 if public key algo is ECDH 384, according
-            // to chap 5.1.5
-            if (pubKey == ZrtpConstants.SupportedPubKeys.EC38)
-                hash = ZrtpConstants.SupportedHashes.S384;
-            cipher = hello.findBestCipher(configureAlgos, pubKey);
+            hash = hello.getSelectedHash();
+            if (hash == null) {
+                errMsg[0] = ZrtpCodes.ZrtpErrorCodes.UnsuppHashType;
+                return null;               
+            }
+            cipher = hello.getSelectedCipher();
+            if (cipher == null)
+                cipher = hello.findBestCipher(configureAlgos, pubKey);
+            authLength = hello.findBestAuthLen(configureAlgos);
             multiStreamAvailable = hello.checkMultiStream();
         }
         else {
@@ -1287,17 +1301,6 @@ public class ZRtp {
         // Commit as
         // Responder or DHPart1 as Initiator
         storeMsgTemp(hello);
-
-        // calculate hash over the received Hello packet - is peer's hello hash.
-        //
-        // getHeaderBase() returns the full packetBuffer array. The length of
-        // this array includes the CRC which is not part of the helloHash.
-        // Thus compute digest only for the real message length.
-        // Use implicit hash algo
-        int helloLen = hello.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
-        hashFunctionImpl.update(hello.getHeaderBase(), 0, helloLen);
-        hashFunctionImpl.doFinal(peerHelloHash, 0);
-        peerHelloVersion = hello.getVersion();
 
         return zrtpCommit;
     }

@@ -178,7 +178,12 @@ public class TransmitterMultiZRTP {
                 
                 ZrtpConfigure config = new ZrtpConfigure();
                 config.setStandardConfig();
+//                config.clear();
+//                config.addPubKeyAlgo(ZrtpConstants.SupportedPubKeys.DH2K);
+//                config.addPubKeyAlgo(ZrtpConstants.SupportedPubKeys.DH3K);
+//                config.addPubKeyAlgo(ZrtpConstants.SupportedPubKeys.EC25);
 //                config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
+
 //                config.setMandatoryOnly();
 //                config.addSasTypeAlgo(ZrtpConstants.SupportedSASTypes.B256);
                 // IMPORTANT: crypto provider must be set before initialization
@@ -188,8 +193,7 @@ public class TransmitterMultiZRTP {
                     mcb.setPrefix("multi - ");
                     zrtpEngine.setUserCallback(mcb);
                     if (!zrtpEngine.initialize("test_r.zid", config))
-                        System.err.println("TX: Initialize failed, multi: "
-                                + multiStream);
+                        System.err.println("TX: Initialize failed, multi: " + multiStream);
                     zrtpEngine.setMultiStrParams(multiParams);
                     int versions = zrtpEngine.getNumberSupportedVersions();
                     for (int idx = 0; idx < versions; idx++)
@@ -199,8 +203,7 @@ public class TransmitterMultiZRTP {
                     zrtpEngine.setParanoidMode(true);
                     zrtpEngine.setUserCallback(new MyCallback());
                     if (!zrtpEngine.initialize("test_r.zid", config))
-                        System.err.println("TX: Initialize failed, multi: "
-                                + multiStream);
+                        System.err.println("TX: Initialize failed, multi: " + multiStream);
                     int versions = zrtpEngine.getNumberSupportedVersions();
                     for (int idx = 0; idx < versions; idx++)
                         System.out.println("Tx Hello hash: " + zrtpEngine.getHelloHash(idx));
