@@ -1,6 +1,6 @@
 package gnu.java.zrtp.utils;
 
-import org.bouncycastle.crypto.prng.FortunaGenerator;
+import org.jitsi.bccontrib.prng.FortunaGenerator;
 import org.bouncycastle.crypto.prng.RandomGenerator;
 
 /**
