@@ -29,12 +29,12 @@ package gnu.java.zrtp.jmf.transform.srtp;
 import java.util.Arrays;
 
 import gnu.java.zrtp.jmf.transform.RawPacket;
-import gnu.java.zrtp.utils.ZrtpUtils;
 
 import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.macs.*;
 import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.crypto.params.ParametersForSkein;
+import org.jitsi.bccontrib.macs.SkeinMac;
+import org.jitsi.bccontrib.params.ParametersForSkein;
 import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.Mac;
 

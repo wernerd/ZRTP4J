@@ -1,4 +1,4 @@
-<project default="compile" basedir=".">
+<project default="compile" basedir="." name="ZRTP4J">
 
 	<target name="init">
 		<property name="distname" value="ZRTP4J"/>

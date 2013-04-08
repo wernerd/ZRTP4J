@@ -25,7 +25,7 @@ import org.bouncycastle.crypto.modes.CFBBlockCipher;
 import org.bouncycastle.crypto.engines.AESFastEngine;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 import org.bouncycastle.crypto.prng.RandomGenerator;
-import org.bouncycastle.crypto.prng.FortunaGenerator;
+import org.jitsi.bccontrib.prng.FortunaGenerator;
 
 import gnu.java.zrtp.utils.ZrtpUtils;
 
