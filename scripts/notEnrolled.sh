@@ -5,6 +5,6 @@
 # which acts as an not enrolled receiver. The SASRelay packet thus contains the SAS
 # type only, the SAS hash value is filled with zero bytes.
 #
-java -cp "../lib/jmf.jar:../lib/lcrypto-jdk16-143.jar:../classes" demo.ReceiverMultiZRTP &
+java -cp "../lib/jmf.jar:../lib/bcprov-jdk15on-148.jar:../lib/bccontrib-1.0-SNAPSHOT.jar:../classes" demo.ReceiverMultiZRTP &
 sleep 2
-java -cp "../lib/jmf.jar:../lib/lcrypto-jdk16-143.jar:../classes" demo.TransmitterMultiPBX
+java -cp "../lib/jmf.jar:../lib/bcprov-jdk15on-148.jar:../lib/bccontrib-1.0-SNAPSHOT.jar:../classes" demo.TransmitterMultiPBX

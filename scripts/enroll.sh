@@ -5,6 +5,6 @@
 # It computes the PBX secret and stores it for the partner ZID record and also sets
 # the enrollment flags in the confirm packets.
 #
-java -cp "../lib/jmf.jar:../lib/lcrypto-jdk16-143.jar:../classes" demo.ReceiverMultiPBXEnroll &
+java -cp "../lib/jmf.jar:../lib/bcprov-jdk15on-148.jar:../lib/bccontrib-1.0-SNAPSHOT.jar:../classes" demo.ReceiverMultiPBXEnroll &
 sleep 2
-java -cp "../lib/jmf.jar:../lib/lcrypto-jdk16-143.jar:../classes" demo.TransmitterMultiPBXEnroll
+java -cp "../lib/jmf.jar:../lib/bcprov-jdk15on-148.jar:../lib/bccontrib-1.0-SNAPSHOT.jar:../classes" demo.TransmitterMultiPBXEnroll

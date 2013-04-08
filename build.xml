@@ -32,7 +32,8 @@
 		<property name="zrtp4j-src-zip.name" value="${product.shortname}-src-${product.version}.zip" />
     	
 		<property name="jmf" value="jmf.jar" />
-		<property name="bc" value="lcrypto-jdk16-143.jar" />
+		<property name="bc" value="bcprov-jdk15on-148.jar" />
+        <property name="bccontrib" value="bccontrib-1.0-SNAPSHOT.jar" />
 		<property name="junit" value="junit.jar" />
 
 		<!-- set the path ids to use in the compile targets. To compile
@@ -42,6 +43,7 @@
         	<fileset dir="${dir.libs}">
         		<include name="${jmf}"/>
         		<include name="${bc}"/>
+        		<include name="${bccontrib}"/>
         		<include name="${junit}"/>
         	</fileset>
     	</path>

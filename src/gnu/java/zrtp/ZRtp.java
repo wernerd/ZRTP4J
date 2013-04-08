@@ -1079,7 +1079,7 @@ public class ZRtp {
      * @return the number of supported ZRTP protocol versions.
      */
     public int getNumberSupportedVersions() {
-        return MAX_ZRTP_VERSIONS;
+        return SUPPORTED_ZRTP_VERSIONS;
     }
 
     /**
