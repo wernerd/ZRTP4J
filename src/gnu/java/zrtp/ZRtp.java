@@ -769,7 +769,7 @@ public class ZRtp {
      * data as a string.
      * 
      * @param  index 
-     *         Hello hash of the Hello packet identfied by index. Index must be 0 <= index < MAX_ZRTP_VERSIONS.
+     *         Hello hash of the Hello packet identfied by index. Index must be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      *
      * @return a std:string containing the Hello hash value as hex-digits. The
      *         hello hash is available immediately after class instantiation.
@@ -787,7 +787,7 @@ public class ZRtp {
      * data as separate strings.
      * 
      * @param  index 
-     *         Hello hash of the Hello packet identfied by index. Index must be 0 <= index < MAX_ZRTP_VERSIONS.
+     *         Hello hash of the Hello packet identfied by index. Index must be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      *
      * @return String array containing the version string at offset 0, the Hello
      *         hash value as hex-digits at offset 1. Hello hash is available
