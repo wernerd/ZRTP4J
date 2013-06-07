@@ -119,6 +119,10 @@ public class ZRtp {
     private final ZrtpStateClass stateEngine;
 
     /**
+     * ZRTP cache entry that holds RS data for a specific ZID.
+     */
+    ZidRecord zidRec;
+    /**
      * This is my ZID that I send to the peer.
      */
     private final byte[] zid = new byte[ZidRecord.IDENTIFIER_LENGTH];
@@ -744,24 +748,25 @@ public class ZRtp {
         if (paranoidMode)
             return;
 
-        // get peer's ZID record and set SAS verified flag
-        ZidFile zidf = ZidFile.getInstance();
-        ZidRecord zidRec = zidf.getRecord(peerZid);
         zidRec.setSasVerified();
-        zidf.saveRecord(zidRec);
+        ZidFile.getInstance().saveRecord(zidRec);
     }
 
     /**
      * Reset the SAS verfied flag for the current active user's retained secrets.
      */
     public void resetSASVerified() {
-        // get peer's ZID record and reset SAS verified flag
-        ZidFile zidf = ZidFile.getInstance();
-        ZidRecord zidRec = zidf.getRecord(peerZid);
         zidRec.resetSasVerified();
-        zidf.saveRecord(zidRec);
+        ZidFile.getInstance().saveRecord(zidRec);
     }
 
+
+    public void setRs2Valid() {
+        if (zidRec != null) {
+            zidRec.setRs2Valid();
+            ZidFile.getInstance().saveRecord(zidRec);
+        }
+    }
     /**
      * Get the ZRTP Hello Hash data.
      * 
@@ -959,10 +964,6 @@ public class ZRtp {
             callback.zrtpInformEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentCanceled);
             return;
         }
-        // Get peer's zid record to store the pbx (MitM) secret
-        ZidFile zidf = ZidFile.getInstance();
-        ZidRecord zidRec = zidf.getRecord(peerZid);
-
         if (pbxSecretTmp != null) {
             zidRec.setMiTMData(pbxSecretTmp);
             callback.zrtpInformEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentOk);
@@ -971,7 +972,7 @@ public class ZRtp {
             callback.zrtpInformEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentFailed);
             return;
         }
-        zidf.saveRecord(zidRec);
+        ZidFile.getInstance().saveRecord(zidRec);
     }
 
     /**
@@ -1236,11 +1237,10 @@ public class ZRtp {
          * packet later in prepareDHPart2(). To create this DH packet we have to compute the retained secret ids first.
          * Thus get our peer's retained secret data first.
          */
-        ZidFile zidFile = ZidFile.getInstance();
-        ZidRecord zidRec = zidFile.getRecord(peerZid);
+        zidRec = ZidFile.getInstance().getRecord(peerZid);
 
         // Compute the Initator's and Responder's retained secret ids.
-        computeSharedSecretSet(zidRec);
+        computeSharedSecretSet();
 
         // Check if a PBX application set the MitM flag.
         if (hello.isMitmMode()) {
@@ -1441,12 +1441,7 @@ public class ZRtp {
         if (newHash != hash) {
             hash = newHash;
             setNegotiatedHash(hash);
-
-            ZidFile zidFile = ZidFile.getInstance();
-            ZidRecord zidRec = zidFile.getRecord(peerZid);
-
-            // Re-compute the Initator's and Responder's retained secret ids.
-            computeSharedSecretSet(zidRec);
+            computeSharedSecretSet(); // Re-compute the Initator's and Responder's RS.
         }
 
         // check if we support the commited pub key type (check here for
@@ -1619,15 +1614,9 @@ public class ZRtp {
         hashCtxFunction.doFinal(messageHash, 0);
         hashCtxFunction = null;
 
-        // To compute the S0 for the Initiator we need the retained secrets of
-        // our peer. Get them from the storage.
-        ZidFile zidf = ZidFile.getInstance();
-        ZidRecord zidRec = zidf.getRecord(peerZid);
-
         // Now compute the S0, all dependend keys and the new RS1. The functions 
         // also performs sign SAS callback if it's active.
-        generateKeysInitiator(dhPart1, zidRec);
-        zidf.saveRecord(zidRec);
+        generateKeysInitiator(dhPart1);
 
         // store DHPart1 data temporarily until we can check HMAC after
         // receiving Confirm1
@@ -1729,18 +1718,12 @@ public class ZRtp {
         hashCtxFunction.doFinal(messageHash, 0);
         hashCtxFunction = null;
 
-        // To compute the S0 for the Initiator we need the retained secrets of
-        // our peer. Get them from the storage.
-        ZidFile zidf = ZidFile.getInstance();
-        ZidRecord zidRec = zidf.getRecord(peerZid);
-
         /*
          * The expected shared secret Ids were already computed when we built the DHPart1 packet. Generate s0, all
          * depended keys, and the new RS1 value for the ZID record. The functions also performs sign SAS callback if
          * it's active.
          */
-        generateKeysResponder(dhPart2, zidRec);
-        zidf.saveRecord(zidRec);
+        generateKeysResponder(dhPart2);
 
         // Fill in Confirm1 packet.
         zrtpConfirm1.setMessageType(ZrtpConstants.Confirm1Msg);
@@ -1760,7 +1743,7 @@ public class ZRtp {
         if (enrollmentMode) {
             computePBXSecret();
             zrtpConfirm1.setPBXEnrollment();
-            writeEnrollmentPBX();
+            zidRec.setMiTMData(pbxSecretTmp);
         }
 
         // Encrypt and HMAC with Responder's key - we are Respondere here
@@ -1947,10 +1930,6 @@ public class ZRtp {
         // Did our peer verified the SAS during last session? Get its SAS verified flag.
         boolean sasFlag = confirm1.isSASFlag();
 
-        // Get peer's retained secrets record and stored flags
-        ZidFile zidf = ZidFile.getInstance();
-        ZidRecord zidRec = zidf.getRecord(peerZid);
-
         // Our peer did not confirm the SAS in last session, thus reset our stored SAS 
         // flag too. Reset the flag also if paranoidMode is true.
         if (!sasFlag || paranoidMode) {
@@ -1965,7 +1944,6 @@ public class ZRtp {
         // now we are ready to save the new RS1 which inherits the verified
         // flag from old RS1
         zidRec.setNewRs1(newRs1, -1);
-        zidf.saveRecord(zidRec);
 
         // now generate my Confirm2 message
         zrtpConfirm2.setMessageType(ZrtpConstants.Confirm2Msg);
@@ -1987,9 +1965,11 @@ public class ZRtp {
             // its MitM key.
             if (enrollmentMode) {
                 zrtpConfirm2.setPBXEnrollment();
-                writeEnrollmentPBX();
+                zidRec.setMiTMData(pbxSecretTmp);
             }
         }
+        ZidFile.getInstance().saveRecord(zidRec);
+
         // Encrypt and HMAC with Initiator's key - we are Initiator here
         dataToSecure = zrtpConfirm2.getDataToSecure();
 
@@ -2017,19 +1997,6 @@ public class ZRtp {
             callback.zrtpAskEnrollment(ZrtpCodes.InfoEnrollment.EnrollmentRequest);
         }
         return zrtpConfirm2;
-    }
-
-    /**
-     * Save the computed MitM secret to the ZID record of the peer
-     */
-    private void writeEnrollmentPBX() {
-        ZidFile zidf = ZidFile.getInstance();
-        ZidRecord zidRec = zidf.getRecord(peerZid);
-
-        if (pbxSecretTmp != null) {
-            zidRec.setMiTMData(pbxSecretTmp);
-        }
-        zidf.saveRecord(zidRec);
     }
 
     /*
@@ -2177,10 +2144,6 @@ public class ZRtp {
             // Did our peer verify the SAS during last session? Get its SAS verified flag.
             boolean sasFlag = confirm2.isSASFlag();
 
-            // Get peer's retained secrets record and stored flags
-            ZidFile zidf = ZidFile.getInstance();
-            ZidRecord zidRec = zidf.getRecord(peerZid);
-
             // Our peer did not confirm the SAS in last session, thus reset our stored SAS 
             // flag too. Reset the flag also if paranoidMode is true.
             if (!sasFlag || paranoidMode) {
@@ -2193,7 +2156,7 @@ public class ZRtp {
 
             // save new RS1, this inherits the verified flag from old RS1
             zidRec.setNewRs1(newRs1, -1);
-            zidf.saveRecord(zidRec);
+            ZidFile.getInstance().saveRecord(zidRec);
 
             // Ask for enrollment only if enabled via configuration and the
             // confirm packet contains the enrollment flag. The enrolling user
@@ -2686,7 +2649,7 @@ public class ZRtp {
         hashFunction.doFinal(hvi, 0);
     }
 
-    private void computeSharedSecretSet(ZidRecord zidRec) {
+    private void computeSharedSecretSet() {
         /*
          * Compute the Initiator's and Reponder's retained shared secret Ids.
          */
@@ -2870,7 +2833,7 @@ public class ZRtp {
                         ZrtpConstants.SHA256_DIGEST_LENGTH * 8);
     }
     
-    private void generateKeysInitiator(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
+    private void generateKeysInitiator(ZrtpPacketDHPart dhPart) {
         byte[][] setD = new byte[3][];
         int rsFound = 0;
 
@@ -2979,7 +2942,7 @@ public class ZRtp {
         Arrays.fill(s0, (byte) 0);
     }
 
-    private void generateKeysResponder(ZrtpPacketDHPart dhPart, ZidRecord zidRec) {
+    private void generateKeysResponder(ZrtpPacketDHPart dhPart) {
         byte[][] setD = new byte[3][];
         int rsFound = 0;
 

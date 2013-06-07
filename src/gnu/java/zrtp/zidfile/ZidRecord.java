@@ -262,26 +262,23 @@ public class ZidRecord {
         long validThru = 0;
         if (expire == -1) {
             validThru = -1;
-        } else if (expire <= 0) {
+        }
+        else if (expire <= 0) {
             validThru = 0;
-        } else {
+        }
+        else {
             validThru = (System.currentTimeMillis() / 1000) + expire;
         }
         
         if (validThru != 0) {
             // shift old RS1 data into RS2 position
-            System.arraycopy(buffer, RS1DATA_OFFSET, buffer, RS2DATA_OFFSET,
-                    RS_LENGTH);
-            System.arraycopy(buffer, RS1INTERVAL_OFFSET, buffer,
-                    RS2INTERVAL_OFFSET, TIME_LENGTH);
+            System.arraycopy(buffer, RS1DATA_OFFSET, buffer, RS2DATA_OFFSET, RS_LENGTH);
+            System.arraycopy(buffer, RS1INTERVAL_OFFSET, buffer, RS2INTERVAL_OFFSET, TIME_LENGTH);
 
-            // now propagate flags as well
-            if (isRs1Valid()) {
-                setRs2Valid();
-            }
             // set new RS1 data
             System.arraycopy(data, 0, buffer, RS1DATA_OFFSET, RS_LENGTH);
             setRs1Valid();
+            resetRs2Valid();
         }
         /*
          * The the bytes in host order (file is invalid for systems using other
