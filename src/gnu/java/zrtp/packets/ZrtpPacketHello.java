@@ -78,6 +78,8 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     private int helloLength = 
             (ZRTP_HEADER_LENGTH + ZRTP_HELLO_FIX_LENGTH) * ZRTP_WORD_SIZE + CRC_SIZE;
 
+    private int computedLength;
+    
     public ZrtpPacketHello() {
         super(null);                        // will set packet buffer explicitly
     }
@@ -152,15 +154,15 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         
         helloFlags = packetBuffer[FLAG_LENGTH_OFFSET];  // check for passive flag (0x10)
 
-        int temp = packetBuffer[FLAG_LENGTH_OFFSET+1];  // contains hash counter on low 4 bits
-        nHash = temp & 0xf;
+        int temp = packetBuffer[FLAG_LENGTH_OFFSET+1];  // contains hash counter on low 3 bits
+        nHash = temp & 0x7;
         
-        temp = packetBuffer[FLAG_LENGTH_OFFSET+2];      // contains cipher cnt on high 4 bits, auth cnt on low        
-        nCipher = (temp & 0xf0) >> 4;
-        nAuth = temp & 0xf;
+        temp = packetBuffer[FLAG_LENGTH_OFFSET+2];      // contains cipher cnt on high 3 bits, auth cnt on low        
+        nCipher = (temp & 0x70) >> 4;
+        nAuth = temp & 0x7;
         temp = packetBuffer[FLAG_LENGTH_OFFSET+3];      // contains key agreement cnt on high 4 bits, sas cnt on low        
-        nPubkey = (temp & 0xf0) >> 4;
-        nSas = temp & 0xf;
+        nPubkey = (temp & 0x70) >> 4;
+        nSas = temp & 0x7;
 
         oHash = VARIABLE_OFFSET;
         oCipher = oHash + (nHash * ZRTP_WORD_SIZE);
@@ -168,6 +170,10 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         oPubkey = oAuth + (nAuth * ZRTP_WORD_SIZE);
         oSas = oPubkey + (nPubkey * ZRTP_WORD_SIZE);
         oHmac = oSas + (nSas * ZRTP_WORD_SIZE);         // offset to HMAC
+        
+        // +2 : the MAC at the end of the packet
+        computedLength = nHash + nCipher + nAuth + nPubkey + nSas + ZRTP_HEADER_LENGTH + ZRTP_HELLO_FIX_LENGTH + 2;
+
     }
 
     public final void setClientId(final String text) {
@@ -256,6 +262,10 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
 
     public final boolean isSasSign() {
         return ((helloFlags & SAS_SIGN_FLAG) == SAS_SIGN_FLAG); 
+    }
+
+    public final boolean isLengthOk() {
+        return computedLength == getLength();
     }
 
     /**

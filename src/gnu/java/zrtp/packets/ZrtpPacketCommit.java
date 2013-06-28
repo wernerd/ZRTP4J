@@ -181,6 +181,11 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         System.arraycopy(data, 0, packetBuffer, CIPHER_OFFSET, ZRTP_WORD_SIZE);
     }
     
+    /// Check if packet length makes sense. Smallest Commit packet is 25 words
+    public final boolean isLengthOk() {
+        return getLength() >= 25;
+    }
+
     public final void setAuthLen(final byte[] data) { 
         System.arraycopy(data, 0, packetBuffer, AUTHLENGTHS_OFFSET, ZRTP_WORD_SIZE);
     }

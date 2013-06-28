@@ -131,6 +131,11 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
         }
         return signatureLength;
     }
+    /// Check if packet length makes sense. Smallest Confirm packet is 19 words
+    public final boolean isLengthOk() {
+        return getLength() >= 19;
+    }
+
     /*
      * Setter methods
      */

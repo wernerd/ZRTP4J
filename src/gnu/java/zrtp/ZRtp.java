@@ -1169,6 +1169,10 @@ public class ZRtp {
      */
     protected ZrtpPacketCommit prepareCommit(ZrtpPacketHello hello, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
 
+        if (!hello.isLengthOk()) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
         // Save our peer's ZRTP id
         peerZid = hello.getZid();
         // peers have the same ZID?
@@ -1393,6 +1397,11 @@ public class ZRtp {
     protected ZrtpPacketDHPart prepareDHPart1(ZrtpPacketCommit commit, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoRespCommitReceived));
 
+        if (!commit.isLengthOk()) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
+
         // The following code check the hash chain according chapter 10 to
         // detect false ZRTP packets.
         // Use implicit hash algo.
@@ -1524,11 +1533,13 @@ public class ZRtp {
      * The method uses the DHPart1 data to create the Initiator's secrets.
      * 
      */
-    protected ZrtpPacketDHPart prepareDHPart2(ZrtpPacketDHPart dhPart1,
-            ZrtpCodes.ZrtpErrorCodes[] errMsg) {
-        sendInfo(ZrtpCodes.MessageSeverity.Info,
-                EnumSet.of(ZrtpCodes.InfoCodes.InfoInitDH1Received));
+    protected ZrtpPacketDHPart prepareDHPart2(ZrtpPacketDHPart dhPart1, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
+        sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoInitDH1Received));
 
+        if (!dhPart1.isLengthOk()) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
         // Because we are initiator the protocol engine didn't receive Commit
         // thus could not store a peer's H2. A two step hash is required to
         // re-compute H3. Then compare with peer's H3 from peer's Hello packet.
@@ -1639,6 +1650,10 @@ public class ZRtp {
 
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoRespDH2Received));
 
+        if (!dhPart2.isLengthOk()) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
         // Because we are responder we received a Commit and stored its H2.
         // Now re-compute H2 from received H1 and compare with stored peer's H2.
         byte[] tmpHash = new byte[ZrtpConstants.MAX_DIGEST_LENGTH];
@@ -1792,6 +1807,10 @@ public class ZRtp {
 
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoRespCommitReceived));
 
+        if (!commit.isLengthOk()) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
         // In multi stream mode we don't get a DH packt. Thus we need to
         // recompute the hash chain starting with Commit's H2.
         // Use the implicit hash algo
@@ -1889,6 +1908,10 @@ public class ZRtp {
     protected ZrtpPacketConfirm prepareConfirm2(ZrtpPacketConfirm confirm1, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoInitConf1Received));
 
+        if (!confirm1.isLengthOk()) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
         // Use the Responder's keys here to decrypt because we are
         // Initiator and receive packets from Responder
         byte[] dataToSecure = confirm1.getDataToSecure();
@@ -2014,6 +2037,10 @@ public class ZRtp {
         // don't update SAS, RS
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoInitConf1Received));
 
+        if (!confirm1.isLengthOk()) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
         hashCtxFunction.doFinal(messageHash, 0);
         hashCtxFunction = null;
 
@@ -2102,6 +2129,10 @@ public class ZRtp {
     protected ZrtpPacketConf2Ack prepareConf2Ack(ZrtpPacketConfirm confirm2, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
         sendInfo(ZrtpCodes.MessageSeverity.Info, EnumSet.of(ZrtpCodes.InfoCodes.InfoRespConf2Received));
 
+        if (!confirm2.isLengthOk()) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
         // Use the Initiator's keys here because we are Responder here and
         // reveice packets from Initiator
         byte[] dataToSecure = confirm2.getDataToSecure();
@@ -2221,6 +2252,8 @@ public class ZRtp {
      * This method prepares the PingAck packet.
      */
     protected ZrtpPacketPingAck preparePingAck(ZrtpPacketPing ppkt) {
+        if (ppkt.getLength() != 6)                    // A PING packet must have a length of 6 words
+            return null;
 
         // Because we do not support ZRTP proxy mode use the truncated ZID.
         // If this code shall be used in ZRTP proxy implementation the
@@ -2238,6 +2271,10 @@ public class ZRtp {
         if (!mitmSeen || paranoidMode)
             return zrtpRelayAck;
 
+        if (!srly.isLengthOk()) {
+            errMsg[0] = ZrtpCodes.ZrtpErrorCodes.CriticalSWError;
+            return null;
+        }
         byte[] hkey, ekey;
         // If we are responder then the PBX used it's Initiator keys
         if (myRole == ZrtpCallback.Role.Responder) {
@@ -2483,6 +2520,7 @@ public class ZRtp {
      */
     private void storeMsgTemp(ZrtpPacketBase pkt) {
         int length = pkt.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
+        length = (length > tempMsgBuffer.length) ? tempMsgBuffer.length : length;
         Arrays.fill(tempMsgBuffer, (byte) 0);
         System.arraycopy(pkt.getHeaderBase(), 0, tempMsgBuffer, 0, length);
         lengthOfMsgData = length;

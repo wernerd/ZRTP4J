@@ -33,11 +33,15 @@ public class TransmitterZRTP implements SendStreamListener {
 
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
             Iterator<?> ii = subCode.iterator();
-            ZrtpCodes.InfoCodes inf = (ZrtpCodes.InfoCodes)ii.next();
-            System.err.println("Tx show message sub code: " + ii.next());
-            if (inf == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
-                System.err.println("Tx peer hello hash: " + zrtpEngine.getPeerHelloHash());
+            if (sev == ZrtpCodes.MessageSeverity.Info) {
+                ZrtpCodes.InfoCodes inf = (ZrtpCodes.InfoCodes)ii.next();
+                System.err.println("Tx show message sub code: " + inf);
+                if (inf == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
+                    System.err.println("Tx peer hello hash: " + zrtpEngine.getPeerHelloHash());
+                }
+                return;
             }
+            System.err.println("Tx show message sub code: " + ii.next());
         }
 
         public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {

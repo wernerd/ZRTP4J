@@ -139,6 +139,11 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
     public final int getSignatureLength() {
         return signatureLength;
     }
+    /// Check if packet length makes sense. Smallest SasRelay packet is 19 words, similar to Confirm 
+    public final boolean isLengthOk() {
+        return getLength() >= 19;
+    }
+
     /*
      * Setter methods
      */

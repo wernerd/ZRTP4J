@@ -153,6 +153,11 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         return ZrtpUtils.readRegion(packetBuffer, PUBLIC_KEY_OFFSET+dhLength, 2*ZRTP_WORD_SIZE);
     }
 
+    /// Check if packet length makes sense. Smallest DHpart packet is 37 words, using DH EC25 
+    public final boolean isLengthOk() {
+        return getLength() >= 37;
+    }
+
     /**
      * Setter methods.
      *

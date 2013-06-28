@@ -266,7 +266,8 @@ public class ZrtpStateClass {
             } else if (first == 'p' && middle == ' ' && last == ' ') {
                 ZrtpPacketPing ppkt = new ZrtpPacketPing(pkt);
                 ZrtpPacketPingAck ppktAck = parent.preparePingAck(ppkt);
-                parent.sendPacketZRTP(ppktAck);
+                if (ppktAck != null)
+                    parent.sendPacketZRTP(ppktAck);
                 return;
             } else if (first == 's' && last == 'y') {
                 ZrtpCodes.ZrtpErrorCodes[] errorCode = new ZrtpCodes.ZrtpErrorCodes[1];
