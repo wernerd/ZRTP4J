@@ -91,7 +91,7 @@ public class Base32 {
     };
 
 
-    private static int divceil(int a, int b) {
+    public static int divceil(int a, int b) {
         int c;
         if (a > 0) {
             if (b > 0) c = a + b - 1;
@@ -260,43 +260,43 @@ public class Base32 {
         return binaryResult;
     }
 
-    public static void main(String[] args)
-    {
-        byte[] ones = {1, 1, 1, 1, 1};
-        byte[] onesMore = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        byte[] eightOne = {(byte)0x81, (byte)0x81, (byte)0x81, (byte)0x81, 
-                (byte)0x81, (byte)0x81, (byte)0x81, (byte)0x81};
-        
-        String encoded = binary2ascii(ones, 40);
-        System.err.println("Endcoded zeroOne, 40bits (expected: 'yryonyeb'): " + encoded);
-        encoded = binary2ascii(ones, 15);
-        System.err.println("Endcoded zeroOne, 15bits (expected: 'yry'): " + encoded);
-        encoded = binary2ascii(onesMore, 80);
-        System.err.println("Endcoded zeroOne, 80bits (expected: 'yryonyebyryonyeb'): " + encoded);
-        byte[] decoded = ascii2binary(encoded, 80);
-        ZrtpUtils.hexdump("Decoded 80 bits zeroOne", decoded, decoded.length);
-        decoded = ascii2binary(encoded, 8);
-        ZrtpUtils.hexdump("Decoded 8 bits zeroOne", decoded, decoded.length);
-        
-        encoded = binary2ascii(eightOne, 15);
-        System.err.println("Endcoded eightOne, 15bits (expected: 'ogy'): " + encoded);
-        encoded = binary2ascii(eightOne, 16);
-        System.err.println("Endcoded eightOne, 16bits (expected: 'ogyo'): " + encoded);
-        encoded = binary2ascii(eightOne, 20);
-        System.err.println("Endcoded eightOne, 20bits (expected: 'ogya'): " + encoded);
-        encoded = binary2ascii(eightOne, 64);
-        System.err.println("Endcoded eightOne, 64bits (expected: 'ogyadycbogyan'): " + encoded);
-        
-        decoded = ascii2binary(encoded, 7);
-        ZrtpUtils.hexdump("Decoded 7 bits eightOne", decoded, decoded.length);
-        decoded = ascii2binary(encoded, 8);
-        ZrtpUtils.hexdump("Decoded 8 bits eightOne", decoded, decoded.length);
-        decoded = ascii2binary(encoded, 15);
-        ZrtpUtils.hexdump("Decoded 15 bits eightOne", decoded, decoded.length);
-        decoded = ascii2binary(encoded, 16);
-        ZrtpUtils.hexdump("Decoded 16 bits eightOne", decoded, decoded.length);
-        decoded = ascii2binary(encoded, 64);
-        ZrtpUtils.hexdump("Decoded 64 bits eightOne", decoded, decoded.length);
-    }
+//    public static void main(String[] args)
+//    {
+//        byte[] ones = {1, 1, 1, 1, 1};
+//        byte[] onesMore = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+//        byte[] eightOne = {(byte)0x81, (byte)0x81, (byte)0x81, (byte)0x81,
+//                (byte)0x81, (byte)0x81, (byte)0x81, (byte)0x81};
+//
+//        String encoded = binary2ascii(ones, 40);
+//        System.err.println("Endcoded zeroOne, 40bits (expected: 'yryonyeb'): " + encoded);
+//        encoded = binary2ascii(ones, 15);
+//        System.err.println("Endcoded zeroOne, 15bits (expected: 'yry'): " + encoded);
+//        encoded = binary2ascii(onesMore, 80);
+//        System.err.println("Endcoded zeroOne, 80bits (expected: 'yryonyebyryonyeb'): " + encoded);
+//        byte[] decoded = ascii2binary(encoded, 80);
+//        ZrtpUtils.hexdump("Decoded 80 bits zeroOne", decoded, decoded.length);
+//        decoded = ascii2binary(encoded, 8);
+//        ZrtpUtils.hexdump("Decoded 8 bits zeroOne", decoded, decoded.length);
+//
+//        encoded = binary2ascii(eightOne, 15);
+//        System.err.println("Endcoded eightOne, 15bits (expected: 'ogy'): " + encoded);
+//        encoded = binary2ascii(eightOne, 16);
+//        System.err.println("Endcoded eightOne, 16bits (expected: 'ogyo'): " + encoded);
+//        encoded = binary2ascii(eightOne, 20);
+//        System.err.println("Endcoded eightOne, 20bits (expected: 'ogya'): " + encoded);
+//        encoded = binary2ascii(eightOne, 64);
+//        System.err.println("Endcoded eightOne, 64bits (expected: 'ogyadycbogyan'): " + encoded);
+//
+//        decoded = ascii2binary(encoded, 7);
+//        ZrtpUtils.hexdump("Decoded 7 bits eightOne", decoded, decoded.length);
+//        decoded = ascii2binary(encoded, 8);
+//        ZrtpUtils.hexdump("Decoded 8 bits eightOne", decoded, decoded.length);
+//        decoded = ascii2binary(encoded, 15);
+//        ZrtpUtils.hexdump("Decoded 15 bits eightOne", decoded, decoded.length);
+//        decoded = ascii2binary(encoded, 16);
+//        ZrtpUtils.hexdump("Decoded 16 bits eightOne", decoded, decoded.length);
+//        decoded = ascii2binary(encoded, 64);
+//        ZrtpUtils.hexdump("Decoded 64 bits eightOne", decoded, decoded.length);
+//    }
 }
 
