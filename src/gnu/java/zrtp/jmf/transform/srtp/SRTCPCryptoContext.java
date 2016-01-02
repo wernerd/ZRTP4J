@@ -155,7 +155,7 @@ public class SRTCPCryptoContext
      * Construct an empty SRTPCryptoContext using ssrc.
      * The other parameters are set to default null value.
      * 
-     * @param ssrc SSRC of this SRTPCryptoContext
+     * @param ssrcIn SSRC of this SRTPCryptoContext
      */
     public SRTCPCryptoContext(long ssrcIn)
     {
@@ -173,18 +173,18 @@ public class SRTCPCryptoContext
     /**
      * Construct a normal SRTPCryptoContext based on the given parameters.
      * 
-     * @param ssrc
+     * @param ssrcIn
      *            the RTP SSRC that this SRTP cryptographic context protects.
-     * @param masterKey
+     * @param masterK
      *            byte array holding the master key for this SRTP cryptographic
      *            context. Refer to chapter 3.2.1 of the RFC about the role of
      *            the master key.
-     * @param masterSalt
+     * @param masterS
      *            byte array holding the master salt for this SRTP cryptographic
      *            context. It is used to computer the initialization vector that
      *            in turn is input to compute the session key, session
      *            authentication key and the session salt.
-     * @param policy
+     * @param policyIn
      *            SRTP policy for this SRTP cryptographic context, defined the
      *            encryption algorithm, the authentication algorithm, etc
      */
@@ -645,7 +645,7 @@ public class SRTCPCryptoContext
           replayWindow |= 1;
         }
         else {
-          replayWindow |= ( 1 << delta );
+          replayWindow |= ( 1 << -delta );
         }
 
         receivedIndex = index;
