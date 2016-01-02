@@ -289,7 +289,7 @@ public class ZrtpConfigure {
     }
 
     /**
-     * Add a hash algorithm to configuration data at defined poisition.
+     * Add a hash algorithm to configuration data at defined position.
      * 
      * Adds the specified hash algorithm to the configuration data. 
      * 
@@ -1023,15 +1023,7 @@ public class ZrtpConfigure {
         }
         return false;
     }
-       
-    /*
-     * Some tests here
-     */
-    
-    /*
-     * Some tests here
-     */
-    
+
 /* ***
     public static void main(String argv[]) {
         ZrtpConfigure config = new ZrtpConfigure();

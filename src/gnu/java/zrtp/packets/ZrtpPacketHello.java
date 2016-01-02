@@ -441,7 +441,8 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         // Build list of own pubkey algorithm names, must follow the order
         // defined in RFC 6189, chapter 4.1.2.
         final ZrtpConstants.SupportedPubKeys orderedAlgos[] = {
-            ZrtpConstants.SupportedPubKeys.DH2K, 
+            ZrtpConstants.SupportedPubKeys.DH2K,
+            ZrtpConstants.SupportedPubKeys.E255,
             ZrtpConstants.SupportedPubKeys.EC25, 
             ZrtpConstants.SupportedPubKeys.DH3K,
             ZrtpConstants.SupportedPubKeys.EC38 };

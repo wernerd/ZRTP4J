@@ -1,13 +1,9 @@
 package org.bouncycastle.cryptozrtp.params;
 
-import java.math.BigInteger;
-
 import gnu.java.bigintcrypto.BigIntegerCrypto;
-
 import org.bouncycastle.mathzrtp.ec.ECConstants;
 import org.bouncycastle.mathzrtp.ec.ECCurve;
 import org.bouncycastle.mathzrtp.ec.ECPoint;
-import org.bouncycastle.mathzrtp.ec.ECFieldElement;
 
 public class ECDomainParameters
     implements ECConstants

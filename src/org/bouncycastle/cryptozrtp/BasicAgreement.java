@@ -6,16 +6,24 @@ import gnu.java.bigintcrypto.BigIntegerCrypto;
  * The basic interface that basic Diffie-Hellman implementations
  * conforms to.
  */
-public interface BasicAgreement
-{
+public interface BasicAgreement {
     /**
      * initialise the agreement engine.
      */
-    public void init(CipherParameters param);
+    void init(CipherParameters param);
 
     /**
      * given a public key from a given party calculate the next
-     * message in the agreement sequence. 
+     * message in the agreement sequence.
      */
-    public BigIntegerCrypto calculateAgreement(CipherParameters pubKey);
+    BigIntegerCrypto calculateAgreement(CipherParameters pubKey);
+
+    /**
+     * Clear agreement data including private key data.
+     * <p>
+     * Clears all known agreement data and resets the agreement. To use the
+     * agreement againt the application must initialize it again.
+     */
+
+    void clear();
 }

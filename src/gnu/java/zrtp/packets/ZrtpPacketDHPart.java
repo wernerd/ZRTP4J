@@ -19,6 +19,7 @@
 
 package gnu.java.zrtp.packets;
 
+import djb.Curve25519;
 import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.utils.ZrtpUtils;
 
@@ -93,9 +94,11 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         else if (len == 45) {
             dhLength = 96;
         }
+        else if (len == 29) {    // E255
+            dhLength = 32;
+        }
         else {
             dhLength = 0;
-            return;
         }
     }
 
@@ -111,6 +114,9 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         }
         else if (pkt == ZrtpConstants.SupportedPubKeys.EC38) {
             dhLength = 96;
+        }
+        else if (pkt == ZrtpConstants.SupportedPubKeys.E255) {
+            dhLength = Curve25519.KEY_SIZE;
         }
         else
             return;
@@ -153,9 +159,9 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
         return ZrtpUtils.readRegion(packetBuffer, PUBLIC_KEY_OFFSET+dhLength, 2*ZRTP_WORD_SIZE);
     }
 
-    /// Check if packet length makes sense. Smallest DHpart packet is 37 words, using DH EC25 
+    /// Check if packet length makes sense. Smallest DHpart packet is 29 words, using DH E255
     public final boolean isLengthOk() {
-        return getLength() >= 37;
+        return getLength() >= 29;
     }
 
     /**

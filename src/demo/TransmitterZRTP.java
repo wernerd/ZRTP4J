@@ -2,6 +2,8 @@
 package demo;
 
 import gnu.java.zrtp.ZrtpCodes;
+import gnu.java.zrtp.ZrtpConfigure;
+import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.ZrtpUserCallback;
 import gnu.java.zrtp.jmf.transform.TransformManager;
 import gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine;
@@ -95,15 +97,27 @@ public class TransmitterZRTP implements SendStreamListener {
             // create a ZRTP connector with own bind address
             transConnector = (ZrtpTransformConnector)TransformManager.createZRTPConnector(sa);
             zrtpEngine = transConnector.getEngine();
+            ZrtpConfigure config = new ZrtpConfigure();
+//            config.setStandardConfig();
+                config.clear();
+                config.addPubKeyAlgo(ZrtpConstants.SupportedPubKeys.E255);
+//                config.addPubKeyAlgo(ZrtpConstants.SupportedPubKeys.DH3K);
+//                config.addPubKeyAlgo(ZrtpConstants.SupportedPubKeys.EC25);
+//                config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
+
+//                config.setMandatoryOnly();
+                config.addSasTypeAlgo(ZrtpConstants.SupportedSASTypes.B32E);
+
             zrtpEngine.setUserCallback(new MyCallback());
             
-            if (!zrtpEngine.initialize("test_r.zid"))
+            if (!zrtpEngine.initialize("test_r.zid", config))
                 System.err.println("Initialize failed");
 
-            // initialize the RTPManager using the SRTP connector
             int versions = zrtpEngine.getNumberSupportedVersions();
             for (int idx = 0; idx < versions; idx++)
-                System.err.println("Hello hash: " + zrtpEngine.getHelloHash(idx));
+                System.err.println("Tx Hello hash: " + zrtpEngine.getHelloHash(idx));
+
+            // initialize the RTPManager using the ZRTP connector
             rtpManager.initialize(transConnector);
             rtpManager.addSendStreamListener(this);
 
@@ -133,8 +147,7 @@ public class TransmitterZRTP implements SendStreamListener {
     }
 
     SimpleDataSource createDataSource() {
-        SimpleDataSource sps = new SimpleDataSource();
-        return sps;
+        return new SimpleDataSource();
     }
 
     

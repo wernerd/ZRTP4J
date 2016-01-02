@@ -19,9 +19,7 @@ public class ECKeyPairGenerator
     ECDomainParameters  params;
     RandomGenerator     random;
 
-    public void init(
-        KeyGenerationParameters param)
-    {
+    public void init(KeyGenerationParameters param) {
         ECKeyGenerationParameters  ecP = (ECKeyGenerationParameters)param;
 
         this.random = ecP.getRandom();

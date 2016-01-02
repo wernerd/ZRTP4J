@@ -113,7 +113,7 @@ public class F8Tester {
         if (!Arrays.equals(tmpBuf, payload)) {
             System.err.print("payload data mismatch");
             ZrtpUtils.hexdump("computed payload data", tmpBuf, tmpBuf.length);
-            ZrtpUtils.hexdump("Test vcetor payload data", payload, payload.length);
+            ZrtpUtils.hexdump("Test vector payload data", payload, payload.length);
             return -1;
         }
         return 0;

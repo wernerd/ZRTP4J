@@ -19,6 +19,7 @@
 
 package gnu.java.zrtp;
 
+import djb.Curve25519;
 import gnu.java.zrtp.ZrtpConstants.SupportedSASTypes;
 import gnu.java.zrtp.packets.ZrtpPacketBase;
 import gnu.java.zrtp.packets.ZrtpPacketCommit;
@@ -34,6 +35,7 @@ import gnu.java.zrtp.packets.ZrtpPacketPing;
 import gnu.java.zrtp.packets.ZrtpPacketRelayAck;
 import gnu.java.zrtp.packets.ZrtpPacketSASRelay;
 import gnu.java.zrtp.utils.Base32;
+import gnu.java.zrtp.utils.EmojiBase32;
 import gnu.java.zrtp.utils.ZrtpUtils;
 import gnu.java.zrtp.utils.ZrtpFortuna;
 import gnu.java.zrtp.zidfile.ZidFile;
@@ -53,6 +55,7 @@ import org.bouncycastle.crypto.params.ParametersWithIV;
 
 import org.bouncycastle.cryptozrtp.AsymmetricCipherKeyPair;
 import org.bouncycastle.cryptozrtp.params.DHPublicKeyParameters;
+import org.bouncycastle.cryptozrtp.params.Djb25519PublicKeyParameters;
 import org.bouncycastle.cryptozrtp.params.ECPublicKeyParameters;
 import org.bouncycastle.mathzrtp.ec.ECPoint;
 
@@ -110,7 +113,7 @@ public class ZRtp {
         int version;
         ZrtpPacketHello packet;
         byte[] helloHash;
-    };
+    }
 
 
     /**
@@ -607,9 +610,9 @@ public class ZRtp {
      */
 
     /**
-     * Set the auxilliary secret.
+     * Set the auxiliary secret.
      * 
-     * Use this method to set the auxilliary secret data. Refer to ZRTP
+     * Use this method to set the auxiliary secret data. Refer to ZRTP
      * specification, chapter 4.3 ff
      * 
      * @param data
@@ -731,11 +734,7 @@ public class ZRtp {
      *         otherwise.
      */
     public boolean inState(ZrtpStateClass.ZrtpStates state) {
-        if (stateEngine != null) {
-            return stateEngine.isInState(state);
-        }
-        else
-            return false;
+        return stateEngine != null && stateEngine.isInState(state);
     }
 
     /**
@@ -776,7 +775,7 @@ public class ZRtp {
      * @param  index 
      *         Hello hash of the Hello packet identfied by index. Index must be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      *
-     * @return a std:string containing the Hello hash value as hex-digits. The
+     * @return a string containing the Hello hash value as hex-digits. The
      *         hello hash is available immediately after class instantiation.
      */
     public String getHelloHash(int index) {
@@ -842,8 +841,7 @@ public class ZRtp {
             return null;
 
         ret[0] = new String(peerHelloVersion);
-        ret[1] = new String(ZrtpUtils.bytesToHexString(peerHelloHash,
-                hashLengthImpl));
+        ret[1] = new String(ZrtpUtils.bytesToHexString(peerHelloHash, hashLengthImpl));
         return ret;
     }
 
@@ -892,7 +890,7 @@ public class ZRtp {
      * 
      * @param parameters
      *            A byte array that contains the multi-stream parameters. See
-     *            also <code>getMultiStrParams()</code>
+     *            also {@code getMultiStrParams()}
      */
     public void setMultiStrParams(byte[] parameters) {
 
@@ -1109,7 +1107,7 @@ public class ZRtp {
     protected boolean sendPacketZRTP(ZrtpPacketBase packet) {
         // the packetBuffer reflects the real size of the data including the CRC
         // field.
-        return ((packet == null) ? false : callback.sendDataZRTP(packet.getHeaderBase()));
+        return (packet != null && callback.sendDataZRTP(packet.getHeaderBase()));
     }
 
     /**
@@ -1269,10 +1267,8 @@ public class ZRtp {
         zrtpDH2.setPv(pubKeyBytes);
         zrtpDH2.setH1(H1);
 
-        int len = zrtpDH2.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
-
         // Compute HMAC over Hello, excluding the HMAC field (2*ZTP_WORD_SIZE)
-        // and store in Hello
+        // and store in DH2
         byte[] hmac = computeMsgHmac(H0, zrtpDH2);
         zrtpDH2.setHMAC(hmac);
 
@@ -1298,7 +1294,7 @@ public class ZRtp {
         // (always Initator's)
         // Use negotiated hash algo.
         hashCtxFunction.update(hello.getHeaderBase(), 0, hello.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE);
-        len = zrtpCommit.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
+        final int len = zrtpCommit.getLength() * ZrtpPacketBase.ZRTP_WORD_SIZE;
         hashCtxFunction.update(zrtpCommit.getHeaderBase(), 0, len);
 
         // store Hello data temporarily until we can check HMAC after receiving
@@ -1330,6 +1326,10 @@ public class ZRtp {
             byte[] encoded = ((ECPublicKeyParameters) ecKeyPair.getPublic()).getQ().getEncoded();
             pubKeyBytes = new byte[pubKey.pubKeySize];
             System.arraycopy(encoded, 1, pubKeyBytes, 0, pubKey.pubKeySize);
+        }
+        else if (pubKey == ZrtpConstants.SupportedPubKeys.E255) {
+            ecKeyPair = pubKey.ecKeyPairGen.generateKeyPair();
+            pubKeyBytes = ((Djb25519PublicKeyParameters)ecKeyPair.getPublic()).getP();
         }
         else {
             return false;
@@ -1569,7 +1569,7 @@ public class ZRtp {
         }
         // get and check Responder's public value, see chap. 5.4.3 in the spec
         byte[] pvrBytes = dhPart1.getPv();
-        int dhSize = 0;
+        int dhSize;
         
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K || pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
 
@@ -1598,6 +1598,14 @@ public class ZRtp {
             dhSize = pubKey.pubKeySize / 2;
             pubKey.ecdhContext.init(ecKeyPair.getPrivate());
             BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(new ECPublicKeyParameters(point, null));
+            DHss = bi.toByteArray();
+            pubKey.ecdhContext.clear();
+            bi.zeroize(); // clear secret big integer data
+        }
+        else if (pubKey == ZrtpConstants.SupportedPubKeys.E255) {
+            dhSize = pubKey.pubKeySize;
+            pubKey.ecdhContext.init(ecKeyPair.getPrivate());
+            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(new Djb25519PublicKeyParameters(pvrBytes));
             DHss = bi.toByteArray();
             pubKey.ecdhContext.clear();
             bi.zeroize(); // clear secret big integer data
@@ -1684,7 +1692,7 @@ public class ZRtp {
         // Get and check the Initiator's public value, see chap. 5.4.2 of the
         // spec
         byte[] pviBytes = dhPart2.getPv();
-        int dhSize = 0;
+        int dhSize;
 
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K || pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
 
@@ -1713,6 +1721,14 @@ public class ZRtp {
             dhSize = pubKey.pubKeySize / 2;
             pubKey.ecdhContext.init(ecKeyPair.getPrivate());
             BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(new ECPublicKeyParameters(pubPoint, null));
+            DHss = bi.toByteArray();
+            pubKey.ecdhContext.clear();
+            bi.zeroize(); // clear secret big integer data
+        }
+        else if (pubKey == ZrtpConstants.SupportedPubKeys.E255) {
+            dhSize = pubKey.pubKeySize;
+            pubKey.ecdhContext.init(ecKeyPair.getPrivate());
+            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(new Djb25519PublicKeyParameters(pviBytes));
             DHss = bi.toByteArray();
             pubKey.ecdhContext.clear();
             bi.zeroize(); // clear secret big integer data
@@ -1785,7 +1801,7 @@ public class ZRtp {
 
     private byte[] adjustBigBytes(byte[] in, int size) {
         // adjust byte arry if we have a leading zero
-        byte[] tmp = null;
+        byte[] tmp;
         if (in.length > size && in[0] == 0) {
             tmp = new byte[in.length - 1];
             System.arraycopy(in, 1, tmp, 0, tmp.length);
@@ -2026,9 +2042,9 @@ public class ZRtp {
      * At this point we are Initiator.
      */
     /**
-     * @param confirm1
-     * @param errMsg
-     * @return
+     * @param confirm1 The ZRTP confirm1 packet
+     * @param errMsg Arry to return an error code
+     * @return a ZRTP confirm packet, here a confirm2
      */
     protected ZrtpPacketConfirm prepareConfirm2MultiStream(ZrtpPacketConfirm confirm1, ZrtpCodes.ZrtpErrorCodes[] errMsg) {
 
@@ -2308,8 +2324,8 @@ public class ZRtp {
         byte[] newSasHash = srly.getTrustedSas();
 
         boolean sasHashNull = true;
-        for (int i = 0; i < newSasHash.length; i++) {
-            if (newSasHash[i] != 0) {
+        for (byte aNewSasHash : newSasHash) {
+            if (aNewSasHash != 0) {
                 sasHashNull = false;
                 break;
             }
@@ -2324,13 +2340,16 @@ public class ZRtp {
             mitm = "/MitM";
         }
         // If other SAS schemes required - check here and use others
-        if (render == ZrtpConstants.SupportedSASTypes.B32) {
+        if (render == ZrtpConstants.SupportedSASTypes.B32 || render == ZrtpConstants.SupportedSASTypes.B32E) {
             byte[] sasBytes = new byte[4];
             sasBytes[0] = newSasHash[0];
             sasBytes[1] = newSasHash[1];
             sasBytes[2] = (byte) (newSasHash[2] & 0xf0);
             sasBytes[3] = 0;
-            SAS = Base32.binary2ascii(sasBytes, 20);
+            if (render == ZrtpConstants.SupportedSASTypes.B32)
+                SAS = Base32.binary2ascii(sasBytes, 20);
+            else
+                SAS = EmojiBase32.binary2ascii(sasBytes, 20);
         }
         else {
             SAS = ZrtpConstants.sas256WordsEven[newSasHash[0]] + ":" + ZrtpConstants.sas256WordsOdd[newSasHash[1]];
@@ -2399,10 +2418,7 @@ public class ZRtp {
         hashFunctionImpl.update(commit.getH2(), 0, ZrtpPacketBase.HASH_IMAGE_SIZE);
         hashFunctionImpl.doFinal(tmpH3, 0);
 
-        if (ZrtpUtils.byteArrayCompare(tmpH3, peerH3, ZrtpPacketBase.HASH_IMAGE_SIZE) != 0) {
-            return false;
-        }
-        return true;
+        return ZrtpUtils.byteArrayCompare(tmpH3, peerH3, ZrtpPacketBase.HASH_IMAGE_SIZE) == 0;
     }
 
     /**
@@ -2417,7 +2433,7 @@ public class ZRtp {
      *            This defines the message's severity
      * @param subCode
      *            The subcode identifying the reason.
-     * @see ZrtpCodes#MessageSeverity
+     * @see ZrtpCodes.MessageSeverity
      */
     protected void sendInfo(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
 
@@ -2441,7 +2457,7 @@ public class ZRtp {
      *            This defines the message's severity
      * @param subCode
      *            The subcode identifying the reason.
-     * @see ZrtpCodes#MessageSeverity
+     * @see ZrtpCodes.MessageSeverity
      */
     protected void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
         callback.zrtpNegotiationFailed(severity, subCode);
@@ -2515,7 +2531,7 @@ public class ZRtp {
      * packet's data to it. We use this to check the packet's HMAC after we
      * received the HMAC key in to following packet.
      * 
-     * @param data
+     * @param pkt
      *            Pointer to the packet's ZRTP message
      */
     private void storeMsgTemp(ZrtpPacketBase pkt) {
@@ -2534,7 +2550,7 @@ public class ZRtp {
      * stored in the stored message and returns the result. This uses the MACH
      * with the implicit hash algo.
      * 
-     * @param key
+     * @param keyIn
      *            Pointer to the HMAC key.
      * @return Returns true if the computed HMAC and the stored HMAC match,
      *         false otherwise.
@@ -2618,7 +2634,7 @@ public class ZRtp {
      * computed HMAC and the HMAC stored in the received message and returns the
      * result. This uses the HAMC with the implicit hash algo.
      * 
-     * @param key
+     * @param keyIn
      *            Pointer to the HMAC key.
      * @return Returns true if the computed HMAC and the stored HMAC match,
      *         false otherwise.
@@ -2643,7 +2659,7 @@ public class ZRtp {
      *            the length of the data to sign
      * @return the HMAC data
      */
-    private final byte[] computeHmac(byte[] keyIn, int keyLen, byte[] toSign, int len) {
+    private byte[] computeHmac(byte[] keyIn, int keyLen, byte[] toSign, int len) {
         KeyParameter key = new KeyParameter(keyIn, 0, keyLen);
         hmacFunction.init(key);
         hmacFunction.update(toSign, 0, len);
@@ -2665,7 +2681,7 @@ public class ZRtp {
      *            the length of the data to sign
      * @return the HMAC data
      */
-    private final byte[] computeHmacImpl(byte[] keyIn, int keyLen, byte[] toSign, int len) {
+    private byte[] computeHmacImpl(byte[] keyIn, int keyLen, byte[] toSign, int len) {
         KeyParameter key = new KeyParameter(keyIn, 0, keyLen);
         hmacFunctionImpl.init(key);
         hmacFunctionImpl.update(toSign, 0, len);
@@ -2679,7 +2695,7 @@ public class ZRtp {
      * 
      * This uses the negotiated Hash algorithm.
      */
-    private final void computeHvi(ZrtpPacketDHPart dh, ZrtpPacketHello hello) {
+    private void computeHvi(ZrtpPacketDHPart dh, ZrtpPacketHello hello) {
         hashFunction.update(dh.getHeaderBase(), 0, dh.getLength()
                 * ZrtpPacketBase.ZRTP_WORD_SIZE);
         hashFunction.update(hello.getHeaderBase(), 0, hello.getLength()
@@ -2836,13 +2852,16 @@ public class ZRtp {
             // sasHash) are used to create the character SAS string of type SAS
             // base 32 (5 bits per character).
             // If other SAS schemes required - check here and use others
-            if (sasType == ZrtpConstants.SupportedSASTypes.B32) {
+            if (sasType == ZrtpConstants.SupportedSASTypes.B32 || sasType == ZrtpConstants.SupportedSASTypes.B32E) {
                 byte[] sasBytes = new byte[4];
                 sasBytes[0] = sasHash[0];
                 sasBytes[1] = sasHash[1];
                 sasBytes[2] = (byte) (sasHash[2] & 0xf0);
                 sasBytes[3] = 0;
-                SAS = Base32.binary2ascii(sasBytes, 20);
+                if (sasType == ZrtpConstants.SupportedSASTypes.B32)
+                    SAS = Base32.binary2ascii(sasBytes, 20);
+                else
+                    SAS = EmojiBase32.binary2ascii(sasBytes, 20);
             }
             else {
                 SAS = ZrtpConstants.sas256WordsEven[sasHash[0]&0xff] + ":" 
@@ -3088,18 +3107,14 @@ public class ZRtp {
         Arrays.fill(s0, (byte) 0);
     }
 
-    private boolean checkPubKey(BigIntegerCrypto pvr,
-            ZrtpConstants.SupportedPubKeys dhtype) {
+    private boolean checkPubKey(BigIntegerCrypto pvr, ZrtpConstants.SupportedPubKeys dhtype) {
         if (pvr.equals(BigIntegerCrypto.ONE)) {
             return false;
         }
         if (dhtype == ZrtpConstants.SupportedPubKeys.DH2K) {
             return !pvr.equals(ZrtpConstants.P2048MinusOne);
         }
-        if (dhtype == ZrtpConstants.SupportedPubKeys.DH3K) {
-            return !pvr.equals(ZrtpConstants.P3072MinusOne);
-        }
-        return false;
+        return dhtype == ZrtpConstants.SupportedPubKeys.DH3K && !pvr.equals(ZrtpConstants.P3072MinusOne);
     }
 
     // public static void main(String argv[]) {

@@ -29,14 +29,15 @@ import org.bouncycastle.crypto.engines.AESFastEngine;
 import org.bouncycastle.crypto.engines.TwofishEngine;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
 
+import org.bouncycastle.cryptozrtp.AsymmetricCipherKeyPairGenerator;
+import org.bouncycastle.cryptozrtp.BasicAgreement;
+import org.bouncycastle.cryptozrtp.agreement.Djb25519DHBasicAgreement;
 import org.bouncycastle.cryptozrtp.agreement.ECDHBasicAgreement;
-import org.bouncycastle.cryptozrtp.params.ECDomainParameters;
-import org.bouncycastle.cryptozrtp.params.ECKeyGenerationParameters;
+import org.bouncycastle.cryptozrtp.generators.Djb25519KeyPairGenerator;
+import org.bouncycastle.cryptozrtp.params.*;
 import org.bouncycastle.cryptozrtp.agreement.DHBasicAgreement;
 import org.bouncycastle.cryptozrtp.generators.DHBasicKeyPairGenerator;
 import org.bouncycastle.cryptozrtp.generators.ECKeyPairGenerator;
-import org.bouncycastle.cryptozrtp.params.DHKeyGenerationParameters;
-import org.bouncycastle.cryptozrtp.params.DHParameters;
 import org.bouncycastle.mathzrtp.ec.ECCurve;
 
 /**
@@ -260,6 +261,8 @@ public class ZrtpConstants {
         (byte)0x42, (byte)0x33, (byte)0x32, (byte)0x20};        // "B32 "
     public static final byte[] b256 = {
         (byte)0x42, (byte)0x32, (byte)0x35, (byte)0x36};        // "B256"
+    public static final byte[] b32e = {
+        (byte)0x42, (byte)0x33, (byte)0x32, (byte)0x45};        // "B32E"
     public static final byte[] hs32 = {
         (byte)0x48, (byte)0x53, (byte)0x33, (byte)0x32};        // "HS32"
     public static final byte[] hs80 = {
@@ -272,18 +275,19 @@ public class ZrtpConstants {
         (byte)0x45, (byte)0x43, (byte)0x32, (byte)0x35};        // "EC25"
     public static final byte[] ec38 = {
         (byte)0x45, (byte)0x43, (byte)0x33, (byte)0x38};        // "EC38"
+    public static final byte[] e255 = {
+            (byte)0x45, (byte)0x32, (byte)0x35, (byte)0x35 };   // "E255"
 
-   public static enum  SupportedHashes {
+    public enum  SupportedHashes {
         S256(s256),
         S384(s384);
         
         public byte[] name;
-        private SupportedHashes(byte[] nm) {
+        SupportedHashes(byte[] nm) {
             name = nm;
         }
     }
-
-   public static enum SupportedSymCiphers {
+    public enum SupportedSymCiphers {
         AES3(aes3, 32, AES_256, new BufferedBlockCipher(new CFBBlockCipher(new AESFastEngine(), 128)), SupportedSymAlgos.AES),
         AES1(aes1, 16, AES_128, new BufferedBlockCipher(new CFBBlockCipher(new AESFastEngine(), 128)), SupportedSymAlgos.AES), 
         TWO3(two3, 32, TWO_256, new BufferedBlockCipher(new CFBBlockCipher(new TwofishEngine(), 128)), SupportedSymAlgos.TwoFish),
@@ -295,7 +299,7 @@ public class ZrtpConstants {
         final public BufferedBlockCipher cipher;
         final public SupportedSymAlgos algo;
 
-        private SupportedSymCiphers(byte[] nm, int klen, String ra,
+        SupportedSymCiphers(byte[] nm, int klen, String ra,
                 BufferedBlockCipher ci, SupportedSymAlgos al) {
             name = nm;
             keyLength = klen;
@@ -305,14 +309,14 @@ public class ZrtpConstants {
         }
     }
 
-    public static enum SupportedSymAlgos {
+    public enum SupportedSymAlgos {
         AES, TwoFish
     }
 
     public static final X9ECParameters x9Ec25 = SECNamedCurves.getByName("secp256r1");
     public static final X9ECParameters x9Ec38 = SECNamedCurves.getByName("secp384r1");
 
-    public static enum SupportedPubKeys {
+    public enum SupportedPubKeys {
         EC25(ec25, 64, new ECKeyGenerationParameters(
                 new ECDomainParameters(x9Ec25.getCurve(),
                         x9Ec25.getG(), x9Ec25.getN(), x9Ec25.getH(),
@@ -321,6 +325,9 @@ public class ZrtpConstants {
                 new ECDomainParameters(x9Ec38.getCurve(),
                          x9Ec38.getG(), x9Ec38.getN(), x9Ec38.getH(),
                          x9Ec38.getSeed()), ZrtpFortuna.getInstance())), 
+
+        E255(e255, 32, new Djb25519KeyGenerationParameters(ZrtpFortuna.getInstance())),
+
         DH2K(dh2k, 256,
                 new DHKeyGenerationParameters(ZrtpFortuna.getInstance(),
                         specDh2k)), 
@@ -331,15 +338,15 @@ public class ZrtpConstants {
 
 
         public byte[] name;
-        final public DHBasicKeyPairGenerator dhKeyPairGen;
-        final public ECKeyPairGenerator ecKeyPairGen;
+        final public AsymmetricCipherKeyPairGenerator dhKeyPairGen;
+        final public AsymmetricCipherKeyPairGenerator ecKeyPairGen;
         final public int pubKeySize;
         final public DHParameters specDh;
         final public ECCurve curve;
-        final public ECDHBasicAgreement ecdhContext;
-        final public DHBasicAgreement dhContext;
+        final public BasicAgreement ecdhContext;
+        final public BasicAgreement dhContext;
 
-        private SupportedPubKeys(byte[] nm) {
+        SupportedPubKeys(byte[] nm) {
             name = nm;
             pubKeySize = 0;
             dhKeyPairGen = null;
@@ -350,8 +357,7 @@ public class ZrtpConstants {
             curve = null;            
         }
         
-        private SupportedPubKeys(byte[] nm, int size,
-                ECKeyGenerationParameters ecdh) {
+        SupportedPubKeys(byte[] nm, int size, ECKeyGenerationParameters ecdh) {
             name = nm;
             pubKeySize = size;
             if (ecdh != null) {
@@ -370,8 +376,7 @@ public class ZrtpConstants {
             dhContext = null;
         }
 
-        private SupportedPubKeys(byte[] nm, int size,
-                DHKeyGenerationParameters dh) {
+        SupportedPubKeys(byte[] nm, int size, DHKeyGenerationParameters dh) {
             name = nm;
             pubKeySize = size;
             if (dh != null) {
@@ -389,19 +394,33 @@ public class ZrtpConstants {
             ecKeyPairGen = null;
             curve = null;
         }
+
+        SupportedPubKeys(byte[] nm, int size, Djb25519KeyGenerationParameters djbdh) {
+            name = nm;
+            pubKeySize = size;
+            ecKeyPairGen = new Djb25519KeyPairGenerator();
+            ecKeyPairGen.init(djbdh);
+            ecdhContext = new Djb25519DHBasicAgreement();
+            curve = null;
+
+            dhKeyPairGen = null;
+            specDh = null;
+            dhContext = null;
+        }
     }
 
-    public static enum SupportedSASTypes {
+    public enum SupportedSASTypes {
         B32(b32),
-        B256(b256);
+        B256(b256),
+        B32E(b32e);
         
         public byte[] name;
-        private SupportedSASTypes(byte[] nm) {
+        SupportedSASTypes(byte[] nm) {
             name = nm;
         }
     }
 
-    public static enum SupportedAuthLengths {
+    public enum SupportedAuthLengths {
         SK32(sk32, SupportedAuthAlgos.SK, 32),
         HS32(hs32, SupportedAuthAlgos.HS, 32),
         SK64(sk64, SupportedAuthAlgos.SK, 64),
@@ -410,14 +429,14 @@ public class ZrtpConstants {
         final public byte[] name;
         final public SupportedAuthAlgos algo;
         final public int length;
-        private SupportedAuthLengths(byte[] nm, SupportedAuthAlgos al, int len) {
+        SupportedAuthLengths(byte[] nm, SupportedAuthAlgos al, int len) {
             name = nm;
             algo = al;
             length = len;
         }
     }
     
-    public static enum SupportedAuthAlgos {
+    public enum SupportedAuthAlgos {
         HS, SK
     }
 

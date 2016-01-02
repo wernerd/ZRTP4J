@@ -1,6 +1,8 @@
 package demo;
 
 import gnu.java.zrtp.ZrtpCodes;
+import gnu.java.zrtp.ZrtpConfigure;
+import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.ZrtpUserCallback;
 import gnu.java.zrtp.jmf.transform.TransformManager;
 import gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine;
@@ -40,7 +42,13 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
 
         public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
             Iterator<?> ii = subCode.iterator();
-            System.err.println("Rx show message sub code: " + ii.next());
+            if (sev == ZrtpCodes.MessageSeverity.Info) {
+                ZrtpCodes.InfoCodes inf = (ZrtpCodes.InfoCodes) ii.next();
+                System.err.println("Rx show message sub code: " + inf);
+                if (inf == ZrtpCodes.InfoCodes.InfoSecureStateOn) {
+                    System.err.println("Rx peer hello hash: " + zrtpEngine.getPeerHelloHash());
+                }
+            }
         }
 
         public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity,
@@ -85,16 +93,29 @@ public class ReceiverZRTP implements ReceiveStreamListener, SessionListener,
 
         try {
             // create a ZRTP connector with own bind address
-            transConnector = (ZrtpTransformConnector) TransformManager
-                    .createZRTPConnector(sa);
+            transConnector = (ZrtpTransformConnector) TransformManager.createZRTPConnector(sa);
             zrtpEngine = transConnector.getEngine();
             zrtpEngine.setUserCallback(new MyCallback());
-            
-            if (!zrtpEngine.initialize("test_t.zid"))
-                System.out.println("iniatlize failed");
+
+            ZrtpConfigure config = new ZrtpConfigure();
+//            config.setStandardConfig();
+            config.clear();
+            config.addPubKeyAlgo(ZrtpConstants.SupportedPubKeys.E255);
+//                config.addPubKeyAlgo(ZrtpConstants.SupportedPubKeys.DH3K);
+//                config.addPubKeyAlgo(ZrtpConstants.SupportedPubKeys.EC25);
+//                config.addHashAlgo(ZrtpConstants.SupportedHashes.S384);
+
+//                config.setMandatoryOnly();
+            config.addSasTypeAlgo(ZrtpConstants.SupportedSASTypes.B32E);
+            if (!zrtpEngine.initialize("test_t.zid", config))
+                System.out.println("initialize failed");
+
+            int versions = zrtpEngine.getNumberSupportedVersions();
+            for (int idx = 0; idx < versions; idx++)
+                System.err.println("Rx Hello hash: " + zrtpEngine.getHelloHash(idx));
+
 
             // initialize the RTPManager using the ZRTP connector
-
             mgr = RTPManager.newInstance();
             mgr.initialize(transConnector);
 
