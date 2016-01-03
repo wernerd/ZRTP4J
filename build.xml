@@ -34,7 +34,7 @@
 		<property name="jmf" value="jmf.jar" />
 		<property name="bc" value="bcprov-jdk15on-148.jar" />
         <property name="bccontrib" value="bccontrib-1.0-SNAPSHOT.jar" />
-		<property name="junit" value="junit.jar" />
+		<property name="junit" value="junit-3.8.1.jar" />
 
 		<!-- set the path ids to use in the compile targets. To compile
 			 we need some 3rd party libs.

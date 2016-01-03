@@ -757,7 +757,7 @@ public class ZRtp {
      * data as a string.
      * 
      * @param  index 
-     *         Hello hash of the Hello packet identfied by index. Index must be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
+     *         Hello hash of the Hello packet identified by index. Index must be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      *
      * @return a string containing the Hello hash value as hex-digits. The
      *         hello hash is available immediately after class instantiation.

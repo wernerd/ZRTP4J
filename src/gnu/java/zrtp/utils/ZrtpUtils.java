@@ -19,7 +19,7 @@
 
 package gnu.java.zrtp.utils;
 
-import com.sun.istack.internal.NotNull;
+import gnu.java.zrtp.annotations.NonNull;
 
 /**
  * Some helpful functions, all public static
@@ -184,7 +184,7 @@ public class ZrtpUtils {
         }
     }
 
-    @NotNull
+    @NonNull
     public static char[] bytesToHexString(byte[] in, int length) {
         if (length > in.length)
             length = in.length;

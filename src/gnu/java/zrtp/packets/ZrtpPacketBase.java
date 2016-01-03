@@ -19,7 +19,7 @@
 
 package gnu.java.zrtp.packets;
 
-import com.sun.istack.internal.NotNull;
+import gnu.java.zrtp.annotations.NonNull;
 import gnu.java.zrtp.utils.ZrtpUtils;
 
 /**
@@ -98,7 +98,7 @@ public class ZrtpPacketBase {
     }
 
     @SuppressWarnings("unused")
-    @NotNull
+    @NonNull
     public final String getMessageType() {
         return new String(packetBuffer, TYPE_OFFSET, TYPE_LENGTH); 
     }
