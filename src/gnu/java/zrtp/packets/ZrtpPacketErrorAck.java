@@ -56,6 +56,7 @@ public class ZrtpPacketErrorAck extends ZrtpPacketBase {
      * 
      * @param data received from the network.
      */
+    @SuppressWarnings("unused")
     public ZrtpPacketErrorAck(final byte[] data) {
         super(data);
     }

@@ -40,14 +40,14 @@ public interface ZrtpCodes {
     *
     * <dl>
     * <dt>Info</dt> <dd>keeps the user informed about ongoing processing and
-    *     security setup. The enumeration InfoCodes defines the subcodes.
+    *     security setup. The enumeration InfoCodes defines the sub-codes.
     * </dd>
     * <dt>Warning</dt> <dd>is an information about some security issues, e.g. if
     *     an AES 256 encryption is request but only DH 3072 as public key scheme
     *     is supported. ZRTP will establish a secure session (SRTP). The
     *     enumeration WarningCodes defines the sub-codes.
     * </dd>
-    * <dt>Severe</dt> <dd>is used if an error occured during ZRTP protocol usage.
+    * <dt>Severe</dt> <dd>is used if an error occurred during ZRTP protocol usage.
     *     In case of <em>Severe</em> ZRTP will <b>not</b> establish a secure session.
     *     The enumeration SevereCodes defines the sub-codes.
     * </dd>
@@ -57,16 +57,16 @@ public interface ZrtpCodes {
     * </dd>
     * </dl>
     */
-    public static enum  MessageSeverity {
+    enum  MessageSeverity {
         Info,
         Warning,
         Severe,
-        ZrtpError;
-    }
+        ZrtpError
+   }
     /**
      * Sub-codes for Info
      */
-    public static enum InfoCodes {
+    enum InfoCodes {
         InfoHelloReceived,              //!< Hello received, preparing a Commit
         InfoCommitDHGenerated,          //!< Commit: Generated a public DH key
         InfoRespCommitReceived,         //!< Responder: Commit received, preparing DHPart1
@@ -77,13 +77,13 @@ public interface ZrtpCodes {
         InfoRespConf2Received,          //!< Responder: Confirm2 received, preparing Conf2Ack
         InfoRSMatchFound,               //!< At least one retained secrets matches - security OK
         InfoSecureStateOn,              //!< Entered secure state
-        InfoSecureStateOff;             //!< No more security for this session
+        InfoSecureStateOff              //!< No more security for this session
     }
 
     /**
      * Sub-codes for Warning
      */
-    public static enum WarningCodes {
+    enum WarningCodes {
         WarningDHAESmismatch,           //!< Commit contains an AES256 cipher but does not offer a Diffie-Helman 4096
         WarningGoClearReceived,         //!< Received a GoClear message
         WarningDHShort,                 //!< Hello offers an AES256 cipher but does not offer a Diffie-Helman 4096
@@ -91,23 +91,23 @@ public interface ZrtpCodes {
         WarningCRCmismatch,             //!< Internal ZRTP packet checksum mismatch - packet dropped
         WarningSRTPauthError,           //!< Dropping packet because SRTP authentication failed!
         WarningSRTPreplayError,         //!< Dropping packet because SRTP replay check failed!
-        WarningNoExpectedRSMatch;       //!< Valid retained shared secrets availabe but no matches found - must verify SAS
+        WarningNoExpectedRSMatch        //!< Valid retained shared secrets availabe but no matches found - must verify SAS
 
     }
 
     /**
      * Sub-codes for Severe
      */
-    public static enum SevereCodes {
+    enum SevereCodes {
         SevereHelloHMACFailed,          //!< Hash HMAC check of Hello failed!
         SevereCommitHMACFailed,         //!< Hash HMAC check of Commit failed!
         SevereDH1HMACFailed,            //!< Hash HMAC check of DHPart1 failed!
         SevereDH2HMACFailed,            //!< Hash HMAC check of DHPart2 failed!
         SevereCannotSend,               //!< Cannot send data - connection or peer down?
-        SevereProtocolError,            //!< Internal protocol error occured!
+        SevereProtocolError,            //!< Internal protocol error occurred!
         SevereNoTimer,                  //!< Cannot start a timer - internal resources exhausted?
         SevereTooMuchRetries,           //!< Too much retries during ZRTP negotiation - connection or peer down?
-        SevereSecurityException;        //!< Java throwed a security exception
+        SevereSecurityException         //!< Java throwed a security exception
     }
 
     /**
@@ -115,13 +115,13 @@ public interface ZrtpCodes {
       *
       * GNU ZRTP uses these error codes in two ways: to fill the appropriate
       * field ing the ZRTP Error packet and as sub-code in 
-      * ZrtpUserCallback#showMessage(). GNU ZRTP uses thes error codes also
-      * to report received Error packts, in this case the sub-codes are their
+      * ZrtpUserCallback#showMessage(). GNU ZRTP uses these error codes also
+      * to report received Error packtes, in this case the sub-codes are their
       * negative values.
       *
       * The enumeration member comments are copied from the ZRTP specification.
       */
-    public static enum ZrtpErrorCodes {
+    enum ZrtpErrorCodes {
         MalformedPacket(0x10),          //!< Malformed packet (CRC OK, but wrong structure)
         CriticalSWError(0x20),          //!< Critical software error
         UnsuppZRTPVersion(0x30),        //!< Unsupported ZRTP version
@@ -142,7 +142,7 @@ public interface ZrtpCodes {
         IgnorePacket(0x7fffffff);
         
         public int value;
-        private ZrtpErrorCodes(int val) {
+        ZrtpErrorCodes(int val) {
             value = val;
         }
 
@@ -151,9 +151,9 @@ public interface ZrtpCodes {
     /**
      * Information codes for the Enrollment user callbacks.
      */
-    public static enum InfoEnrollment {
-        EnrollmentRequest,              //!< Aks user to confirm or deny an Enrollemnt request
-        EnrollmentCanceled,             //!< User did not confirm the PBX enrollement
+    enum InfoEnrollment {
+        EnrollmentRequest,              //!< Aks user to confirm or deny an enrollment request
+        EnrollmentCanceled,             //!< User did not confirm the PBX enrollment
         EnrollmentFailed,               //!< Enrollment process failed, no PBX secret available
         EnrollmentOk                    //!< Enrollment process for this PBX was ok
     }

@@ -48,13 +48,12 @@ public class ZrtpConstants {
     
     // Number of bytes of a SHA256 hash
     public static final int SHA256_DIGEST_LENGTH = 32;
-    public static final int SHA384_DIGEST_LENGTH = 48;
     public static final int MAX_DIGEST_LENGTH = 64;
 
     // The following string must contain ASCII characters only
     //                                               1
     //                                     0123456789012345
-    public static final String clientId = "GNU ZRTP4J 3.1.0"  ;
+    public static final String clientId = "GNU ZRTP4J 4.1.0"  ;
  
 //  "1.10"
     public static final byte[] zrtpVersion_11 = {
@@ -122,12 +121,12 @@ public class ZrtpConstants {
         (byte)0x50, (byte)0x69, (byte)0x6e, (byte)0x67, (byte)0x41, (byte)0x43, (byte)0x4b, (byte)0x20};
 
 //  "GoClear "
-    public static final byte[] GoClearMsg = {
-        (byte)0x47, (byte)0x6f, (byte)0x43, (byte)0x6c, (byte)0x65, (byte)0x61, (byte)0x72, (byte)0x20};
+//    public static final byte[] GoClearMsg = {
+//        (byte)0x47, (byte)0x6f, (byte)0x43, (byte)0x6c, (byte)0x65, (byte)0x61, (byte)0x72, (byte)0x20};
 
 //  "ClearACK"
-    public static final byte[] ClearAckMsg = {
-        (byte)0x43, (byte)0x6c, (byte)0x65, (byte)0x61, (byte)0x72, (byte)0x41, (byte)0x43, (byte)0x4b};
+//    public static final byte[] ClearAckMsg = {
+//        (byte)0x43, (byte)0x6c, (byte)0x65, (byte)0x61, (byte)0x72, (byte)0x41, (byte)0x43, (byte)0x4b};
 
 //  "SASrelay"
     public static final byte[] SASRelayMsg = {
@@ -249,8 +248,8 @@ public class ZrtpConstants {
         (byte)0x32, (byte)0x46, (byte)0x53, (byte)0x31};        // "2FS1"
     public static final byte[] two3 = {
         (byte)0x32, (byte)0x46, (byte)0x53, (byte)0x33};        // "2FS3"
-    public static final byte[] dh4k = {
-        (byte)0x44, (byte)0x48, (byte)0x34, (byte)0x6b};        // "DH4k"
+//    public static final byte[] dh4k = {
+//        (byte)0x44, (byte)0x48, (byte)0x34, (byte)0x6b};        // "DH4k"
     public static final byte[] dh3k = {
         (byte)0x44, (byte)0x48, (byte)0x33, (byte)0x6b};        // "DH3k"
     public static final byte[] dh2k = {
@@ -299,10 +298,9 @@ public class ZrtpConstants {
         final public BufferedBlockCipher cipher;
         final public SupportedSymAlgos algo;
 
-        SupportedSymCiphers(byte[] nm, int klen, String ra,
-                BufferedBlockCipher ci, SupportedSymAlgos al) {
+        SupportedSymCiphers(byte[] nm, int keyLen, String ra, BufferedBlockCipher ci, SupportedSymAlgos al) {
             name = nm;
-            keyLength = klen;
+            keyLength = keyLen;
             readable = ra;
             cipher = ci;
             algo = al;
@@ -317,95 +315,81 @@ public class ZrtpConstants {
     public static final X9ECParameters x9Ec38 = SECNamedCurves.getByName("secp384r1");
 
     public enum SupportedPubKeys {
-        EC25(ec25, 64, new ECKeyGenerationParameters(
-                new ECDomainParameters(x9Ec25.getCurve(),
-                        x9Ec25.getG(), x9Ec25.getN(), x9Ec25.getH(),
-                        x9Ec25.getSeed()), ZrtpFortuna.getInstance())), 
-        EC38(ec38, 96, new ECKeyGenerationParameters(
-                new ECDomainParameters(x9Ec38.getCurve(),
-                         x9Ec38.getG(), x9Ec38.getN(), x9Ec38.getH(),
-                         x9Ec38.getSeed()), ZrtpFortuna.getInstance())), 
+        EC25(ec25, 64, new ECKeyGenerationParameters(new ECDomainParameters(x9Ec25.getCurve(),
+                x9Ec25.getG(), x9Ec25.getN(), x9Ec25.getH(),
+                x9Ec25.getSeed()), ZrtpFortuna.getInstance())),
+        EC38(ec38, 96, new ECKeyGenerationParameters(new ECDomainParameters(x9Ec38.getCurve(),
+                x9Ec38.getG(), x9Ec38.getN(), x9Ec38.getH(),
+                x9Ec38.getSeed()), ZrtpFortuna.getInstance())),
 
         E255(e255, 32, new Djb25519KeyGenerationParameters(ZrtpFortuna.getInstance())),
 
-        DH2K(dh2k, 256,
-                new DHKeyGenerationParameters(ZrtpFortuna.getInstance(),
-                        specDh2k)), 
-        DH3K(dh3k, 384,
-                new DHKeyGenerationParameters(ZrtpFortuna.getInstance(),
-                        specDh3k)), 
+        DH2K(dh2k, 256, new DHKeyGenerationParameters(ZrtpFortuna.getInstance(),
+                specDh2k)),
+        DH3K(dh3k, 384, new DHKeyGenerationParameters(ZrtpFortuna.getInstance(),
+                specDh3k)),
         MULT(mult);
 
 
         public byte[] name;
-        final public AsymmetricCipherKeyPairGenerator dhKeyPairGen;
-        final public AsymmetricCipherKeyPairGenerator ecKeyPairGen;
+        final public AsymmetricCipherKeyPairGenerator keyPairGen;
         final public int pubKeySize;
         final public DHParameters specDh;
         final public ECCurve curve;
-        final public BasicAgreement ecdhContext;
         final public BasicAgreement dhContext;
 
         SupportedPubKeys(byte[] nm) {
             name = nm;
             pubKeySize = 0;
-            dhKeyPairGen = null;
+            keyPairGen = null;
             specDh = null;
             dhContext = null;
-            ecdhContext = null;
-            ecKeyPairGen = null;
-            curve = null;            
+            curve = null;
         }
         
         SupportedPubKeys(byte[] nm, int size, ECKeyGenerationParameters ecdh) {
             name = nm;
             pubKeySize = size;
             if (ecdh != null) {
-                ecKeyPairGen = new ECKeyPairGenerator();
-                ecKeyPairGen.init(ecdh);
+                keyPairGen = new ECKeyPairGenerator();
+                keyPairGen.init(ecdh);
                 curve = ecdh.getDomainParameters().getCurve();
-                ecdhContext = new ECDHBasicAgreement();
+                dhContext = new ECDHBasicAgreement();
             }
             else {
-                ecKeyPairGen = null;
                 curve = null;
-                ecdhContext = null;
+                keyPairGen = null;
+                dhContext = null;
             }
-            dhKeyPairGen = null;
             specDh = null;
-            dhContext = null;
         }
 
         SupportedPubKeys(byte[] nm, int size, DHKeyGenerationParameters dh) {
             name = nm;
             pubKeySize = size;
             if (dh != null) {
-                dhKeyPairGen = new DHBasicKeyPairGenerator();
-                dhKeyPairGen.init(dh);
+                keyPairGen = new DHBasicKeyPairGenerator();
+                keyPairGen.init(dh);
                 specDh = dh.getParameters();
                 dhContext = new DHBasicAgreement();
             }
             else {
-                dhKeyPairGen = null;
+                keyPairGen = null;
                 specDh = null;
                 dhContext = null;
             }
-            ecdhContext = null;
-            ecKeyPairGen = null;
             curve = null;
         }
 
         SupportedPubKeys(byte[] nm, int size, Djb25519KeyGenerationParameters djbdh) {
             name = nm;
             pubKeySize = size;
-            ecKeyPairGen = new Djb25519KeyPairGenerator();
-            ecKeyPairGen.init(djbdh);
-            ecdhContext = new Djb25519DHBasicAgreement();
+            keyPairGen = new Djb25519KeyPairGenerator();
+            keyPairGen.init(djbdh);
+            dhContext = new Djb25519DHBasicAgreement();
             curve = null;
 
-            dhKeyPairGen = null;
             specDh = null;
-            dhContext = null;
         }
     }
 

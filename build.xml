@@ -109,7 +109,7 @@
 
 	<!-- Compile classes and store them to ${*-build.classes} -->
 	<target name="compile" depends="prepare">
-		<javac target="1.5" srcdir="${common-src}" destdir="${common-build.classes}" debug="on">
+		<javac source="1.7" target="1.7" srcdir="${common-src}" destdir="${common-build.classes}" debug="on">
             <classpath refid="common.libraries"/>			
 		</javac>
 	</target>

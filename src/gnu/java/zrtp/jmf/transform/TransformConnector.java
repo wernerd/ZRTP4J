@@ -182,8 +182,8 @@ public class TransformConnector
 
         if (this.ctrlOutputStream != null)
         {
-            ok &= this.ctrlOutputStream.removeTarget(target.getControlAddress(),
-                                                    target.getControlPort());
+            ok = this.ctrlOutputStream.removeTarget(target.getControlAddress(),
+                    target.getControlPort());
         }
 
         if (this.dataOutputStream != null)
@@ -199,6 +199,7 @@ public class TransformConnector
      * Remove all stream targets. After this operation is done. There will be
      * no targets receiving data, so no data will be sent.
      */
+    @SuppressWarnings("unused")
     public void removeTargets()
     {
         if (this.ctrlOutputStream != null)

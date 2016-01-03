@@ -54,12 +54,12 @@ public interface ZrtpCallback {
      * </li>
      * </ul>
      */
-    public static enum  Role {
+    enum  Role {
         Responder,
         Initiator
     }
 
-    public static enum EnableSecurity {
+    enum EnableSecurity {
         ForReceiver,
         ForSender
     }
@@ -74,7 +74,7 @@ public interface ZrtpCallback {
      * @return
      *    false if sending failed, true if packet was send
      */
-    public boolean sendDataZRTP(byte[] data);
+    boolean sendDataZRTP(byte[] data);
 
     /**
      * Activate timer.
@@ -84,7 +84,7 @@ public interface ZrtpCallback {
      * @return
      *    zero if activation failed, one if timer was activated
      */
-    public int activateTimer(int time);
+    int activateTimer(int time);
 
     /**
      * Cancel the active timer.
@@ -92,7 +92,7 @@ public interface ZrtpCallback {
      * @return
      *    zero if cancel action failed, one if timer was canceled
      */
-    public int cancelTimer();
+    int cancelTimer();
 
     /**
      * Send information messages to the hosting environment.
@@ -106,9 +106,9 @@ public interface ZrtpCallback {
      *     This defines the message's severity
      * @param subCode
      *     The subcode identifying the reason.
-     * @see gnu.java.zrtp.ZrtpCodes#MessageSeverity
+     * @see gnu.java.zrtp.ZrtpCodes.MessageSeverity
      */
-    public void sendInfo(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode);
+    void sendInfo(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode);
 
     /**
      * SRTP crypto data ready for the sender or receiver.
@@ -139,7 +139,7 @@ public interface ZrtpCallback {
      *      true if secrets could be set and crypto contexts created.
      *
      */
-    public boolean srtpSecretsReady(ZrtpSrtpSecrets secrets, EnableSecurity part);
+    boolean srtpSecretsReady(ZrtpSrtpSecrets secrets, EnableSecurity part);
 
     /**
      * Switch off the security for the defined part.
@@ -147,7 +147,7 @@ public interface ZrtpCallback {
      * @param part Defines for which part (sender or receiver) to
      *    switch on security
      */
-    public void srtpSecretsOff(EnableSecurity part);
+    void srtpSecretsOff(EnableSecurity part);
 
     /**
      * Switch on the security.
@@ -167,7 +167,7 @@ public interface ZrtpCallback {
      * @param verified if <code>verified</code> is true then SAS was
      *    verified by both parties during a previous call.
      */
-    public void srtpSecretsOn(String c, String s, boolean verified);
+    void srtpSecretsOn(String c, String s, boolean verified);
 
     /**
      * This method handles GoClear requests.
@@ -179,7 +179,8 @@ public interface ZrtpCallback {
      * <b>Note:</b> GoClear is not yet implemented in GNU ZRTP.
      *
      */
-    public void handleGoClear();
+    @SuppressWarnings("unused")
+    void handleGoClear();
 
     /**
      * Handle ZRTP negotiation failed.
@@ -191,9 +192,9 @@ public interface ZrtpCallback {
      *     This defines the message's severity
      * @param subCode
      *     The subcode identifying the reason.
-     * @see gnu.java.zrtp.ZrtpCodes#MessageSeverity
+     * @see gnu.java.zrtp.ZrtpCodes.MessageSeverity
      */
-    public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode);
+    void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode);
 
     /**
      * ZRTP calls this method if the other side does not support ZRTP.
@@ -202,7 +203,7 @@ public interface ZrtpCallback {
      * ZRTP calls this method,
      *
      */
-    public void zrtpNotSuppOther();
+    void zrtpNotSuppOther();
 
     /**
      * Inform about a PBX enrollment request.
@@ -213,7 +214,7 @@ public interface ZrtpCallback {
      * @param info Give some information to the user about the PBX
      *    requesting an enrollment.
      */
-    public void zrtpAskEnrollment(ZrtpCodes.InfoEnrollment info);
+    void zrtpAskEnrollment(ZrtpCodes.InfoEnrollment info);
 
     /**
      * Inform about PBX enrollment result.
@@ -224,7 +225,7 @@ public interface ZrtpCallback {
      * @param info Give some information to the user about the result
      *    of an enrollment.
      */
-    public void zrtpInformEnrollment(ZrtpCodes.InfoEnrollment info);
+    void zrtpInformEnrollment(ZrtpCodes.InfoEnrollment info);
 
     /**
      * Request a SAS signature.
@@ -246,7 +247,7 @@ public interface ZrtpCallback {
      *
      * @see gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine#setSignatureData
      */
-    public void signSAS(byte[] sasHash);
+    void signSAS(byte[] sasHash);
 
     /**
      * ZRTP calls this method to request a SAS signature check.
@@ -272,6 +273,5 @@ public interface ZrtpCallback {
      *
      * @see gnu.java.zrtp.jmf.transform.zrtp.ZRTPTransformEngine#getSignatureData
      */
-    public boolean checkSASSignature(byte[] sasHash);
-
+    boolean checkSASSignature(byte[] sasHash);
 }

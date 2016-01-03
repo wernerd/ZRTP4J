@@ -19,6 +19,8 @@
 
 package gnu.java.zrtp.utils;
 
+import com.sun.istack.internal.NotNull;
+
 /**
  * Some helpful functions, all public static
  * 
@@ -66,6 +68,7 @@ public class ZrtpUtils {
      * @param data the 16 bit integer to send over the network
      * @return the byte array conating the converted short integer
      */
+    @SuppressWarnings("unused")
     public static byte[] short16ToArray(int data) {
         byte[] output = new byte[2];
         output[0] = (byte) (data >> 8);
@@ -94,7 +97,7 @@ public class ZrtpUtils {
      */
     public static short readShort(byte[] buffer, int offset)
     {
-        return (short) (((buffer[offset + 0] & 0xff) << 8) |
+        return (short) (((buffer[offset] & 0xff) << 8) |
                          (buffer[offset + 1] & 0xff));
     }
 
@@ -110,7 +113,7 @@ public class ZrtpUtils {
      */
     public static int readInt(byte[] buffer, int offset)
     {
-        return ((buffer[offset + 0] << 24) |
+        return ((buffer[offset] << 24) |
                ((buffer[offset + 1] & 0xff) << 16) |
                ((buffer[offset + 2] & 0xff) <<  8) |
                 (buffer[offset + 3] & 0xff));
@@ -181,9 +184,10 @@ public class ZrtpUtils {
         }
     }
 
+    @NotNull
     public static char[] bytesToHexString(byte[] in, int length) {
         if (length > in.length)
-            return null;
+            length = in.length;
         
         char[] out = new char[length * 2];
 

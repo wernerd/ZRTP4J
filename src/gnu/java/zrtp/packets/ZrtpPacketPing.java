@@ -50,6 +50,7 @@ public class ZrtpPacketPing extends ZrtpPacketBase {
      * 
      *
      */
+    @SuppressWarnings("unused")
     protected ZrtpPacketPing() {
         super(new byte[PING_LENGTH]);
         setZrtpId();
@@ -81,14 +82,13 @@ public class ZrtpPacketPing extends ZrtpPacketBase {
 
     /**
      * Set the endpoint hash.
-     * 
-     * @return the endpoint hash.
      */
-    protected final void setEpHash(final byte[] data) {
+    @SuppressWarnings("unused")
+    public final void setEpHash(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, EP_OFFSET, 2*ZRTP_WORD_SIZE);
     }
     
-    private final void setVersion(final byte[] data) {
+    private void setVersion(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, VERSION_OFFSET, ZRTP_WORD_SIZE);
     }
 }

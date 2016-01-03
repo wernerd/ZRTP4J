@@ -174,8 +174,7 @@ public class Base32 {
         } while (len > 0);
 
         /* truncate any unused trailing zero quintets */
-        String encoded = new String(result, 0, divceil(lengthInBits, 5));
-        return encoded;
+        return new String(result, 0, divceil(lengthInBits, 5));
     }
 
     
@@ -192,6 +191,7 @@ public class Base32 {
      * @return
      *     The byte array containg the decoded data.
      */
+    @SuppressWarnings("unused")
     public static byte[] ascii2binary(String cs, int lengthInBits ) {
         
         int x = 0;    // to hold up to 32 bits worth of the input

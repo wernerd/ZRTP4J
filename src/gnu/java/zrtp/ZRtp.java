@@ -19,45 +19,29 @@
 
 package gnu.java.zrtp;
 
-import djb.Curve25519;
+import gnu.java.bigintcrypto.BigIntegerCrypto;
 import gnu.java.zrtp.ZrtpConstants.SupportedSASTypes;
-import gnu.java.zrtp.packets.ZrtpPacketBase;
-import gnu.java.zrtp.packets.ZrtpPacketCommit;
-import gnu.java.zrtp.packets.ZrtpPacketConf2Ack;
-import gnu.java.zrtp.packets.ZrtpPacketConfirm;
-import gnu.java.zrtp.packets.ZrtpPacketDHPart;
-import gnu.java.zrtp.packets.ZrtpPacketError;
-import gnu.java.zrtp.packets.ZrtpPacketErrorAck;
-import gnu.java.zrtp.packets.ZrtpPacketHello;
-import gnu.java.zrtp.packets.ZrtpPacketHelloAck;
-import gnu.java.zrtp.packets.ZrtpPacketPingAck;
-import gnu.java.zrtp.packets.ZrtpPacketPing;
-import gnu.java.zrtp.packets.ZrtpPacketRelayAck;
-import gnu.java.zrtp.packets.ZrtpPacketSASRelay;
+import gnu.java.zrtp.packets.*;
 import gnu.java.zrtp.utils.Base32;
 import gnu.java.zrtp.utils.EmojiBase32;
-import gnu.java.zrtp.utils.ZrtpUtils;
 import gnu.java.zrtp.utils.ZrtpFortuna;
+import gnu.java.zrtp.utils.ZrtpUtils;
 import gnu.java.zrtp.zidfile.ZidFile;
 import gnu.java.zrtp.zidfile.ZidRecord;
-
-import java.util.EnumSet;
-import java.util.Arrays;
-
-import gnu.java.bigintcrypto.BigIntegerCrypto;
-
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA384Digest;
 import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
-
 import org.bouncycastle.cryptozrtp.AsymmetricCipherKeyPair;
 import org.bouncycastle.cryptozrtp.params.DHPublicKeyParameters;
 import org.bouncycastle.cryptozrtp.params.Djb25519PublicKeyParameters;
 import org.bouncycastle.cryptozrtp.params.ECPublicKeyParameters;
 import org.bouncycastle.mathzrtp.ec.ECPoint;
+
+import java.util.Arrays;
+import java.util.EnumSet;
 
 /**
  * The main ZRTP class.
@@ -1311,7 +1295,7 @@ public class ZRtp {
 
         if (pubKey == ZrtpConstants.SupportedPubKeys.DH2K || pubKey == ZrtpConstants.SupportedPubKeys.DH3K) {
 
-            dhKeyPair = pubKey.dhKeyPairGen.generateKeyPair();
+            dhKeyPair = pubKey.keyPairGen.generateKeyPair();
             pubKeyBytes = ((DHPublicKeyParameters) dhKeyPair.getPublic()).getY().toByteArray();
 
             if (pubKeyBytes.length != pubKey.pubKeySize) {
@@ -1322,13 +1306,13 @@ public class ZRtp {
         // Here produce the ECDH stuff
         else if (pubKey == ZrtpConstants.SupportedPubKeys.EC25 || pubKey == ZrtpConstants.SupportedPubKeys.EC38) {
 
-            ecKeyPair = pubKey.ecKeyPairGen.generateKeyPair();
+            ecKeyPair = pubKey.keyPairGen.generateKeyPair();
             byte[] encoded = ((ECPublicKeyParameters) ecKeyPair.getPublic()).getQ().getEncoded();
             pubKeyBytes = new byte[pubKey.pubKeySize];
             System.arraycopy(encoded, 1, pubKeyBytes, 0, pubKey.pubKeySize);
         }
         else if (pubKey == ZrtpConstants.SupportedPubKeys.E255) {
-            ecKeyPair = pubKey.ecKeyPairGen.generateKeyPair();
+            ecKeyPair = pubKey.keyPairGen.generateKeyPair();
             pubKeyBytes = ((Djb25519PublicKeyParameters)ecKeyPair.getPublic()).getP();
         }
         else {
@@ -1596,18 +1580,18 @@ public class ZRtp {
             System.arraycopy(pvrBytes, 0, encoded, 1, pvrBytes.length);
             ECPoint point = pubKey.curve.decodePoint(encoded);
             dhSize = pubKey.pubKeySize / 2;
-            pubKey.ecdhContext.init(ecKeyPair.getPrivate());
-            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(new ECPublicKeyParameters(point, null));
+            pubKey.dhContext.init(ecKeyPair.getPrivate());
+            BigIntegerCrypto bi = pubKey.dhContext.calculateAgreement(new ECPublicKeyParameters(point, null));
             DHss = bi.toByteArray();
-            pubKey.ecdhContext.clear();
+            pubKey.dhContext.clear();
             bi.zeroize(); // clear secret big integer data
         }
         else if (pubKey == ZrtpConstants.SupportedPubKeys.E255) {
             dhSize = pubKey.pubKeySize;
-            pubKey.ecdhContext.init(ecKeyPair.getPrivate());
-            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(new Djb25519PublicKeyParameters(pvrBytes));
+            pubKey.dhContext.init(ecKeyPair.getPrivate());
+            BigIntegerCrypto bi = pubKey.dhContext.calculateAgreement(new Djb25519PublicKeyParameters(pvrBytes));
             DHss = bi.toByteArray();
-            pubKey.ecdhContext.clear();
+            pubKey.dhContext.clear();
             bi.zeroize(); // clear secret big integer data
         }
         else {
@@ -1719,18 +1703,18 @@ public class ZRtp {
             System.arraycopy(pviBytes, 0, encoded, 1, pviBytes.length);
             ECPoint pubPoint = pubKey.curve.decodePoint(encoded);
             dhSize = pubKey.pubKeySize / 2;
-            pubKey.ecdhContext.init(ecKeyPair.getPrivate());
-            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(new ECPublicKeyParameters(pubPoint, null));
+            pubKey.dhContext.init(ecKeyPair.getPrivate());
+            BigIntegerCrypto bi = pubKey.dhContext.calculateAgreement(new ECPublicKeyParameters(pubPoint, null));
             DHss = bi.toByteArray();
-            pubKey.ecdhContext.clear();
+            pubKey.dhContext.clear();
             bi.zeroize(); // clear secret big integer data
         }
         else if (pubKey == ZrtpConstants.SupportedPubKeys.E255) {
             dhSize = pubKey.pubKeySize;
-            pubKey.ecdhContext.init(ecKeyPair.getPrivate());
-            BigIntegerCrypto bi = pubKey.ecdhContext.calculateAgreement(new Djb25519PublicKeyParameters(pviBytes));
+            pubKey.dhContext.init(ecKeyPair.getPrivate());
+            BigIntegerCrypto bi = pubKey.dhContext.calculateAgreement(new Djb25519PublicKeyParameters(pviBytes));
             DHss = bi.toByteArray();
-            pubKey.ecdhContext.clear();
+            pubKey.dhContext.clear();
             bi.zeroize(); // clear secret big integer data
         }
         else {

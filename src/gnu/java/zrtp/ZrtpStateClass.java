@@ -494,9 +494,11 @@ public class ZrtpStateClass {
                     HelloPacketVersion hpv[] = parent.helloPackets;
 
                     int index;
+                    //noinspection StatementWithEmptyBody
                     for (index = 0; index < ZRtp.MAX_ZRTP_VERSIONS && hpv[index].packet != parent.currentHelloPacket; index++)   // Find current sent Hello
                         ;
 
+                    //noinspection StatementWithEmptyBody
                     for(; index >= 0 && hpv[index].version > recvVersion; index--)   // find a supported version less-equal to received version
                         ;
 
@@ -889,7 +891,7 @@ public class ZrtpStateClass {
      *   start any timer, we are Responder.
      */
     protected void evWaitCommit() {
-        char first, last;
+        char first;
         byte[] pkt;
         ZrtpCodes.ZrtpErrorCodes[] errorCode = new ZrtpCodes.ZrtpErrorCodes[1];
 
@@ -903,8 +905,6 @@ public class ZrtpStateClass {
 
             first = (char) pkt[MESSAGE_OFFSET];
             first = Character.toLowerCase(first);
-            last = (char) pkt[MESSAGE_OFFSET + 4];
-            last = Character.toLowerCase(last);
 
             
             /*
@@ -1189,7 +1189,7 @@ public class ZrtpStateClass {
      */
     protected void evWaitDHPart2() {
 
-        char first, last;
+        char first;
         byte[] pkt;
         ZrtpCodes.ZrtpErrorCodes[] errorCode = new ZrtpCodes.ZrtpErrorCodes[1];
 
@@ -1203,9 +1203,7 @@ public class ZrtpStateClass {
 
             first = (char) pkt[MESSAGE_OFFSET];
             first = Character.toLowerCase(first);
-            last = (char) pkt[MESSAGE_OFFSET + 7];
-            last = Character.toLowerCase(last);
-            
+
             /*
              * Commit:
              * - resend DHPart1
@@ -1459,7 +1457,7 @@ public class ZrtpStateClass {
      */
     protected void evWaitConfAck() {
 
-        char first, last;
+        char first;
         byte[] pkt;
 
         /*
@@ -1472,8 +1470,6 @@ public class ZrtpStateClass {
 
             first = (char) pkt[MESSAGE_OFFSET];
             first = Character.toLowerCase(first);
-            last = (char) pkt[MESSAGE_OFFSET + 7];
-            last = Character.toLowerCase(last);
 
             /*
              * ConfAck: - Switch off resending Confirm2 - switch to SecureState
@@ -1644,12 +1640,7 @@ public class ZrtpStateClass {
                 sendFailed(); // returns to state Initial
                 return false;
             }
-            if (nextTimer(t2) <= 0) {
-                // returns to state initial
-                // timerFailed(ZrtpCodes.SevereCodes.SevereTooMuchRetries);
-                return false;
-            }
-            return true;
+            return nextTimer(t2) > 0;
         default: // unknown Event type for this state (covers Error and close)
             break;
         }
@@ -1767,8 +1758,6 @@ public class ZrtpStateClass {
      * 
      * This functions clears data and sets the state to Initial after the engine
      * detected a problem while sending a ZRTP packet.
-     * 
-     * @return Fail code
      */
     private void sendFailed() {
         sentPacket = null;
@@ -1785,8 +1774,6 @@ public class ZrtpStateClass {
      * 
      * @param subCode defines the reason why the timer failed, either no
      *        timer available (resource) or retry count failed.
-     * 
-     * @return Fail code
      */
     private void timerFailed(ZrtpCodes.SevereCodes subCode) {
         sentPacket = null;
@@ -1824,10 +1811,9 @@ public class ZrtpStateClass {
      *
      * Get the SAS relay packet and send it. It stores the
      * packet in the sentPacket variable to enable resending. The
-     * method switches to secure substate WaitSasRelayAck.
+     * method switches to secure sub-state WaitSasRelayAck.
      * 
-     * @param errorCode Is the sub error code of ZrtpError. The method sends
-     *   the value of this sub code to the peer.
+     * @param relay The relay packet to send
      */
     protected void sendSASRelay(ZrtpPacketSASRelay relay) {
         cancelTimer();

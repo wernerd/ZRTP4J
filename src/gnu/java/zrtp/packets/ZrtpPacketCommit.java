@@ -165,6 +165,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
         return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET, HMAC_SIZE);
     }
 
+    @SuppressWarnings("unused")
     public final byte[] getHMACMulti() {
         return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET-4*ZRTP_WORD_SIZE, HMAC_SIZE);
     }
@@ -222,7 +223,7 @@ public class ZrtpPacketCommit extends ZrtpPacketBase {
      * 
      * The Commit packet for multi-stream mode contains a nonce instead of the hvi
      * and is 4 words shorter. Thus we need to do a resize of the packet buffer
-     * and an adjustement of the length.
+     * and an adjustment of the length.
      */
     public final void setNonce(final byte[] data) {
         byte[] temp = new byte[COMMIT_LENGTH-4*ZRTP_WORD_SIZE];

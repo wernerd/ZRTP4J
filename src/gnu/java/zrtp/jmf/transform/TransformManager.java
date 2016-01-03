@@ -43,15 +43,10 @@ public class TransformManager
             byte[] masterKey, byte[] masterSalt, SRTPPolicy srtpPolicy,
             SRTPPolicy srtcpPolicy)
             throws InvalidSessionAddressException {
-        SRTPTransformEngine engine = null;
-
-        engine = new SRTPTransformEngine(masterKey, masterSalt, srtpPolicy,
+        SRTPTransformEngine engine = new SRTPTransformEngine(masterKey, masterSalt, srtpPolicy,
                 srtcpPolicy);
 
-        TransformConnector connector = null;
-        connector = new TransformConnector(addr, engine);
-
-        return connector;
+        return new TransformConnector(addr, engine);
     }
 
     /**
@@ -67,8 +62,7 @@ public class TransformManager
     {
         ZRTPTransformEngine engine = new ZRTPTransformEngine();
 
-        TransformConnector connector = null;
-        connector = new ZrtpTransformConnector(addr, engine);
+        TransformConnector connector = new ZrtpTransformConnector(addr, engine);
 
         engine.setConnector(connector);
         return connector;

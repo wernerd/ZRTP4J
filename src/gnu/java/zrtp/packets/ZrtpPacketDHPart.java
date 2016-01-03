@@ -68,6 +68,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
      * 
      * @param pkt type of DH key agreement to use
      */
+    @SuppressWarnings("unused")
     public ZrtpPacketDHPart(final ZrtpConstants.SupportedPubKeys pkt) {
         super(null);
         setPubKeyType(pkt);
@@ -142,7 +143,7 @@ public class ZrtpPacketDHPart extends ZrtpPacketBase {
     public final byte[] getRs2Id() { 
         return ZrtpUtils.readRegion(packetBuffer, RS2ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }
-        
+
     public final byte[] getAuxSecretId() {
         return ZrtpUtils.readRegion(packetBuffer, S3_ID_OFFSET, 2*ZRTP_WORD_SIZE);
     }

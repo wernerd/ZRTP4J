@@ -19,9 +19,8 @@
 
 package gnu.java.zrtp.packets;
 
-import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.ZrtpConfigure;
-import gnu.java.zrtp.ZrtpConstants.SupportedPubKeys;
+import gnu.java.zrtp.ZrtpConstants;
 import gnu.java.zrtp.utils.ZrtpUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -177,7 +176,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
     }
 
     public final void setClientId(final String text) {
-        byte[] data = null;
+        byte[] data;
         try {
             data = text.getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -274,6 +273,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
      * @param data The data to compare against.
      * @return true if data matches the packet version data, false other wise.
      */
+    @SuppressWarnings("unused")
     public final boolean isSameVersion(final byte[] data) {
         for (int i = 0; i < ZRTP_WORD_SIZE; i++) {
             if (packetBuffer[VERSION_OFFSET+i] != data[i]) {
@@ -313,12 +313,10 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         boolean mandatoryFound = false;
         
         int numAlgosOffered = nHash;
-        ArrayList<ZrtpConstants.SupportedHashes> algosOffered = 
-                        new ArrayList<ZrtpConstants.SupportedHashes>(numAlgosOffered+1);
+        ArrayList<ZrtpConstants.SupportedHashes> algosOffered = new ArrayList<>(numAlgosOffered+1);
 
         int numAlgosConf = config.getNumConfiguredHashes();
-        ArrayList<ZrtpConstants.SupportedHashes> algosConf = 
-                        new ArrayList<ZrtpConstants.SupportedHashes>(numAlgosConf+1);
+        ArrayList<ZrtpConstants.SupportedHashes> algosConf = new ArrayList<>(numAlgosConf+1);
 
         // Build a list of configured hashes, appending a mandatory algo if 
         // necessary
@@ -370,12 +368,10 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         boolean mandatoryFound = false;
         
         int numAlgosOffered = nCipher;
-        ArrayList<ZrtpConstants.SupportedSymCiphers> algosOffered = 
-            new ArrayList<ZrtpConstants.SupportedSymCiphers>(numAlgosOffered+1);
+        ArrayList<ZrtpConstants.SupportedSymCiphers> algosOffered = new ArrayList<>(numAlgosOffered+1);
 
         int numAlgosConf = config.getNumConfiguredSymCiphers();
-        ArrayList<ZrtpConstants.SupportedSymCiphers> algosConf = 
-            new ArrayList<ZrtpConstants.SupportedSymCiphers>(numAlgosConf+1);
+        ArrayList<ZrtpConstants.SupportedSymCiphers> algosConf = new ArrayList<>(numAlgosConf+1);
 
         // Build a list of configured ciphers, appending a mandatory algo if 
         // necessary
@@ -448,11 +444,9 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
             ZrtpConstants.SupportedPubKeys.EC38 };
 
         int numAlgosConf = config.getNumConfiguredPubKeys();
-        ArrayList<ZrtpConstants.SupportedPubKeys> algosPeerIntersect = 
-                        new ArrayList<ZrtpConstants.SupportedPubKeys>(numAlgosConf+1);
+        ArrayList<ZrtpConstants.SupportedPubKeys> algosPeerIntersect = new ArrayList<>(numAlgosConf+1);
 
-        ArrayList<ZrtpConstants.SupportedPubKeys> algosOwnIntersect = 
-                        new ArrayList<ZrtpConstants.SupportedPubKeys>(numAlgosConf+1);
+        ArrayList<ZrtpConstants.SupportedPubKeys> algosOwnIntersect = new ArrayList<>(numAlgosConf+1);
 
         // Build our own intersection list ordered according to our sequence
         // The list must include real public key algorithms only, so skip
@@ -529,7 +523,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return useAlgo;        
     }
 
-    private final ZrtpConstants.SupportedHashes getStrongHashOffered() {
+    private ZrtpConstants.SupportedHashes getStrongHashOffered() {
         byte[] s = ZrtpConstants.SupportedHashes.S384.name;
         for (int i = 0; i < nHash; i++) {
             int o = oHash + (i * ZRTP_WORD_SIZE);
@@ -541,7 +535,7 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         return null;
     }
 
-    private final ZrtpConstants.SupportedSymCiphers getStrongCipherOffered() {
+    private ZrtpConstants.SupportedSymCiphers getStrongCipherOffered() {
 
         byte[] aes3 = ZrtpConstants.SupportedSymCiphers.AES3.name;
         byte[] two3 = ZrtpConstants.SupportedSymCiphers.TWO3.name;
@@ -567,12 +561,10 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         boolean mandatoryFound = false;
         
         int numAlgosOffered = nSas;
-        ArrayList<ZrtpConstants.SupportedSASTypes> algosOffered = 
-            new ArrayList<ZrtpConstants.SupportedSASTypes>(numAlgosOffered+1);
+        ArrayList<ZrtpConstants.SupportedSASTypes> algosOffered = new ArrayList<>(numAlgosOffered+1);
 
         int numAlgosConf = config.getNumConfiguredSasTypes();
-        ArrayList<ZrtpConstants.SupportedSASTypes> algosConf = 
-            new ArrayList<ZrtpConstants.SupportedSASTypes>(numAlgosConf+1);
+        ArrayList<ZrtpConstants.SupportedSASTypes> algosConf = new ArrayList<>(numAlgosConf+1);
 
         // Build a list of configured hashes, appending a mandatory algo if 
         // necessary
@@ -626,11 +618,11 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
         
         int numAlgosOffered = nAuth;
         ArrayList<ZrtpConstants.SupportedAuthLengths> algosOffered = 
-            new ArrayList<ZrtpConstants.SupportedAuthLengths>(numAlgosOffered+1);
+            new ArrayList<>(numAlgosOffered+1);
 
         int numAlgosConf = config.getNumConfiguredAuthLengths();
         ArrayList<ZrtpConstants.SupportedAuthLengths> algosConf = 
-            new ArrayList<ZrtpConstants.SupportedAuthLengths>(numAlgosConf+1);
+            new ArrayList<>(numAlgosConf+1);
 
         // Build a list of configured hashes, appending a mandatory algo if 
         // necessary
@@ -704,26 +696,6 @@ public class ZrtpPacketHello extends ZrtpPacketBase {
             }
         }
         return false;
-    }
-    
-    public final int getNAuth() {
-        return nAuth;
-    }
-
-    public final int getNCipher() {
-        return nCipher;
-    }
-
-    public final int getNHash() {
-        return nHash;
-    }
-
-    public final int getNPubkey() {
-        return nPubkey;
-    }
-
-    public final int getNSas() {
-        return nSas;
     }
 
 /* ***

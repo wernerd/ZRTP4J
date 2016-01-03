@@ -52,13 +52,10 @@ public class TransformOutputStream
      * @param socket UDP socket used to send packet data out
      * @param transformer PacketTransformer used to transform RTP/RTCP packets
      */
-    public TransformOutputStream(DatagramSocket socket,
-                                 PacketTransformer transformer)
-    {
-        this.socket = socket;
+    public TransformOutputStream(DatagramSocket socket, PacketTransformer transformer) { this.socket = socket;
         this.transformer = transformer;
-        this.remoteAddrs = new Vector<InetAddress>();
-        this.remotePorts = new Vector<Integer>();
+        this.remoteAddrs = new Vector<>();
+        this.remotePorts = new Vector<>();
     }
 
     /**
@@ -67,10 +64,9 @@ public class TransformOutputStream
      * @param remoteAddr target ip address
      * @param remotePort target port
      */
-    public void addTarget(InetAddress remoteAddr, int remotePort)
-    {
+    public void addTarget(InetAddress remoteAddr, int remotePort) {
         remoteAddrs.add(remoteAddr);
-        remotePorts.add(new Integer(remotePort));
+        remotePorts.add(remotePort);
     }
 
     /**
@@ -81,11 +77,10 @@ public class TransformOutputStream
      * @return true if the target is in stream target list and can be removed
      *         false if not
      */
-    public boolean removeTarget(InetAddress remoteAddr, int remotePort)
-    {
-        boolean ok = true;
-        ok = ok && remoteAddrs.remove(remoteAddr);
-        ok = ok && remoteAddrs.remove(new Integer(remotePort));
+    public boolean removeTarget(InetAddress remoteAddr, int remotePort) {
+        boolean ok;
+        ok = remoteAddrs.remove(remoteAddr);
+        ok = ok && remotePorts.remove(new Integer(remotePort));
 
         return ok;
     }
@@ -93,8 +88,7 @@ public class TransformOutputStream
     /**
      * Remove all stream targets from this session.
      */
-    public void removeTargets()
-    {
+    public void removeTargets() {
         remoteAddrs.removeAllElements();
         remotePorts.removeAllElements();
     }
@@ -103,13 +97,11 @@ public class TransformOutputStream
      * @see javax.media.rtp.OutputDataStream#write(byte[], int, int)
      */
     public int write(byte[] buffer, int offset, int length) {
-        // Transformation could be non-inplace, we shall not modify the the old
-        // buffer
-        RawPacket pkt = transformer.transform(new RawPacket(buffer,
-                offset, length));
+        // Transformation could be non-inplace, we shall not modify the the old buffer
+        RawPacket pkt = transformer.transform(new RawPacket(buffer, offset, length));
         for (int i = 0; i < remoteAddrs.size(); ++i) {
             InetAddress remoteAddr = remoteAddrs.elementAt(i);
-            int remotePort = (remotePorts.elementAt(i)).intValue();
+            int remotePort = remotePorts.elementAt(i);
 
             try {
                 this.socket.send(new DatagramPacket(pkt.getBuffer(), pkt
@@ -119,7 +111,6 @@ public class TransformOutputStream
                 return -1;
             }
         }
-
         // yes, we should return the pre-transformed packet length
         return length;
     }

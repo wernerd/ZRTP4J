@@ -90,7 +90,7 @@ public class RawPacket
      */
     public int readInt(int off)
     {
-        return (this.buffer[this.offset + off + 0] << 24) |
+        return (this.buffer[this.offset + off] << 24) |
                ((this.buffer[this.offset + off + 1] & 0xff) << 16) |
                ((this.buffer[this.offset + off + 2] & 0xff) << 8)  |
                 (this.buffer[this.offset + off + 3] & 0xff);
@@ -102,9 +102,10 @@ public class RawPacket
      * @param off start offset of this short
      * @return short value at offset
      */
+    @SuppressWarnings("unused")
     public short readShort(int off)
     {
-        return (short) ((this.buffer[this.offset + off + 0] << 8) |
+        return (short) ((this.buffer[this.offset + off] << 8) |
                         (this.buffer[this.offset + off + 1] & 0xff));
     }
     
@@ -116,10 +117,9 @@ public class RawPacket
      */
     public int readUnsignedShortAsInt(int off)
     {
-        int b1 = (0x000000FF & (this.buffer[this.offset + off + 0]));
+        int b1 = (0x000000FF & (this.buffer[this.offset + off]));
         int b2 = (0x000000FF & (this.buffer[this.offset + off + 1]));
-        int val = b1 << 8 | b2;
-        return val;
+        return b1 << 8 | b2;
     }
 
     /**
@@ -141,7 +141,7 @@ public class RawPacket
      */
     public long readUnsignedIntAsLong(int off)
     {
-        int b0 = (0x000000FF & (this.buffer[this.offset + off + 0]));
+        int b0 = (0x000000FF & (this.buffer[this.offset + off]));
         int b1 = (0x000000FF & (this.buffer[this.offset + off + 1]));
         int b2 = (0x000000FF & (this.buffer[this.offset + off + 2]));
         int b3 = (0x000000FF & (this.buffer[this.offset + off + 3]));

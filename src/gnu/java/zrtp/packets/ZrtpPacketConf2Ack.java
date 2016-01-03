@@ -56,6 +56,7 @@ public class ZrtpPacketConf2Ack extends ZrtpPacketBase {
      * 
      * @param data received from the network.
      */
+    @SuppressWarnings("unused")
     public ZrtpPacketConf2Ack(final byte[] data) {
         super(data);
     }

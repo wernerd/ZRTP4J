@@ -19,6 +19,7 @@
 
 package gnu.java.zrtp.packets;
 
+import com.sun.istack.internal.NotNull;
 import gnu.java.zrtp.utils.ZrtpUtils;
 
 /**
@@ -87,18 +88,18 @@ public class ZrtpPacketBase {
      * 
      * @return true if packet buffer contains ZRTP id, false otherwise.
      */
+    @SuppressWarnings("unused")
     public final boolean isZrtpPacket() {
-        if (packetBuffer[0] == zrtpId[0] && packetBuffer[1] == zrtpId[1]) {
-            return (true);
-        }
-        return false;
+        return packetBuffer[0] == zrtpId[0] && packetBuffer[1] == zrtpId[1];
     }
     
     public final short getLength() { 
         return ZrtpUtils.readShort(packetBuffer, LENGTH_OFFSET);
     }
-    
-    public final String getMessageType() { 
+
+    @SuppressWarnings("unused")
+    @NotNull
+    public final String getMessageType() {
         return new String(packetBuffer, TYPE_OFFSET, TYPE_LENGTH); 
     }
 

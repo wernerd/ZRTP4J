@@ -56,6 +56,7 @@ public class ZrtpPacketRelayAck extends ZrtpPacketBase {
      * 
      * @param data received from the network.
      */
+    @SuppressWarnings("unused")
     public ZrtpPacketRelayAck(final byte[] data) {
         super(data);
     }

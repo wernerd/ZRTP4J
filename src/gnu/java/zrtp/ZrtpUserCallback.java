@@ -56,7 +56,6 @@ public class ZrtpUserCallback {
      *    Name and mode of cipher used to encrypt the SRTP stream
      */
     public void secureOn(String cipher) {
-        return;
     }
     /**
      * Inform user interface that security is not active any more.
@@ -66,7 +65,6 @@ public class ZrtpUserCallback {
      *
      */
     public void secureOff() {
-        return;
     }
 
     /**
@@ -84,7 +82,6 @@ public class ZrtpUserCallback {
      *    parties during a previous call, otherwise it is set to false.
      */
     public void showSAS(String sas, boolean verified) {
-        return;
     }
 
     /**
@@ -94,8 +91,8 @@ public class ZrtpUserCallback {
      * a switch to unsecure (clear) modus. Until the user confirms ZRTP
      * (and the underlying RTP) does not send any data.
      */
+    @SuppressWarnings("unused")
     public void confirmGoClear() {
-        return;
     }
 
     /**
@@ -118,10 +115,9 @@ public class ZrtpUserCallback {
      * @param subCode
      *     The subcode identifying the reason.
      *
-     * @see gnu.java.zrtp.ZrtpCodes#MessageSeverity
+     * @see gnu.java.zrtp.ZrtpCodes.MessageSeverity
      */
     public void showMessage(ZrtpCodes.MessageSeverity sev, EnumSet<?> subCode) {
-        return;
     }
 
     /**
@@ -136,9 +132,7 @@ public class ZrtpUserCallback {
      * @param subCode
      *     The subcode identifying the reason.
      */
-    public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity,
-                                       EnumSet<?> subCode) {
-        return;
+    public void zrtpNegotiationFailed(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode) {
     }
 
     /**
@@ -149,7 +143,6 @@ public class ZrtpUserCallback {
      *
      */
     public void zrtpNotSuppOther() {
-        return;
     }
 
     /**
@@ -164,7 +157,6 @@ public class ZrtpUserCallback {
      *
      */
     public void zrtpAskEnrollment(ZrtpCodes.InfoEnrollment info) {
-        return;
     }
 
     /**
@@ -179,7 +171,6 @@ public class ZrtpUserCallback {
      *
      */
     public void zrtpInformEnrollment(ZrtpCodes.InfoEnrollment info) {
-        return;
     }
 
     /**
@@ -204,7 +195,6 @@ public class ZrtpUserCallback {
      *
      */
     public void signSAS(byte[] sasHash) {
-        return;
     }
 
     /**

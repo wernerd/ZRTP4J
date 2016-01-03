@@ -54,6 +54,7 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
         setSignatureLength(0);
     }
 
+    @SuppressWarnings("unused")
     public ZrtpPacketConfirm(final int sl) {
         super(null);
         setSignatureLength(sl);
@@ -105,7 +106,8 @@ public class ZrtpPacketConfirm extends ZrtpPacketBase {
     public final byte[] getHmac() {
         return ZrtpUtils.readRegion(packetBuffer, HMAC_OFFSET, 2*ZRTP_WORD_SIZE);
     }
-        
+
+    @SuppressWarnings("unused")
     public final int getExpTime() {
         return ZrtpUtils.readInt(packetBuffer, EXP_TIME_OFFSET);
     }

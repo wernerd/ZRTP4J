@@ -69,6 +69,7 @@ public class ZrtpPacketPingAck extends ZrtpPacketBase {
      * 
      * @param data received from the network.
      */
+    @SuppressWarnings("unused")
     public ZrtpPacketPingAck(final byte[] data) {
         super(data);
     }
@@ -78,7 +79,8 @@ public class ZrtpPacketPingAck extends ZrtpPacketBase {
      * 
      * @return the endpoint hash.
      */
-    public final byte[] getRemoteEpHash() { 
+    @SuppressWarnings("unused")
+    public final byte[] getRemoteEpHash() {
         return ZrtpUtils.readRegion(packetBuffer, REMOTE_EP_OFFSET, 2*ZRTP_WORD_SIZE);
     }
 
@@ -95,7 +97,8 @@ public class ZrtpPacketPingAck extends ZrtpPacketBase {
      * 
      * @return the endpoint hash.
      */
-    public final byte[] getLocalEpHash() { 
+    @SuppressWarnings("unused")
+    public final byte[] getLocalEpHash() {
         return ZrtpUtils.readRegion(packetBuffer, LOCAL_EP_OFFSET, 2*ZRTP_WORD_SIZE);
     }
     
@@ -115,7 +118,7 @@ public class ZrtpPacketPingAck extends ZrtpPacketBase {
         ZrtpUtils.int32ToArrayInPlace(data, packetBuffer, PEER_SSRC_OFFSET);
     }
     
-    private final void setVersion(final byte[] data) {
+    private void setVersion(final byte[] data) {
         System.arraycopy(data, 0, packetBuffer, VERSION_OFFSET, ZRTP_WORD_SIZE);
     }
 }

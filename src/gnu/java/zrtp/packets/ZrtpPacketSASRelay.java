@@ -56,6 +56,7 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
         setMessageType(ZrtpConstants.SASRelayMsg);
     }
 
+    @SuppressWarnings("unused")
     public ZrtpPacketSASRelay(final int sl) {
         super(null);
         setSignatureLength(sl);
@@ -96,7 +97,8 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
         }
     }
 
-    
+
+    @SuppressWarnings("unused")
     public final boolean isSASFlag() {
         return ((packetBuffer[FLAGS_OFFSET] & 0x4) == 0x4); 
     }
@@ -131,11 +133,13 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
         int length = (getLength() - 9) * ZRTP_WORD_SIZE;
         return ZrtpUtils.readRegion(packetBuffer, FILLER_OFFSET, length);
     }
-    
+
+    @SuppressWarnings("unused")
     public final byte[] getSignatureData() {
         return ZrtpUtils.readRegion(packetBuffer, SIG_DATA_OFFSET, signatureLength);
     }
-    
+
+    @SuppressWarnings("unused")
     public final int getSignatureLength() {
         return signatureLength;
     }
@@ -147,6 +151,7 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
     /*
      * Setter methods
      */
+    @SuppressWarnings("unused")
     public final void setSASFlag() {
         packetBuffer[FLAGS_OFFSET] |= 0x4; 
     }
@@ -173,6 +178,7 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
         System.arraycopy(data, 0, packetBuffer, FILLER_OFFSET, length);
     }
 
+    @SuppressWarnings("unused")
     public final void setSignatureData(final byte[] data) {
         if (data.length > signatureLength) {
             return;                                 // TODO throw exception here?
@@ -181,22 +187,22 @@ public class ZrtpPacketSASRelay extends ZrtpPacketBase {
     }
     
 //    /* ***
-    public static void main(String[] args) {
-        ZrtpPacketSASRelay pkt = new ZrtpPacketSASRelay(0);
-        System.err.println("SAS relay length: " + pkt.getLength());
-        pkt.setSASFlag();
-        
-        System.err.println("packetBuffer length in bytes: " + pkt.getHeaderBase().length);
-        ZrtpUtils.hexdump("SAS relay packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
-
-        pkt = new ZrtpPacketSASRelay();
-        pkt.setSignatureLength(150);
-        System.err.println("SAS Relay length: " + pkt.getLength());
-        pkt.setSASFlag();
-        
-        System.err.println("packetBuffer length in bytes: " + pkt.getHeaderBase().length);
-        System.err.println("Signature length in words: " + pkt.getSignatureLength());
-        ZrtpUtils.hexdump("SAS relay packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
-    }
+//    public static void main(String[] args) {
+//        ZrtpPacketSASRelay pkt = new ZrtpPacketSASRelay(0);
+//        System.err.println("SAS relay length: " + pkt.getLength());
+//        pkt.setSASFlag();
+//
+//        System.err.println("packetBuffer length in bytes: " + pkt.getHeaderBase().length);
+//        ZrtpUtils.hexdump("SAS relay packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
+//
+//        pkt = new ZrtpPacketSASRelay();
+//        pkt.setSignatureLength(150);
+//        System.err.println("SAS Relay length: " + pkt.getLength());
+//        pkt.setSASFlag();
+//
+//        System.err.println("packetBuffer length in bytes: " + pkt.getHeaderBase().length);
+//        System.err.println("Signature length in words: " + pkt.getSignatureLength());
+//        ZrtpUtils.hexdump("SAS relay packet", pkt.getHeaderBase(), pkt.getHeaderBase().length);
+//    }
 //    *** */
 }
