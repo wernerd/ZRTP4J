@@ -250,6 +250,7 @@ public class ZidFile {
         // If we reached end of file, then no record with matching ZID
         // found. We need to create a new ZID record.
         if (!numRead) {
+            rec = new ZidRecord();
             rec.setIdentifier(zid);
             rec.setValid();
             try {
